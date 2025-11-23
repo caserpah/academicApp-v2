@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+/* Opcional: Puedes usar @theme para personalizar en v4.1 */
+/*
+@import "tailwindcss";
+@theme {
+  --color-primary: 34 197 94; // Tailwind's 'emerald-500'
+}
+*/
