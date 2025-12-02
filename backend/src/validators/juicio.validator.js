@@ -4,105 +4,147 @@ import {
     validarCampoOpcionalRequerido,
     verificarExistenciaPorId,
 } from "../utils/dbUtils.js";
-import { validarNotas } from "../utils/validarNotas.js";
+
+import { Grado } from "../models/grado.js";
+import { Dimension } from "../models/dimension.js";
+import { Desempeno } from "../models/desempeno.js";
 import { Asignatura } from "../models/asignatura.js";
 import { Juicio } from "../models/juicio.js";
-
-// Grados de preescolar permitidos
-const GRADOS_PREESCOLAR = ["PRE_JARDIN", "JARDIN", "TRANSICION"];
+import { ConfigGrado } from "../models/config_grado.js";
 
 /**
- * Validación de periodo según grado
+ * Helper: identificar asignatura COMPORTAMIENTO
  */
-function validarPeriodoPorGrado() {
-    return body("periodo").custom((value, { req }) => {
-        const grado = req.body.grado;
+const esAsignaturaComportamiento = (asignatura) =>
+    asignatura?.nombre?.toUpperCase() === " COMPORTAMIENTO" ||
+    asignatura?.nombre?.toUpperCase() === "COMPORTAMIENTO";
 
-        if (!grado) return true;
-
-        // Ciclo V → solo periodos 1 y 2
-        if (grado === "CICLO_V" && ![1, 2].includes(Number(value))) {
-            throw new Error("El Ciclo V solo pueden registrar juicios para los periodos 1 y 2.");
-        }
-
-        // Ciclo VI → solo periodos 3 y 4
-        if (grado === "CICLO_VI" && ![3, 4].includes(Number(value))) {
-            throw new Error("El Ciclo VI solo pueden registrar juicios para los periodos 3 y 4.");
-        }
-        return true;
+async function obtenerConfigGrado(gradoId) {
+    const grado = await Grado.findByPk(gradoId, {
+        include: [{
+            model: ConfigGrado,
+            as: "configuracion"
+        }],
     });
+
+    if (!grado) throw new Error("El grado seleccionado no existe.");
+
+    if (!grado.configuracion) {
+        throw new Error("No existe configuración académica para el grado seleccionado.");
+    }
+
+    return { grado, config: grado.configuracion };
 }
 
 // Validar crear juicio
 export const ValidarCrearJuicio = [
-    validarCampoRequerido("tipo", "Especifique el tipo de juicio.")
-        .isIn(["CUANTITATIVO", "CUALITATIVO"])
-        .withMessage("El tipo de juicio no es valido."),
+    validarCampoRequerido("gradoId", "Seleccione el grado al que pertenece el juicio.")
+        .isInt({ min: 1 })
+        .withMessage("El grado seleccionado no es válido.")
+        .bail()
+        .custom(verificarExistenciaPorId(Grado, "id", "el grado")),
 
-    validarCampoRequerido("grado", "Seleccione el grado al que pertenece el juicio.")
-        .isIn([
-            "PRE_JARDIN", "JARDIN", "TRANSICION",
-            "PRIMERO", "SEGUNDO", "TERCERO", "CUARTO", "QUINTO",
-            "SEXTO", "SEPTIMO", "OCTAVO", "NOVENO", "DECIMO", "ONCE",
-            "CICLO_III", "CICLO_IV", "CICLO_V", "CICLO_VI"
-        ])
-        .withMessage("El grado no es valido."),
+    validarCampoRequerido("asignaturaId", "Seleccione la asignatura a la que pertenece el juicio.")
+        .isInt({ min: 1 })
+        .withMessage("La asignatura seleccionada no es válida.")
+        .bail()
+        .custom(verificarExistenciaPorId(Asignatura, "id", "la asignatura")),
 
     validarCampoRequerido("periodo", "Seleccione el periodo académico al que pertenece el juicio.")
         .isInt({ min: 1, max: 4 })
-        .withMessage("El periodo académico debe estar entre 1 y 4."),
-    validarPeriodoPorGrado(),
+        .withMessage("El periodo académico debe estar entre 1 y 4.")
+        .bail()
+        .custom(async (value, { req }) => {
+            const gradoId = req.body.gradoId;
+            if (!gradoId) return true;
 
-    validarCampoRequerido("dimension", "Seleccione la dimensión del juicio.")
-        .isIn(["ACADEMICA", "LABORAL", "SOCIAL", "ACUMULATIVA"])
-        .withMessage("El valor de la dimensión no es valida."),
+            const { config } = await obtenerConfigGrado(gradoId);
+            const permitidos = config.periodosPermitidos || [];
+
+            if (!permitidos.includes(Number(value))) {
+                throw new Error(
+                    `El grado seleccionado solo puede registrar juicios para los periodos: ${permitidos.join(", ")}.`
+                );
+            }
+            return true;
+        }),
 
     validarCampoRequerido("texto", "Ingrese la descripción del juicio.")
-        .isLength({ min: 10 }).withMessage("La descripción del juicio debe tener al menos 10 caracteres."),
+        .isLength({ min: 10 })
+        .withMessage("La descripción del juicio debe tener al menos 10 caracteres."),
 
-    /** Desempeño obligatorio solo en preescolar */
-    body("desempeno")
-        .custom((value, { req }) => {
+    // dimensionId: requerido excepto COMPORTAMIENTO
+    body("dimensionId")
+        .custom(async (value, { req }) => {
+            const asignaturaId = req.body.asignaturaId;
+            if (!asignaturaId) return true;
 
-            const grado = (req.body.grado || "").toUpperCase();
+            const asignatura = await Asignatura.findByPk(asignaturaId);
+            const esComportamiento = asignatura.nombre.toUpperCase() === "COMPORTAMIENTO";
 
-            if (GRADOS_PREESCOLAR.includes(grado)) {
-                if (!value ||
-                    !["BAJO", "BASICO", "ALTO", "SUPERIOR"].includes(value.toUpperCase())
-                ) {
-                    throw new Error("Debe seleccionar un desempeño válido.");
+            if (esComportamiento) {
+                // Esta asignatura NO usa dimensiones → debe venir 0
+                if (value !== 999) {
+                    throw new Error("El COMPORTAMIENTO no utiliza dimensión.");
+                }
+
+                return true;
+            }
+
+            // --- Otras asignaturas ---
+            if (!value || value <= 0) {
+                throw new Error("Debe seleccionar una dimensión válida.");
+            }
+
+            const dimension = await Dimension.findByPk(value);
+            if (!dimension) {
+                throw new Error("La dimensión seleccionada no es válida.");
+            }
+
+            return true;
+        }),
+
+    // desempeño: validado según config del grado + excepción Comportamiento
+    validarCampoRequerido("desempenoId", "Seleccione el desempeño asociado al juicio.")
+        .isInt({ min: 1 })
+        .withMessage("El desempeño seleccionado no es válido.")
+        .bail()
+        .custom(async (desempenoId, { req }) => {
+            const desempeno = await Desempeno.findByPk(desempenoId);
+            if (!desempeno) throw new Error("El desempeño seleccionado no existe.");
+
+            const gradoId = req.body.gradoId;
+            const asignaturaId = req.body.asignaturaId;
+
+            if (!gradoId || !asignaturaId) return true;
+
+            const asignatura = await Asignatura.findByPk(asignaturaId);
+            const esComp = esAsignaturaComportamiento(asignatura);
+
+            const { config } = await obtenerConfigGrado(gradoId);
+
+            const nombre = desempeno.nombre.toUpperCase();
+
+            if (config.usaDesempenosMultiples || esComp) {
+                const permitidos = ["BAJO", "BASICO", "ALTO", "SUPERIOR"];
+                if (!permitidos.includes(nombre)) {
+                    throw new Error(
+                        "Para este grado y/o asignatura el desempeño debe ser BAJO, BASICO, ALTO o SUPERIOR."
+                    );
                 }
             } else {
-                if (value && value !== "UNICO") {
-                    throw new Error("Para primaria y secundaria el desempeño debe ser 'UNICO'.");
+                if (nombre !== "UNICO") {
+                    throw new Error("Para este grado el desempeño debe ser 'UNICO'.");
                 }
             }
 
             return true;
         }),
 
-    // Validación de las notas usando el utilitario
-    body(["minNota", "maxNota"])
-        .custom((value, { req }) => {
-
-            const grado = (req.body.grado || "").toUpperCase();
-
-            // Validar notas SOLO si el grado es preescolar
-            if (GRADOS_PREESCOLAR.includes(grado)) {
-                validarNotas({
-                    minNota: req.body.minNota,
-                    maxNota: req.body.maxNota,
-                    desempeno: req.body.desempeno,
-                });
-            }
-            return true;
-        }),
-
-    validarCampoOpcionalRequerido("asignaturaId", "Seleccione la asignatura a la que pertenece el juicio.")
-        .isInt({ min: 1 })
-        .withMessage("El identificador de la asignatura no es válido.")
-        .bail()
-        .custom(verificarExistenciaPorId(Asignatura, "id", "la asignatura seleccionada")),
+    body("activo")
+        .optional()
+        .isBoolean()
+        .withMessage("El campo 'activo' debe ser verdadero o falso."),
 ];
 
 // Validar actualizar juicio
@@ -113,66 +155,115 @@ export const validarActualizarJuicio = [
         .bail()
         .custom(verificarExistenciaPorId(Juicio, "id", "el juicio")),
 
-    validarCampoOpcionalRequerido("tipo", "Especifique el tipo de juicio.")
-        .isIn(["CUANTITATIVO", "CUALITATIVO"])
-        .withMessage("El tipo de juicio no es valido."),
+    validarCampoOpcionalRequerido("gradoId", "Seleccione el grado al que pertenece el juicio.")
+        .isInt({ min: 1 })
+        .withMessage("El grado seleccionado no es válido.")
+        .bail()
+        .custom(verificarExistenciaPorId(Grado, "id", "el grado")),
 
-    validarCampoOpcionalRequerido("grado", "Seleccione el grado al que pertenece el juicio.")
-        .isIn([
-            "PRE_JARDIN", "JARDIN", "TRANSICION",
-            "PRIMERO", "SEGUNDO", "TERCERO", "CUARTO", "QUINTO",
-            "SEXTO", "SEPTIMO", "OCTAVO", "NOVENO", "DECIMO", "ONCE",
-            "CICLO_III", "CICLO_IV", "CICLO_V", "CICLO_VI"
-        ])
-        .withMessage("El grado no es valido."),
+    validarCampoOpcionalRequerido("asignaturaId", "Seleccione la asignatura a la que pertenece el juicio.")
+        .isInt({ min: 1 })
+        .withMessage("La asignatura seleccionada no es válida.")
+        .bail()
+        .custom(verificarExistenciaPorId(Asignatura, "id", "la asignatura")),
 
     validarCampoOpcionalRequerido("periodo", "Seleccione el periodo académico al que pertenece el juicio.")
         .isInt({ min: 1, max: 4 })
-        .withMessage("El periodo académico debe estar entre 1 y 4."),
-    validarPeriodoPorGrado(),
+        .withMessage("El periodo académico debe estar entre 1 y 4.")
+        .bail()
+        .custom(async (value, { req }) => {
+            if (!value) return true;
 
-    validarCampoOpcionalRequerido("dimension", "Seleccione la dimensión del juicio.")
-        .isIn(["ACADEMICA", "LABORAL", "SOCIAL", "ACUMULATIVA"])
-        .withMessage("El valor de la dimensión no es valida."),
+            const juicio = await Juicio.findByPk(req.params.id);
+            if (!juicio) return true;
+
+            const gradoId = req.body.gradoId ?? juicio.gradoId;
+            const { config } = await obtenerConfigGrado(gradoId);
+            const permitidos = config.periodosPermitidos || [];
+
+            if (!permitidos.includes(Number(value))) {
+                throw new Error(
+                    `El grado seleccionado solo puede registrar juicios para los periodos: ${permitidos.join(", ")}.`
+                );
+            }
+            return true;
+        }),
 
     validarCampoOpcionalRequerido("texto", "Ingrese la descripción del juicio.")
-        .isLength({ min: 10 }).withMessage("La descripción del juicio debe tener al menos 10 caracteres."),
+        .isLength({ min: 10 })
+        .withMessage("La descripción del juicio debe tener al menos 10 caracteres."),
 
-    /** Desempeño obligatorio solo en preescolar */
-    body("desempeno")
-        .custom((value, { req }) => {
+    // dimensionId opcional, con la misma regla de Comportamiento
+    body("dimensionId")
+        .optional()
+        .custom(async (value, { req }) => {
+            const asignaturaId = req.body.asignaturaId ?? req.existingJuicio?.asignaturaId;
+            const asignatura = await Asignatura.findByPk(asignaturaId);
 
-            const grado = (req.body.grado || "").toUpperCase();
+            if (!asignatura) return true;
 
-            if (GRADOS_PREESCOLAR.includes(grado)) {
-                if (!value ||
-                    !["BAJO", "BASICO", "ALTO", "SUPERIOR"].includes(value.toUpperCase())
-                ) {
-                    throw new Error("Debe seleccionar un desempeño válido.");
+            const esComportamiento = asignatura.nombre.toUpperCase() === "COMPORTAMIENTO";
+
+            if (esComportamiento) {
+                if (value !== 999) {
+                    throw new Error("El COMPORTAMIENTO no utiliza dimensión.");
+                }
+                return true;
+            }
+
+            if (value !== undefined && (value <= 0)) {
+                throw new Error("Debe seleccionar una dimensión válida.");
+            }
+
+            const dimension = await Dimension.findByPk(value);
+            if (!dimension) {
+                throw new Error("La dimensión seleccionada no es válida.");
+            }
+
+            return true;
+        }),
+
+    body("desempenoId")
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage("El desempeño seleccionado no es válido.")
+        .bail()
+        .custom(async (desempenoId, { req }) => {
+            if (!desempenoId) return true;
+
+            const juicio = await Juicio.findByPk(req.params.id);
+            if (!juicio) return true;
+
+            const desempeno = await Desempeno.findByPk(desempenoId);
+            if (!desempeno) throw new Error("El desempeño seleccionado no existe.");
+
+            const gradoId = req.body.gradoId ?? juicio.gradoId;
+            const asignaturaId = req.body.asignaturaId ?? juicio.asignaturaId;
+
+            const asignatura = await Asignatura.findByPk(asignaturaId);
+            const esComp = esAsignaturaComportamiento(asignatura);
+
+            const { config } = await obtenerConfigGrado(gradoId);
+            const nombre = desempeno.nombre.toUpperCase();
+
+            if (config.usaDesempenosMultiples || esComp) {
+                const permitidos = ["BAJO", "BASICO", "ALTO", "SUPERIOR"];
+                if (!permitidos.includes(nombre)) {
+                    throw new Error(
+                        "Para este grado y/o asignatura el desempeño debe ser BAJO, BASICO, ALTO o SUPERIOR."
+                    );
                 }
             } else {
-                if (value && value !== "UNICO") {
-                    throw new Error("Para primaria y secundaria el desempeño debe ser 'UNICO'.");
+                if (nombre !== "UNICO") {
+                    throw new Error("Para este grado el desempeño debe ser 'UNICO'.");
                 }
             }
 
             return true;
         }),
 
-    // Validación de las notas usando el utilitario
-    body(["minNota", "maxNota"])
-        .custom((value, { req }) => {
-
-            const grado = (req.body.grado || "").toUpperCase();
-
-            // Validar notas SOLO si el grado es preescolar
-            if (GRADOS_PREESCOLAR.includes(grado)) {
-                validarNotas({
-                    minNota: req.body.minNota,
-                    maxNota: req.body.maxNota,
-                    desempeno: req.body.desempeno,
-                });
-            }
-            return true;
-        }),
+    body("activo")
+        .optional()
+        .isBoolean()
+        .withMessage("El campo 'activo' debe ser verdadero o falso."),
 ];

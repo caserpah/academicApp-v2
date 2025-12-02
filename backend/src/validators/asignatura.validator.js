@@ -18,13 +18,13 @@ export const validarCrearAsignatura = [
 
     validarCampoRequerido("nombre", "Ingrese el nombre de la asignatura.")
         .isLength({ min: 3, max: 60 })
-        .withMessage("El nombre de la asignatura debe tener entre 3 y 60 caracteres.")
-        .bail()
-        .custom(validarCampoUnico(Asignatura, "nombre", "una asignatura", false, null, "el nombre")),
+        .withMessage("El nombre de la asignatura debe tener entre 3 y 60 caracteres."),
 
     validarCampoRequerido("abreviatura", "Ingrese la abreviatura de la asignatura.")
         .isLength({ min: 3, max: 6 }).withMessage("La abreviatura de la asignatura debe tener entre 3 y 6 caracteres.")
-        .isAlphanumeric().withMessage("La abreviatura de la asignatura solo puede contener letras y números."),
+        .isAlphanumeric().withMessage("La abreviatura de la asignatura solo puede contener letras y números.")
+        .bail()
+        .custom(validarCampoUnico(Asignatura, "abreviatura", "una asignatura", false, null, "la abreviatura")),
 
     validarCampoRequerido("promociona", "Indique si la asignatura pertenece a un área que promociona o no."),
 
@@ -34,7 +34,7 @@ export const validarCrearAsignatura = [
 
     validarCampoRequerido("areaId", "Seleccione el área a la que pertenece la asignatura.")
         .isInt({ min: 1 })
-        .withMessage("El identificador del área no es válido.")
+        .withMessage("El área seleccionada no es válida.")
         .bail()
         .custom(verificarExistenciaPorId(Area, "id", "el área seleccionada")),
 ];
@@ -54,13 +54,13 @@ export const validarActualizarAsignatura = [
         .custom(validarCampoUnico(Asignatura, "codigo", "una asignatura", true, null, "el código")),
 
     validarCampoOpcionalRequerido("nombre", "Ingrese el nombre de la asignatura si desea actualizarlo.")
-        .isLength({ min: 3, max: 60 }).withMessage("El nombre de la asignatura debe tener entre 3 y 60 caracteres.")
-        .bail()
-        .custom(validarCampoUnico(Asignatura, "nombre", "una asignatura", true, null, "el nombre")),
+        .isLength({ min: 3, max: 60 }).withMessage("El nombre de la asignatura debe tener entre 3 y 60 caracteres."),
 
     validarCampoOpcionalRequerido("abreviatura", "Ingrese la abreviatura de la asignatura si desea actualizarla.")
         .isLength({ min: 3, max: 6 }).withMessage("La abreviatura de la asignatura debe tener entre 3 y 6 caracteres.")
-        .isAlphanumeric().withMessage("La abreviatura de la asignatura solo puede contener letras y números."),
+        .isAlphanumeric().withMessage("La abreviatura de la asignatura solo puede contener letras y números.")
+        .bail()
+        .custom(validarCampoUnico(Asignatura, "abreviatura", "una asignatura", true, null, "la abreviatura")),
 
     validarCampoOpcionalRequerido("promociona", "Indique si la asignatura pertenece a un área que promociona o no."),
 
@@ -70,7 +70,7 @@ export const validarActualizarAsignatura = [
 
     validarCampoOpcionalRequerido("areaId", "Seleccione el área a la que pertenece la asignatura.")
         .isInt({ min: 1 })
-        .withMessage("El identificador del área no es válido.")
+        .withMessage("El área seleccionada no es válida.")
         .bail()
         .custom(verificarExistenciaPorId(Area, "id", "el área seleccionada")),
 ]

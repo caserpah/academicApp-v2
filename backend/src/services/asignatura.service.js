@@ -8,7 +8,8 @@ import { formatearErrorForaneo } from "../utils/dbUtils.js";
 /** Función reutilizable para controlar que la suma de los
  *  porcentajes de todas las asignaturas NO superen el 100%.
  **/
-async function validarPorcentualArea({ areaId, vigenciaId, porcentual, excluirAsignaturaId = null }) {
+
+/*async function validarPorcentualArea({ areaId, vigenciaId, porcentual, excluirAsignaturaId = null }) {
     porcentual = Number(porcentual);
     if (isNaN(porcentual)) {
         const err = new Error("El valor peso porcentual no es válido.");
@@ -35,7 +36,7 @@ async function validarPorcentualArea({ areaId, vigenciaId, porcentual, excluirAs
         err.status = 400;
         throw err;
     }
-}
+}*/
 
 /**
  * Service: Asignatura
@@ -111,11 +112,11 @@ export const asignaturaService = {
             }
 
             // Validar porcentaje total del área
-            await validarPorcentualArea({
+            /*await validarPorcentualArea({
                 areaId: data.areaId,
                 vigenciaId,
                 porcentual: data.porcentual
-            });
+            });*/
 
             const asignatura = await asignaturaRepository.create({
                 codigo,
@@ -182,12 +183,12 @@ export const asignaturaService = {
                 data.porcentual !== undefined ? data.porcentual : asignatura.porcentual;
 
             // Validar porcentaje acumulado en esa área
-            await validarPorcentualArea({
+            /*await validarPorcentualArea({
                 areaId: areaFinalId,
                 vigenciaId,
                 porcentual: porcentualFinal,
                 excluirAsignaturaId: asignatura.id
-            });
+            });*/
 
             await asignatura.update({
                 codigo,
