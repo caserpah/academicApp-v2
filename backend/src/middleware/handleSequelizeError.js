@@ -77,10 +77,19 @@ export const handleSequelizeError = (error) => {
             return err;
         }*/
 
-        // // Caso 7: Especial para Juicios
+        // Caso 7: Especial para Juicios
         if (indexName === "idx_juicio_unico") {
             const err = new Error(
                 "Ya existe un juicio para este periodo, grado y desempeño en esta asignatura."
+            );
+            err.status = 409;
+            return err;
+        }
+
+        // Caso 8: Especial para Grupos
+        if (indexName === "idx_grupo_unico") {
+            const err = new Error(
+                "No se puede crear el grupo porque ya existe otro grupo con el mismo nombre, grado, jornada, sede y vigencia."
             );
             err.status = 409;
             return err;

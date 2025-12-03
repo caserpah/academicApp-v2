@@ -5,6 +5,10 @@ import { Dimension } from "../models/dimension.js";
 import { Desempeno } from "../models/desempeno.js";
 
 export const juicioRepository = {
+
+    /**
+     * Listar juicios con filtros, paginación y ordenamiento.
+     */
     async findAll({
         vigenciaId,
         gradoId,
@@ -48,7 +52,7 @@ export const juicioRepository = {
                 total: count,
                 page,
                 limit,
-                totalPages: Math.ceil(count / limit),
+                totalPages: Math.ceil(count / limit)
             },
         };
     },
