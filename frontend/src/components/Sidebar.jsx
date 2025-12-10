@@ -9,6 +9,7 @@ const navItems = [
     { path: "/acudientes", label: "Acudientes", icon: "hands-holding-child", requiredRole: 'admin' },
     { path: "/coordinadores", label: "Coordinadores", icon: "user-tie", requiredRole: 'admin' },
     { path: "/colegios", label: "Colegios", icon: "school", requiredRole: 'admin' },
+    { path: "/asignaturas", label: "Asignaturas", icon: "book-open", requiredRole: 'admin' },
     { path: "/calificaciones", label: "Calificaciones", icon: "star", requiredRole: 'docente' },
 ];
 
@@ -18,7 +19,7 @@ const subItems = [
     { path: "/grupos", label: "Grupos", requiredRole: 'admin' },
     { path: "/areas", label: "Áreas", requiredRole: 'admin' },
     { path: "/carga-academica", label: "Carga Académica", requiredRole: 'admin' },
-    { path: "/indicadores", label: "Indicadores", requiredRole: 'admin' },
+    // { path: "/indicadores", label: "Indicadores", requiredRole: 'admin' },
     { path: "/juicios", label: "Juicios", requiredRole: 'admin' },
 ];
 

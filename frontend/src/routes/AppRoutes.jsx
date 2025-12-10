@@ -6,6 +6,10 @@ import DashboardLayout from '../layouts/DashboardLayout.jsx';
 import Bienvenida from '../pages/Bienvenida/Bienvenida.jsx';
 import Colegios from '../components/colegios/Colegios.jsx';
 import Sedes from '../components/sedes/Sedes.jsx'
+import Areas from '../components/areas/Areas.jsx';
+import Asignaturas from '../components/asignaturas/Asignaturas.jsx';
+import Coordinadores from '../components/coordinadores/Coordinadores.jsx';
+import Juicios from '../components/juicios/Juicios.jsx';
 import Login from '../pages/Auth/login.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
 
@@ -35,6 +39,10 @@ const AppRoutes = () => {
                     <Route path="matricula" element={<div>Página de Matrícula</div>} />
                     <Route path="estudiante" element={<div>Página de Estudiantes</div>} />
                     <Route path="docentes" element={<div>Página de Docentes</div>} />
+                    <Route path="areas" element={<Areas/>} />
+                    <Route path="asignaturas" element={<Asignaturas />} />
+                    <Route path="coordinadores" element={<Coordinadores />} />
+                    <Route path="juicios" element={<Juicios />} />
                     {/* Agrega aquí el resto de las rutas de navegación... */}
 
 
@@ -58,6 +66,40 @@ const AppRoutes = () => {
                         element={
                             <ProtectedRoute requiredRole="admin">
                                 <Sedes />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    {/* Áreas (Protegido por Rol 'admin') */}
+                    <Route
+                        path="areas"
+                        element={
+                            <ProtectedRoute requiredRole="admin">
+                                <Areas />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="asignaturas"
+                        element={
+                            <ProtectedRoute requiredRole="admin">
+                                <Asignaturas />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="coordinadores"
+                        element={
+                            <ProtectedRoute requiredRole="admin">
+                                <Coordinadores />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="juicios"
+                        element={
+                            <ProtectedRoute requiredRole="admin">
+                                <Juicios />
                             </ProtectedRoute>
                         }
                     />

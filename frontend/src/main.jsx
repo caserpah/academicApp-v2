@@ -23,6 +23,7 @@ import {
   faHandsHoldingChild, // Acudientes
   faUserTie,         // Coordinadores
   faSchool,          // Colegios
+  faBookOpen,       // Asignaturas
   faStar,             // Calificaciones
   faBuilding,        // Usado para Sedes
   faSave,            // Guardar
@@ -57,6 +58,7 @@ library.add(
   faHandsHoldingChild,
   faUserTie,
   faSchool,
+  faBookOpen,
   faStar,
   faBuilding,
   faSave,
