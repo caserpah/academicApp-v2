@@ -1,13 +1,17 @@
-import { juicioService } from "../services/juicio.service.js";
+import { desempenoRangoService } from "../services/desempenoRango.service.js";
 import { sendSuccess } from "../middleware/responseHandler.js";
 
-export const juicioController = {
+export const desempenoRangoController = {
     async list(req, res, next) {
         try {
             const vigenciaId = req.vigenciaActual.id;
-            const data = await juicioService.list(req.query, vigenciaId);
+            const data = await desempenoRangoService.list(vigenciaId);
 
-            return sendSuccess(res, data, "Listado de juicios obtenido exitosamente.");
+            return sendSuccess(
+                res,
+                data,
+                "Listado de rangos de desempeño obtenido exitosamente."
+            );
         } catch (error) {
             next(error);
         }
@@ -17,9 +21,13 @@ export const juicioController = {
         try {
             const vigenciaId = req.vigenciaActual.id;
             const id = Number(req.params.id);
-            const data = await juicioService.get(id, vigenciaId);
+            const data = await desempenoRangoService.get(id, vigenciaId);
 
-            return sendSuccess(res, data, "Información del juicio obtenida exitosamente.");
+            return sendSuccess(
+                res,
+                data,
+                "Información del rango de desempeño obtenida exitosamente."
+            );
         } catch (error) {
             next(error);
         }
@@ -28,12 +36,12 @@ export const juicioController = {
     async create(req, res, next) {
         try {
             const vigenciaId = req.vigenciaActual.id;
-            const data = await juicioService.create(req.body, vigenciaId);
+            const data = await desempenoRangoService.create(req.body, vigenciaId);
 
             return sendSuccess(
                 res,
                 data,
-                "El juicio fue registrado exitosamente.",
+                "El rango de desempeño fue registrado exitosamente.",
                 201
             );
         } catch (error) {
@@ -45,12 +53,12 @@ export const juicioController = {
         try {
             const vigenciaId = req.vigenciaActual.id;
             const id = Number(req.params.id);
-            const data = await juicioService.update(id, req.body, vigenciaId);
+            const data = await desempenoRangoService.update(id, req.body, vigenciaId);
 
             return sendSuccess(
                 res,
                 data,
-                "El juicio fue actualizado exitosamente."
+                "El rango de desempeño fue actualizado exitosamente."
             );
         } catch (error) {
             next(error);
@@ -61,12 +69,12 @@ export const juicioController = {
         try {
             const vigenciaId = req.vigenciaActual.id;
             const id = Number(req.params.id);
-            await juicioService.remove(id, vigenciaId);
+            await desempenoRangoService.remove(id, vigenciaId);
 
             return sendSuccess(
                 res,
                 null,
-                "El juicio fue eliminado exitosamente."
+                "El rango de desempeño fue eliminado exitosamente."
             );
         } catch (error) {
             next(error);

@@ -4,7 +4,9 @@ import { Coordinador } from "../../models/coordinador.js";
 import { CoordinadorSedes } from "../../models/coordinador_sedes.js";
 import { Area } from "../../models/area.js";
 import { Asignatura } from "../../models/asignatura.js";
-import { Indicador } from "../../models/indicador.js";
+import { Grado } from "../../models/grado.js";
+import { Dimension } from "../../models/dimension.js";
+import { Desempeno } from "../../models/desempeno.js";
 import { Juicio } from "../../models/juicio.js";
 import { Docente } from "../../models/docente.js";
 import { Carga } from "../../models/carga.js";
@@ -17,6 +19,8 @@ import { Calificacion } from "../../models/calificacion.js";
 import { Usuario } from "../../models/usuario.js";
 import { Vigencia } from "../../models/vigencia.js";
 import { VentanaCalificacion } from "../../models/ventana_calificacion.js";
+import { ConfigGrado } from "../../models/config_grado.js";
+import { DesempenoRango } from "../../models/desempeno_rango.js";
 
 export const definirAsociaciones = () => {
 
@@ -74,13 +78,28 @@ export const definirAsociaciones = () => {
     Area.hasMany(Docente, { foreignKey: "areaId", as: "docentes" });
     Docente.belongsTo(Area, { foreignKey: "areaId", as: "area" });
 
-    /** 📘 Indicador ↔ Juicio */
-    Indicador.hasMany(Juicio, { foreignKey: "indicadorId", as: "juicios" });
-    Juicio.belongsTo(Indicador, { foreignKey: "indicadorId", as: "indicador" });
-
     /** 📘 Asignatura → Juicios */
     Asignatura.hasMany(Juicio, { foreignKey: "asignaturaId", as: "juicios" });
     Juicio.belongsTo(Asignatura, { foreignKey: "asignaturaId", as: "asignatura" });
+
+    /** 📘 Asociaciones del módulo Juicios (Grado, Dimensión, Desempeño) */
+    Grado.hasMany(Juicio, { foreignKey: "gradoId", as: "juicios" });
+    Juicio.belongsTo(Grado, { foreignKey: "gradoId", as: "grado" });
+
+    Dimension.hasMany(Juicio, { foreignKey: "dimensionId", as: "juicios" });
+    Juicio.belongsTo(Dimension, { foreignKey: "dimensionId", as: "dimension" });
+
+    Desempeno.hasMany(Juicio, { foreignKey: "desempenoId", as: "juicios" });
+    Juicio.belongsTo(Desempeno, { foreignKey: "desempenoId", as: "desempeno" });
+
+    Grado.hasOne(ConfigGrado, { foreignKey: "gradoId", as: "configuracion" });
+    ConfigGrado.belongsTo(Grado, { foreignKey: "gradoId", as: "grado" });
+
+    Desempeno.hasMany(DesempenoRango, { foreignKey: "desempenoId", as: "rangos" });
+    DesempenoRango.belongsTo(Desempeno, { foreignKey: "desempenoId", as: "desempeno" });
+
+    Vigencia.hasMany(DesempenoRango, { foreignKey: "vigenciaId", as: "rangosDesempeno" });
+    DesempenoRango.belongsTo(Vigencia, { foreignKey: "vigenciaId", as: "vigencia" });
 
     /** 👨‍🏫 Docente ↔ Carga / Grupo */
     Docente.hasMany(Carga, { foreignKey: "docenteId", as: "cargas" });
@@ -161,7 +180,6 @@ export const definirAsociaciones = () => {
         [Carga, "cargas"],
         [Matricula, "matriculas"],
         [Calificacion, "calificaciones"],
-        [Indicador, "indicadores"],
         [Juicio, "juicios"],
         [Area, "areas"],
         [Asignatura, "asignaturas"],

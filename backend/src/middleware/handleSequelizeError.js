@@ -70,17 +70,26 @@ export const handleSequelizeError = (error) => {
             return err;
         }
 
-        // Caso 6: indicador + periodo + vigenciaId
+        /* Caso 6: indicador + periodo + vigenciaId
         if (indexName === "idx_indicador_periodo_vigencia") {
             const err = new Error("Ya existe un indicador registrado para este periodo en el año lectivo.");
             err.status = 409;
             return err;
+        }*/
+
+        // Caso 7: Especial para Juicios
+        if (indexName === "idx_juicio_unico") {
+            const err = new Error(
+                "Ya existe un juicio para este periodo, grado y desempeño en esta asignatura."
+            );
+            err.status = 409;
+            return err;
         }
 
-        // // Caso 7: Especial para Juicios
-        if (indexName === "idx_juicio_unico_general") {
+        // Caso 8: Especial para Grupos
+        if (indexName === "idx_grupo_unico") {
             const err = new Error(
-                "Ya existe un juicio para este periodo, grado, dimensión y desempeño en esta asignatura."
+                "No se puede crear el grupo porque ya existe otro grupo con el mismo nombre, grado, jornada, sede y vigencia."
             );
             err.status = 409;
             return err;
@@ -99,9 +108,28 @@ export const handleSequelizeError = (error) => {
 
     // --- Errores de clave foranea ---
     if (error instanceof ForeignKeyConstraintError) {
-        const err = new Error(
-            "No se puede eliminar o modificar este registro porque tiene información asociada."
-        );
+        console.error("ForeignKeyConstraintError:", error);
+
+        // Detectar operación (INSERT / UPDATE / DELETE)
+        const sql = error.parent?.sql?.toUpperCase() || "";
+
+        const isInsert = sql.includes("INSERT");
+        const isUpdate = sql.includes("UPDATE");
+        const isDelete = sql.includes("DELETE");
+
+        let message = "Existe un conflicto con una clave foránea.";
+
+        if (isInsert) {
+            message = "No se pudo crear el registro porque algunos datos relacionados no existen o no son válidos.";
+        }
+        else if (isUpdate) {
+            message = "No se pudo actualizar el registro porque los datos relacionados no existen o están siendo usados por otros registros.";
+        }
+        else if (isDelete) {
+            message = "No se puede eliminar este registro porque está siendo utilizado por otros datos.";
+        }
+
+        const err = new Error(message);
         err.status = 409;
         return err;
     }
