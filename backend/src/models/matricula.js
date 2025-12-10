@@ -1,11 +1,6 @@
-import { DataTypes, TIME } from "sequelize";
+import { DataTypes } from "sequelize";
 import { sequelize } from "../database/db.connect.js";
 
-/**
- * Modelo: Matrícula / Prematrícula
- * Representa tanto la inscripción formal de un estudiante en una vigencia
- * como el registro previo de intención de continuidad (prematrícula).
- */
 export const Matricula = sequelize.define("matricula", {
     id: {
         type: DataTypes.INTEGER,
@@ -13,133 +8,126 @@ export const Matricula = sequelize.define("matricula", {
         autoIncrement: true,
         allowNull: false
     },
+
+    /** FOLIO AUTOGENERADO */
     folio: {
-        type: DataTypes.STRING(20),
+        type: DataTypes.STRING(25),
         allowNull: false,
-        unique: true
+        unique: true,
+        comment: "Código único de matrícula. Se genera automáticamente (MAT-AAAA-XXXXX)."
     },
+
+    /** FECHA/HORA DE CREACIÓN */
     fechaHora: {
         type: DataTypes.DATE,
         allowNull: false,
         defaultValue: DataTypes.NOW
     },
-    repitente: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false,
-        allowNull: false
-    },
-    nuevo: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false,
-        allowNull: false
-    },
-    metodologia: {
-        type: DataTypes.STRING(20),
+
+    /** ESTADO OFICIAL DE LA MATRÍCULA */
+    estado: {
+        type: DataTypes.ENUM(
+            "PREMATRICULADO",
+            "ACTIVA",
+            "RETIRADO",
+            "DESERTADO",
+            "REPROBADO",
+            "PROMOVIDO"
+        ),
         allowNull: false,
-        defaultValue: "Tradicional"
+        defaultValue: "PREMATRICULADO",
+        comment: "Estado administrativo de la matrícula según proceso institucional."
     },
-    situacion: {
-        type: DataTypes.ENUM("NV", "AP", "RP", "NC"),
-        allowNull: false
+
+    /** DATOS DE RETIRO */
+    fechaRetiro: {
+        type: DataTypes.DATEONLY,
+        allowNull: true,
+        comment: "Fecha en que se retira oficialmente al estudiante."
     },
-    activo: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: true
+
+    motivoRetiro: {
+        type: DataTypes.STRING(200),
+        allowNull: true,
+        comment: "Razón del retiro o deserción."
     },
-    observaciones: {
-        type: DataTypes.TEXT,
-        allowNull: true
+
+    usuarioRetiro: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: { model: "usuarios", key: "id" },
+        onUpdate: "CASCADE",
+        onDelete: "SET NULL"
     },
-    tipo: {
-        type: DataTypes.ENUM("PREMATRICULA", "MATRICULA"),
-        allowNull: false,
-        defaultValue: "MATRICULA",
-        comment: "Define si el registro corresponde a una matrícula definitiva o una prematrícula.",
-    },
-    confirmada: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: false,
-        comment: "Indica si la prematrícula ha sido confirmada como matrícula oficial.",
-    },
+
+    /** AUDITORÍA */
     usuarioCreacion: {
         type: DataTypes.INTEGER,
         allowNull: true,
         references: { model: "usuarios", key: "id" },
         onUpdate: "CASCADE",
-        onDelete: "SET NULL",
-        comment: "Usuario que creó o generó la matrícula o prematrícula.",
+        onDelete: "SET NULL"
     },
+
     usuarioActualizacion: {
         type: DataTypes.INTEGER,
         allowNull: true,
         references: { model: "usuarios", key: "id" },
         onUpdate: "CASCADE",
-        onDelete: "SET NULL",
-        comment: "Usuario que realizó la última modificación o confirmó la matrícula.",
+        onDelete: "SET NULL"
     },
-    vigenciaId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: { model: "vigencias", key: "id" },
-        onUpdate: "CASCADE",
-        onDelete: "RESTRICT",
-    },
-    vigenciaDestinoId: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        references: { model: "vigencias", key: "id" },
-        onUpdate: "CASCADE",
-        onDelete: "SET NULL",
-        comment: "Aplica solo para prematrículas, define la vigencia futura.",
-    },
+
+    /** REFERENCIAS PRINCIPALES */
     estudianteId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: { model: "estudiantes", key: "id" },
         onUpdate: "CASCADE",
-        onDelete: "RESTRICT",
+        onDelete: "RESTRICT"
     },
+
     grupoId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: { model: "grupos", key: "id" },
         onUpdate: "CASCADE",
-        onDelete: "RESTRICT",
+        onDelete: "RESTRICT"
     },
+
     sedeId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: { model: "sedes", key: "id" },
         onUpdate: "CASCADE",
-        onDelete: "RESTRICT",
+        onDelete: "RESTRICT"
     },
+
+    vigenciaId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: { model: "vigencias", key: "id" },
+        onUpdate: "CASCADE",
+        onDelete: "RESTRICT"
+    },
+
 }, {
     tableName: "matriculas",
     timestamps: true,
     createdAt: "fechaCreacion",
     updatedAt: "fechaActualizacion",
-    indexes: [
-        { fields: ["fechaHora"], name: "idx_matricula_fechaHora" },
-        { fields: ["estudianteId"], name: "idx_matricula_estudianteId" },
-        { fields: ["grupoId"], name: "idx_matricula_grupoId" },
-        { fields: ["vigenciaId"], name: "idx_matricula_vigenciaId" },
-        { fields: ["vigenciaDestinoId"], name: "idx_matricula_vigenciaDestinoId" },
-        { fields: ["activo"], name: "idx_matricula_activo" },
-        { fields: ["tipo"], name: "idx_matricula_tipo" },
 
-        // Evita duplicidad del mismo estudiante en la misma vigencia
+    indexes: [
+        { fields: ["estudianteId"], name: "idx_matricula_estudiante" },
+        { fields: ["grupoId"], name: "idx_matricula_grupo" },
+        { fields: ["sedeId"], name: "idx_matricula_sede" },
+        { fields: ["vigenciaId"], name: "idx_matricula_vigencia" },
+        { fields: ["estado"], name: "idx_matricula_estado" },
+
+        /** UN ESTUDIANTE SOLO PUEDE TENER UNA MATRÍCULA POR VIGENCIA */
         {
             unique: true,
-            name: "idx_unique_estudiante_vigencia_tipo",
-            fields: ["estudianteId", "vigenciaId", "tipo"],
+            name: "idx_unique_estudiante_vigencia",
+            fields: ["estudianteId", "vigenciaId"]
         },
-
-        // Permite buscar fácilmente prematrículas confirmadas o pendientes
-        {
-            name: "idx_tipo_confirmada_vigencia",
-            fields: ["tipo", "confirmada", "vigenciaDestinoId"],
-        },
-    ],
+    ]
 });

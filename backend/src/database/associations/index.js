@@ -14,6 +14,7 @@ import { Grupo } from "../../models/grupo.js";
 import { Estudiante } from "../../models/estudiante.js";
 import { Acudiente } from "../../models/acudiente.js";
 import { AcudienteEstudiantes } from "../../models/acudiente_estudiantes.js";
+import { HistorialMatriculas } from "../../models/historial_matriculas.js";
 import { Matricula } from "../../models/matricula.js";
 import { Calificacion } from "../../models/calificacion.js";
 import { Usuario } from "../../models/usuario.js";
@@ -117,6 +118,32 @@ export const definirAsociaciones = () => {
 
     Sede.hasMany(Matricula, { foreignKey: "sedeId", as: "matriculas" });
     Matricula.belongsTo(Sede, { foreignKey: "sedeId", as: "sede" });
+
+    /** 📚 Matrícula ↔ HistorialMatricula (1:N) */
+    Matricula.hasMany(HistorialMatriculas, {
+        foreignKey: "matriculaId",
+        as: "historiales",
+        onDelete: "RESTRICT",
+        onUpdate: "CASCADE"
+    });
+
+    HistorialMatriculas.belongsTo(Matricula, {
+        foreignKey: "matriculaId",
+        as: "matricula",
+        onDelete: "RESTRICT",
+        onUpdate: "CASCADE"
+    });
+
+    /** 🎓 Grado ↔ Grupo (1:N) */
+    Grado.hasMany(Grupo, {
+        foreignKey: "gradoId",
+        as: "grupos"
+    });
+
+    Grupo.belongsTo(Grado, {
+        foreignKey: "gradoId",
+        as: "grado"
+    });
 
     /** 👥 Grupo ↔ Carga / Matrícula */
     Grupo.hasMany(Carga, { foreignKey: "grupoId", as: "cargas" });

@@ -45,14 +45,14 @@ router.use("/indicadores", vigenciaContext, indicadorRoutes);
 /* ============================================================
     👩‍🏫 PERSONAL Y ESTUDIANTES
    ============================================================ */
-//import docenteRoutes from "./docentes.route.js";
+import docenteRoutes from "./docentes.route.js";
 import coordinadorRoutes from './coordinadores.route.js';
-/*import acudienteRoutes from "./acudientes.route.js";
+//import acudienteRoutes from "./acudientes.route.js";
 import estudianteRoutes from "./estudiantes.route.js";
 
-router.use("/docentes", docenteRoutes);*/
+router.use("/docentes", docenteRoutes);
 router.use('/coordinadores', coordinadorRoutes);
-/*router.use("/acudientes", acudienteRoutes);
+//router.use("/acudientes", acudienteRoutes);
 router.use("/estudiantes", estudianteRoutes);
 
 /* ============================================================
@@ -69,16 +69,16 @@ router.use("/coordinadores-sedes", vigenciaContext, coordinadorSedesRoutes);
     📘 GESTIÓN ACADÉMICA
    ============================================================ */
 import vigenciaConfigRoutes from "./vigenciaConfig.route.js";
-/*import grupoRoutes from "./grupos.route.js";
-import cargaRoutes from "./cargas.route.js";
-import calificacionRoutes from "./calificaciones.route.js";*/
+import grupoRoutes from "./grupos.route.js";
+import cargaRoutes from "./carga.routes.js";
+//import calificacionRoutes from "./calificaciones.route.js";
 import juicioRoutes from "./juicios.route.js";
 //import matriculaRoutes from "./matriculas.route.js";
 
 router.use("/vigencias-config", vigenciaConfigRoutes); // Configuración de vigencias
-/*router.use("/grupos", vigenciaContext, grupoRoutes);
+router.use("/grupos", vigenciaContext, grupoRoutes);
 router.use("/cargas", vigenciaContext, cargaRoutes);
-router.use("/calificaciones", vigenciaContext, calificacionRoutes);*/
+//router.use("/calificaciones", vigenciaContext, calificacionRoutes);
 router.use("/juicios", vigenciaContext, juicioRoutes);
 //router.use("/matriculas", vigenciaContext, matriculaRoutes);
 

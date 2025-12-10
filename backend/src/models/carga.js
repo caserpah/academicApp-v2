@@ -14,20 +14,30 @@ export const Carga = sequelize.define("carga", {
         allowNull: false
     },
     codigo: {
-        type: DataTypes.STRING(10),
+        type: DataTypes.STRING(20),
         allowNull: false,
+        unique: false,
         set(value) {
-            this.setDataValue(
-                "codigo",
-                typeof value === "string" && value.trim() !== ""
-                    ? value.toUpperCase().trim()
-                    : null
-            );
+            if (typeof value === "string") {
+                this.setDataValue("codigo", value.toUpperCase().trim());
+            } else {
+                this.setDataValue("codigo", value);
+            }
         }
     },
     horas: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: false,
+        validate: {
+            min: {
+                args: [1],
+                msg: "Las horas asignadas deben ser mínimo 1."
+            },
+            max: {
+                args: [40],
+                msg: "Las horas asignadas no pueden superar 40."
+            }
+        }
     },
     sedeId: {
         type: DataTypes.INTEGER,
@@ -77,8 +87,15 @@ export const Carga = sequelize.define("carga", {
 
         {
             unique: true,
-            name: "idx_carga_grupo_asignatura_vigencia",
-            fields: ["grupoId", "asignaturaId", "vigenciaId"],
+            name: "idx_carga_sede_grupo_asignatura_vigencia",
+            fields: ["sedeId", "grupoId", "asignaturaId", "vigenciaId"],
+        },
+
+        // Código único por vigencia
+        {
+            unique: true,
+            name: "idx_carga_codigo_vigencia",
+            fields: ["codigo", "vigenciaId"],
         },
     ],
 });

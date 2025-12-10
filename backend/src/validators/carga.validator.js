@@ -1,41 +1,48 @@
-import { body, param } from "express-validator";
-import { Sede } from "../models/sede.js";
+import { param } from "express-validator";
+import { Carga } from "../models/carga.js";
 import { Docente } from "../models/docente.js";
 import { Grupo } from "../models/grupo.js";
+import { Sede } from "../models/sede.js";
 import { Asignatura } from "../models/asignatura.js";
 import {
-    verificarExistenciaPorCampo,
     validarCampoRequerido,
     validarCampoOpcionalRequerido,
+    verificarExistenciaPorId,
 } from "../utils/dbUtils.js";
 import { validationErrorHandler } from "./validationErrorHandler.js";
 
+// Horas permitidas: 1 a 40
+const HORAS_MIN = 1;
+const HORAS_MAX = 40;
+
 export const validarCrearCarga = [
-    validarCampoRequerido("codigo", "Ingrese el código de la carga.")
-        .isLength({ max: 10 }).withMessage("El código no debe exceder los 10 caracteres."),
+    validarCampoRequerido("horas", "Ingrese la cantidad de horas asignadas.")
+        .isInt({ min: HORAS_MIN, max: HORAS_MAX })
+        .withMessage(`Las horas deben estar entre ${HORAS_MIN} y ${HORAS_MAX}.`),
 
-    validarCampoRequerido("horas", "Ingrese el número de horas asignadas.")
-        .isInt({ min: 1, max: 40 }).withMessage("Las horas deben estar entre 1 y 40."),
-
-    validarCampoRequerido("sedeId", "Seleccione la sede donde se imparte la carga.")
-        .isInt({ min: 1 }).withMessage("La sede seleccionada no es válida.")
+    validarCampoRequerido("sedeId", "Seleccione la sede.")
+        .isInt({ min: 1 })
+        .withMessage("La sede seleccionada no es válida.")
         .bail()
-        .custom(verificarExistenciaPorCampo(Sede, "id", "la sede", "ID")),
+        .custom(verificarExistenciaPorId(Sede, "id", "la sede seleccionada")),
 
-    validarCampoRequerido("docenteId", "Seleccione el docente asignado.")
-        .isInt({ min: 1 }).withMessage("El docente seleccionado no es válido.")
+    validarCampoRequerido("docenteId", "Seleccione el docente.")
+        .isInt({ min: 1 })
+        .withMessage("El docente seleccionado no es válido.")
         .bail()
-        .custom(verificarExistenciaPorCampo(Docente, "id", "el docente", "ID")),
+        .custom(verificarExistenciaPorId(Docente, "id", "el docente seleccionado")),
 
-    validarCampoRequerido("grupoId", "Seleccione el grupo correspondiente.")
-        .isInt({ min: 1 }).withMessage("El grupo seleccionado no es válido.")
+    validarCampoRequerido("grupoId", "Seleccione el grupo.")
+        .isInt({ min: 1 })
+        .withMessage("El grupo seleccionado no es válido.")
         .bail()
-        .custom(verificarExistenciaPorCampo(Grupo, "id", "el grupo", "ID")),
+        .custom(verificarExistenciaPorId(Grupo, "id", "el grupo seleccionado")),
 
-    validarCampoRequerido("asignaturaId", "Seleccione la asignatura correspondiente.")
-        .isInt({ min: 1 }).withMessage("La asignatura seleccionada no es válida.")
+    validarCampoRequerido("asignaturaId", "Seleccione la asignatura.")
+        .isInt({ min: 1 })
+        .withMessage("La asignatura seleccionada no es válida.")
         .bail()
-        .custom(verificarExistenciaPorCampo(Asignatura, "id", "la asignatura", "ID")),
+        .custom(verificarExistenciaPorId(Asignatura, "id", "la asignatura seleccionada")),
 
     validationErrorHandler,
 ];
@@ -43,44 +50,37 @@ export const validarCrearCarga = [
 export const validarActualizarCarga = [
     param("id")
         .isInt({ min: 1 })
-        .withMessage("El identificador de la carga no es válido."),
-
-    validarCampoOpcionalRequerido("codigo", "Ingrese el código si desea actualizarlo.")
-        .isLength({ max: 10 }).withMessage("El código no debe exceder los 10 caracteres."),
-
-    validarCampoOpcionalRequerido("horas", "Ingrese el número de horas si desea actualizarlo.")
-        .isInt({ min: 1, max: 40 }).withMessage("Las horas deben estar entre 1 y 40."),
-
-    body("sedeId")
-        .optional({ checkFalsy: true })
-        .isInt({ min: 1 }).withMessage("La sede seleccionada no es válida.")
+        .withMessage("La carga seleccionada no es válida.")
         .bail()
-        .custom(verificarExistenciaPorCampo(Sede, "id", "la sede", "ID")),
+        .custom(verificarExistenciaPorId(Carga, "id", "la carga")),
 
-    body("docenteId")
-        .optional({ checkFalsy: true })
-        .isInt({ min: 1 }).withMessage("El docente seleccionado no es válido.")
-        .bail()
-        .custom(verificarExistenciaPorCampo(Docente, "id", "el docente", "ID")),
+    validarCampoOpcionalRequerido("horas", "Ingrese la cantidad de horas asignadas.")
+        .isInt({ min: HORAS_MIN, max: HORAS_MAX })
+        .withMessage(`Las horas deben estar entre ${HORAS_MIN} y ${HORAS_MAX}.`),
 
-    body("grupoId")
-        .optional({ checkFalsy: true })
-        .isInt({ min: 1 }).withMessage("El grupo seleccionado no es válido.")
-        .bail()
-        .custom(verificarExistenciaPorCampo(Grupo, "id", "el grupo", "ID")),
-
-    body("asignaturaId")
-        .optional({ checkFalsy: true })
-        .isInt({ min: 1 }).withMessage("La asignatura seleccionada no es válida.")
-        .bail()
-        .custom(verificarExistenciaPorCampo(Asignatura, "id", "la asignatura", "ID")),
-
-    validationErrorHandler,
-];
-
-export const validarCargaExistente = [
-    param("id")
+    validarCampoOpcionalRequerido("sedeId", "Seleccione la sede.")
         .isInt({ min: 1 })
-        .withMessage("El identificador de la carga no es válido."),
+        .withMessage("La sede seleccionada no es válida.")
+        .bail()
+        .custom(verificarExistenciaPorId(Sede, "id", "la sede seleccionada")),
+
+    validarCampoOpcionalRequerido("docenteId", "Seleccione el docente.")
+        .isInt({ min: 1 })
+        .withMessage("El docente seleccionado no es válido.")
+        .bail()
+        .custom(verificarExistenciaPorId(Docente, "id", "el docente seleccionado")),
+
+    validarCampoOpcionalRequerido("grupoId", "Seleccione el grupo.")
+        .isInt({ min: 1 })
+        .withMessage("El grupo seleccionado no es válido.")
+        .bail()
+        .custom(verificarExistenciaPorId(Grupo, "id", "el grupo seleccionado")),
+
+    validarCampoOpcionalRequerido("asignaturaId", "Seleccione la asignatura.")
+        .isInt({ min: 1 })
+        .withMessage("La asignatura seleccionada no es válida.")
+        .bail()
+        .custom(verificarExistenciaPorId(Asignatura, "id", "la asignatura seleccionada")),
+
     validationErrorHandler,
 ];

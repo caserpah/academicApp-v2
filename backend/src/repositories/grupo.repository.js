@@ -49,7 +49,7 @@ export const grupoRepository = {
                 {
                     model: Docente,
                     as: "director",
-                    attributes: ["id", "nombres", "apellidos"]
+                    attributes: ["id", "nombre", "apellidos"]
                 }
             ]
         });
@@ -85,7 +85,7 @@ export const grupoRepository = {
                 {
                     model: Docente,
                     as: "director",
-                    attributes: ["id", "nombres", "apellidos"]
+                    attributes: ["id", "nombre", "apellidos"]
                 }
             ]
         });

@@ -31,6 +31,19 @@ export const Grupo = sequelize.define("grupo", {
         allowNull: false
     },
 
+    cupos: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 35
+    },
+
+    sobrecupoPermitido: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        comment: "Si se permite superar el número de cupos definidos."
+    },
+
     sedeId: {
         type: DataTypes.INTEGER,
         allowNull: false,
@@ -65,13 +78,11 @@ export const Grupo = sequelize.define("grupo", {
         {
             unique: true,
             name: "idx_grupo_unico",
-            fields: [
-                "nombre",
-                "gradoId",
-                "jornada",
-                "sedeId",
-                "vigenciaId"
-            ]
-        }
+            fields: ["nombre", "gradoId", "jornada", "sedeId", "vigenciaId"]
+        },
+        { fields: ["sedeId"], name: "idx_grupo_sede" },
+        { fields: ["gradoId"], name: "idx_grupo_grado" },
+        { fields: ["vigenciaId"], name: "idx_grupo_vigencia" },
+        { fields: ["cupos"], name: "idx_grupo_cupos" }
     ]
 });

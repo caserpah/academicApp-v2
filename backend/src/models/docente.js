@@ -15,19 +15,23 @@ export const Docente = sequelize.define("docente", {
         autoIncrement: true,
         allowNull: false
     },
+
     documento: {
         type: DataTypes.STRING(20),
         allowNull: false,
         unique: true,
     },
+
     nombre: {
         type: DataTypes.STRING(60),
         allowNull: false
     },
+
     apellidos: {
         type: DataTypes.STRING(80),
         allowNull: false
     },
+
     fechaNacimiento: {
         type: DataTypes.DATEONLY,
         allowNull: false,
@@ -39,14 +43,17 @@ export const Docente = sequelize.define("docente", {
             },
         },
     },
+
     email: {
         type: DataTypes.STRING(80),
         allowNull: true
     },
+
     telefono: {
         type: DataTypes.STRING(12),
         allowNull: true
     },
+
     nivelEducativo: {
         type: DataTypes.ENUM("BP", "NS", "TP", "OP", "PP", "PS", "OT"),
         allowNull: false,
@@ -57,6 +64,7 @@ export const Docente = sequelize.define("docente", {
             },
         },
     },
+
     nivelEnsenanza: {
         type: DataTypes.ENUM("PE", "BP", "BS", "MA", "OT"),
         allowNull: false,
@@ -67,18 +75,22 @@ export const Docente = sequelize.define("docente", {
             },
         },
     },
+
     decretoLey: {
         type: DataTypes.STRING(10),
         allowNull: true
     },
+
     escalafon: {
         type: DataTypes.STRING(10),
         allowNull: true
     },
+
     decretoNombrado: {
         type: DataTypes.STRING(10),
         allowNull: true
     },
+
     fechaNombrado: {
         type: DataTypes.DATEONLY,
         allowNull: true,
@@ -90,6 +102,7 @@ export const Docente = sequelize.define("docente", {
             },
         },
     },
+
     vinculacion: {
         type: DataTypes.ENUM("PD", "PP", "PV", "TR", "OT"),
         allowNull: false,
@@ -100,6 +113,33 @@ export const Docente = sequelize.define("docente", {
             },
         },
     },
+
+    fechaIngreso: {
+        type: DataTypes.DATEONLY,
+        allowNull: true,
+        validate: {
+            isDate: { msg: "Debe ingresar una fecha válida (YYYY-MM-DD)." }
+        }
+    },
+
+    fechaRetiro: {
+        type: DataTypes.DATEONLY,
+        allowNull: true,
+        validate: {
+            isDate: { msg: "Debe ingresar una fecha válida (YYYY-MM-DD)." },
+            isAfterDateIngreso(value) {
+                if (value && this.fechaIngreso && value < this.fechaIngreso) {
+                    throw new Error("La fecha de retiro no puede ser menor que la fecha de ingreso.");
+                }
+            }
+        }
+    },
+
+    direccion: {
+        type: DataTypes.STRING(150),
+        allowNull: true
+    },
+
     activo: {
         type: DataTypes.BOOLEAN,
         allowNull: false,

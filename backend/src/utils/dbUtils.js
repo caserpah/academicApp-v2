@@ -203,7 +203,7 @@ export const validarFechaNoFutura = (campo, etiqueta, opcional = false) => {
         .notEmpty()
         .withMessage(`La fecha ${etiqueta} es requerida.`)
         .isISO8601()
-        .withMessage(`La fecha ${etiqueta} debe estar en formato ISO 8601 (YYYY-MM-DD).`)
+        .withMessage(`La fecha ${etiqueta} debe estar en formato válido (YYYY-MM-DD).`)
         .toDate()
         .custom((value) => {
             const hoy = new Date();
@@ -216,4 +216,28 @@ export const validarFechaNoFutura = (campo, etiqueta, opcional = false) => {
     if (opcional) chain = chain.optional({ checkFalsy: true });
 
     return chain;
+};
+
+/**
+ * Valida que fechaInicio <= fechaFin
+ * Útil para pares como (fechaIngreso - fechaRetiro)
+ * @param {string} campoInicio - Nombre del campo inicial (ej: "fechaIngreso")
+ * @param {string} campoFin - Nombre del campo final (ej: "fechaRetiro")
+ * @param {string} [mensaje] - Mensaje personalizado opcional
+ */
+export const validarOrdenFechas = (campoInicio, campoFin, mensaje = null) => {
+    return body(campoFin).custom((value, { req }) => {
+        const inicio = req.body[campoInicio];
+
+        if (!inicio || !value) return true;
+
+        if (value < inicio) {
+            throw new Error(
+                mensaje ||
+                `La fecha ${campoFin} no puede ser menor que la fecha ${campoInicio}.`
+            );
+        }
+
+        return true;
+    });
 };

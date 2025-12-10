@@ -1,10 +1,12 @@
 import express from "express";
 import { protect, restrictTo } from "../middleware/auth.middleware.js";
 import { validationErrorHandler } from "../validators/validationErrorHandler.js";
+
 import {
     ValidarCrearJuicio,
     validarActualizarJuicio,
 } from "../validators/juicio.validator.js";
+
 import { juicioController } from "../controllers/juicio.controller.js";
 
 const router = express.Router();

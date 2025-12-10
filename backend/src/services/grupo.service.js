@@ -1,5 +1,6 @@
 import { grupoRepository } from "../repositories/grupo.repository.js";
 import { handleSequelizeError } from "../middleware/handleSequelizeError.js";
+import { formatearErrorForaneo } from "../utils/dbUtils.js";
 
 export const grupoService = {
 
@@ -7,20 +8,19 @@ export const grupoService = {
      * Listar grupos (cualquier rol puede listar).
      */
     async list(params, vigenciaId) {
-        const {
-            page = 1,
-            limit = 10,
-            orderBy = "gradoId",
-            order = "ASC"
-        } = params;
+        const page = Number(params.page) || 1;
+        const limit = Number(params.limit) || 10;
+
+        const orderBy = params.orderBy || "gradoId";
+        const order = params.order || "ASC";
 
         return grupoRepository.findAll({
             ...params,
-            vigenciaId,
             page,
             limit,
             orderBy,
-            order
+            order,
+            vigenciaId
         });
     },
 
@@ -30,6 +30,7 @@ export const grupoService = {
      */
     async get(id, vigenciaId) {
         const registro = await grupoRepository.findById(id, vigenciaId);
+
         if (!registro) {
             const err = new Error("No se encontró el grupo solicitado.");
             err.status = 404;
@@ -41,35 +42,28 @@ export const grupoService = {
     /**
      * Crear grupo (solo admin).
      */
-    async create(data, vigenciaId, rolUsuario) {
-
-        if (rolUsuario !== "admin") {
-            const err = new Error("No tiene permisos para crear grupos.");
-            err.status = 403;
-            throw err;
-        }
-
+    async create(data, vigenciaId) {
         try {
+            const {
+                nombre,
+                gradoId,
+                jornada,
+                sedeId,
+                directorId
+            } = data;
+
             const nuevo = await grupoRepository.create({
-                ...data,
-                vigenciaId,
+                nombre,
+                gradoId,
+                jornada,
+                sedeId,
+                directorId: directorId ?? null,
+                vigenciaId
             });
 
             return grupoRepository.findById(nuevo.id, vigenciaId);
 
         } catch (error) {
-
-            // Manejar índice único del grupo
-            if (error?.original?.constraint === "idx_grupo_unico" ||
-                error?.original?.index === "idx_grupo_unico") {
-
-                const err = new Error(
-                    "Ya existe un grupo con el mismo nombre, grado, jornada, sede y vigencia."
-                );
-                err.status = 400;
-                throw err;
-            }
-
             throw handleSequelizeError(error);
         }
     },
@@ -77,40 +71,30 @@ export const grupoService = {
     /**
      * Actualizar grupo (solo admin).
      */
-    async update(id, data, vigenciaId, rolUsuario) {
-
-        if (rolUsuario !== "admin") {
-            const err = new Error("No tiene permisos para actualizar grupos.");
-            err.status = 403;
-            throw err;
-        }
-
+    async update(id, data, vigenciaId) {
         try {
-
             const actual = await grupoRepository.findById(id, vigenciaId);
+
             if (!actual) {
                 const err = new Error("No se encontró el grupo solicitado.");
                 err.status = 404;
                 throw err;
             }
 
-            await grupoRepository.updateById(id, vigenciaId, data);
+            // Desestructuración — solo campos actualizables
+            const camposActualizables = {};
+
+            if (data.nombre !== undefined) camposActualizables.nombre = data.nombre;
+            if (data.gradoId !== undefined) camposActualizables.gradoId = data.gradoId;
+            if (data.jornada !== undefined) camposActualizables.jornada = data.jornada;
+            if (data.sedeId !== undefined) camposActualizables.sedeId = data.sedeId;
+            if (data.directorId !== undefined) camposActualizables.directorId = data.directorId;
+
+            await actual.update(camposActualizables);
 
             return grupoRepository.findById(id, vigenciaId);
 
         } catch (error) {
-
-            // Índice único
-            if (error?.original?.constraint === "idx_grupo_unico" ||
-                error?.original?.index === "idx_grupo_unico") {
-
-                const err = new Error(
-                    "Ya existe un grupo con el mismo nombre, grado, jornada, sede y vigencia."
-                );
-                err.status = 400;
-                throw err;
-            }
-
             throw handleSequelizeError(error);
         }
     },
@@ -118,14 +102,7 @@ export const grupoService = {
     /**
      * Eliminar grupo (solo admin).
      */
-    async remove(id, vigenciaId, rolUsuario) {
-
-        if (rolUsuario !== "admin") {
-            const err = new Error("No tiene permisos para eliminar grupos.");
-            err.status = 403;
-            throw err;
-        }
-
+    async remove(id, vigenciaId) {
         try {
             const registro = await grupoRepository.findById(id, vigenciaId);
 
@@ -139,7 +116,11 @@ export const grupoService = {
             return true;
 
         } catch (error) {
-            throw handleSequelizeError(error);
+            throw formatearErrorForaneo(
+                error,
+                "este grupo",
+                "cargas académicas o matrículas asociadas"
+            );
         }
     },
 };

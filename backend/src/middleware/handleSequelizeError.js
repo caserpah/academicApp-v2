@@ -46,26 +46,26 @@ export const handleSequelizeError = (error) => {
 
         // Caso 4: areas-vigencias (areaId + nombre + vigenciaId)
         if (indexName === "idx_area_codigo_vigencia") {
-            const err = new Error("Ya existe un área con este código en el año lectivo vigente.");
+            const err = new Error("No es posible guardar el área. El código ingresado ya está siendo utilizado por otra área en este año lectivo.");
             err.status = 409;
             return err;
         }
 
         if (indexName === "idx_area_nombre_vigencia") {
-            const err = new Error("Ya existe un área con este nombre en el año lectivo vigente.");
+            const err = new Error("No es posible crear el área. Ya existe un área con el mismo nombre asignado al año lectivo vigente.");
             err.status = 409;
             return err;
         }
 
         // Caso 5: asignaturas + areas (codigo + nombre + areaId + vigenciaId)
         if (indexName === "idx_asignatura_codigo_vigencia") {
-            const err = new Error("Ya existe una asignatura con este código en el año lectivo.");
+            const err = new Error("No es posible guardar la asignatura. El código ingresado ya está siendo utilizado por otra asignatura en este año lectivo.");
             err.status = 409;
             return err;
         }
 
         if (indexName === "idx_asignatura_nombre_area_vigencia") {
-            const err = new Error("Ya existe una asignatura perteneciente a esta área para el año lectivo.");
+            const err = new Error("No es posible guardar la asignatura. Ya existe otro registro con esta asignatura asociado a la misma área en este año lectivo.");
             err.status = 409;
             return err;
         }
@@ -79,18 +79,20 @@ export const handleSequelizeError = (error) => {
 
         // Caso 7: Especial para Juicios
         if (indexName === "idx_juicio_unico") {
-            const err = new Error(
-                "Ya existe un juicio para este periodo, grado y desempeño en esta asignatura."
-            );
+            const err = new Error("No es posible guardar el juicio. Ya existe un juicio registrado para esta asignatura con el mismo período, grado y nivel de desempeño.");
             err.status = 409;
             return err;
         }
 
         // Caso 8: Especial para Grupos
         if (indexName === "idx_grupo_unico") {
-            const err = new Error(
-                "No se puede crear el grupo porque ya existe otro grupo con el mismo nombre, grado, jornada, sede y vigencia."
-            );
+            const err = new Error("No es posible guardar el grupo. Ya existe un grupo registrado con el mismo nombre, grado, jornada, sede y vigencia.");
+            err.status = 409;
+            return err;
+        }
+        // Caso 9: Especial para Cargas
+        if (indexName === "idx_carga_sede_grupo_asignatura_vigencia") {
+            const err = new Error("No es posible guardar la carga académica. El docente ya tiene registrada una carga con la misma asignatura en el mismo grupo de la misma sede para este año lectivo.");
             err.status = 409;
             return err;
         }
@@ -120,7 +122,7 @@ export const handleSequelizeError = (error) => {
         let message = "Existe un conflicto con una clave foránea.";
 
         if (isInsert) {
-            message = "No se pudo crear el registro porque algunos datos relacionados no existen o no son válidos.";
+            message = "No se pudo guardar el registro porque algunos datos relacionados no existen o no son válidos.";
         }
         else if (isUpdate) {
             message = "No se pudo actualizar el registro porque los datos relacionados no existen o están siendo usados por otros registros.";
