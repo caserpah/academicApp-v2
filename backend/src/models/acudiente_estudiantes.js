@@ -54,11 +54,6 @@ export const AcudienteEstudiantes = sequelize.define("acudiente_estudiantes", {
 
     indexes: [
         {
-            unique: true,
-            fields: ["acudienteId", "estudianteId", "afinidad"],
-            name: "idx_acudiente_estudiante_afinidad",
-        },
-        {
             fields: ["acudienteId"],
             name: "idx_acudienteId",
         },

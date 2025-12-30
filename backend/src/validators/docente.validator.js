@@ -128,7 +128,7 @@ export const ValidarActualizarDocente = [
     /** Fecha de nacimiento */
     validarCampoOpcionalRequerido("fechaNacimiento", "Debe ingresar la fecha de nacimiento.")
         .isISO8601()
-        .withMessage("La fecha de nacimiento debe ser válida (YYYY-MM-DD).")
+        .withMessage("La fecha de nacimiento debe ser válida (AAAA-MM-DD).")
         .bail()
         .custom((value) => {
             if (!value) return true;

@@ -40,7 +40,7 @@ export const grupoService = {
     },
 
     /**
-     * Crear grupo (solo admin).
+     * Crear grupo
      */
     async create(data, vigenciaId) {
         try {

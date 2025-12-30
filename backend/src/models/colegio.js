@@ -47,7 +47,7 @@ export const Colegio = sequelize.define('colegio', {
         allowNull: false
     },
     fechaResolucion: {
-        type: DataTypes.DATEONLY,
+        type: DataTypes.DATEONLY
     },
     promocion: {
         type: DataTypes.STRING(10),

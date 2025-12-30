@@ -3,7 +3,6 @@ import { Estudiante } from "../models/estudiante.js";
 
 import {
     validarCampoRequerido,
-    validarCampoOpcional,
     validarCampoOpcionalRequerido,
     validarCampoUnico,
     validarFechaNoFutura,
@@ -13,16 +12,15 @@ import {
 import { validationErrorHandler } from "./validationErrorHandler.js";
 
 /** Regex */
-const regexNombre = /^[A-Za-zÁÉÍÓÚÑáéíóúñüÜ\s]+$/;
 const regexDocumento = /^[A-Za-z0-9]{4,20}$/;
 
 /** ENUMS */
 const ENUM_TIPO_DOC = ["RC", "TI", "CC", "CE", "PA", "NIP", "NUIP", "NES"];
 const ENUM_SEXO = ["M", "F", "I"];
-const ENUM_VICTIMAS = ["DZ", "DG", "HD", "OT", "NA"];
-const ENUM_DISCAPACIDAD = ["DA", "DF", "DI", "DM", "NA", "DP", "DS", "DV"];
-const ENUM_CAPACIDADES = ["SD", "TC", "TT", "TS", "NA"];
-const ENUM_ETNIA = ["RM", "IG", "NR", "PL", "RZ", "NA"];
+const ENUM_VICTIMAS = ["DPZ","DGA","HDZ","OTR","NA"];
+const ENUM_DISCAPACIDAD = ["FISICA","AUDITIVA","VISUAL","SORDOCEGUERA","INTELECTUAL","PSICOSOCIAL","MULTIPLE","OTRA","NINGUNA"];
+const ENUM_CAPACIDADES = ["SD", "CTC", "CTT", "CTS", "NA"];
+const ENUM_ETNIA = ["INDIGENA","AFROCOLOMBIANO","RAIZAL","ROM_GITANO","NO_APLICA"];
 
 export const ValidarCrearEstudiante = [
 
@@ -42,25 +40,19 @@ export const ValidarCrearEstudiante = [
 
     /** Primer nombre */
     validarCampoRequerido("primerNombre", "Ingrese el primer nombre.")
-        .matches(regexNombre)
-        .withMessage("El primer nombre solo puede contener letras y espacios."),
+        .isLength({ min: 2 })
+        .withMessage("El primer nombre debe contener al menos 2 caracteres."),
 
     /** Segundo nombre opcional */
-    body("segundoNombre")
-        .optional({ checkFalsy: true })
-        .matches(regexNombre)
-        .withMessage("El segundo nombre solo puede contener letras y espacios."),
+    body("segundoNombre").optional({ checkFalsy: true }).trim().escape(),
 
     /** Primer apellido */
     validarCampoRequerido("primerApellido", "Ingrese el primer apellido.")
-        .matches(regexNombre)
-        .withMessage("El primer apellido solo puede contener letras y espacios."),
+        .isLength({ min: 2 })
+        .withMessage("El primer apellido debe contener al menos 2 caracteres."),
 
     /** Segundo apellido opcional */
-    body("segundoApellido")
-        .optional({ checkFalsy: true })
-        .matches(regexNombre)
-        .withMessage("El segundo apellido solo puede contener letras y espacios."),
+    body("segundoApellido").optional({ checkFalsy: true }).trim().escape(),
 
     /** Fecha nacimiento */
     validarFechaNoFutura("fechaNacimiento", "de nacimiento"),
@@ -107,7 +99,7 @@ export const ValidarCrearEstudiante = [
     body("subsidiado")
         .optional()
         .isBoolean()
-        .withMessage("El campo 'subsidiado' debe ser verdadero o falso."),
+        .withMessage("El campo subsidiado debe ser verdadero o falso."),
 
     /** EPS */
     body("eps")
@@ -158,34 +150,24 @@ export const ValidarActualizarEstudiante = [
         .custom(validarCampoUnico(Estudiante, "documento", "un estudiante", true, null, "número de documento")
         ),
 
-    /** Nombres y apellidos */
+    /** Primer nombre */
     validarCampoOpcionalRequerido("primerNombre", "Ingrese el primer nombre.")
-        .matches(regexNombre)
-        .withMessage("El primer nombre solo puede contener letras y espacios."),
+        .isLength({ min: 2 })
+        .withMessage("El primer nombre debe contener al menos 2 caracteres."),
 
-    body("segundoNombre")
-        .optional({ checkFalsy: true })
-        .matches(regexNombre)
-        .withMessage("El segundo nombre solo puede contener letras y espacios."),
+    /** Segundo nombre opcional */
+    body("segundoNombre").optional({ checkFalsy: true }).trim().escape(),
 
+    /** Primer apellido */
     validarCampoOpcionalRequerido("primerApellido", "Ingrese el primer apellido.")
-        .matches(regexNombre)
-        .withMessage("El primer apellido solo puede contener letras y espacios."),
+        .isLength({ min: 2 })
+        .withMessage("El primer apellido debe contener al menos 2 caracteres."),
 
-    body("segundoApellido")
-        .optional({ checkFalsy: true })
-        .matches(regexNombre)
-        .withMessage("El segundo apellido solo puede contener letras y espacios."),
+    /** Segundo apellido opcional */
+    body("segundoApellido").optional({ checkFalsy: true }).trim().escape(),
 
     /** Fecha nacimiento */
-    validarCampoOpcionalRequerido("fechaNacimiento", "Debe ingresar la fecha de nacimiento.")
-        .bail()
-        .custom((value) => {
-            if (value >= new Date().toISOString().split("T")[0]) {
-                throw new Error("La fecha de nacimiento no puede ser futura.");
-            }
-            return true;
-        }),
+    validarFechaNoFutura("fechaNacimiento", "de nacimiento", true),
 
     /** Sexo */
     validarCampoOpcionalRequerido("sexo", "Seleccione el sexo del estudiante.")
@@ -223,7 +205,7 @@ export const ValidarActualizarEstudiante = [
     body("subsidiado")
         .optional()
         .isBoolean()
-        .withMessage("El campo 'subsidiado' debe ser verdadero o falso."),
+        .withMessage("El campo subsidiado debe ser verdadero o falso."),
 
     body("eps")
         .optional({ checkFalsy: true })

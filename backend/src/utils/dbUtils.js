@@ -202,12 +202,12 @@ export const validarFechaNoFutura = (campo, etiqueta, opcional = false) => {
     let chain = body(campo)
         .notEmpty()
         .withMessage(`La fecha ${etiqueta} es requerida.`)
-        .isISO8601()
+        .isISO8601({ strict: true })
         .withMessage(`La fecha ${etiqueta} debe estar en formato válido (YYYY-MM-DD).`)
-        .toDate()
         .custom((value) => {
             const hoy = new Date();
-            if (value > hoy) {
+            const fecha = new Date(`${value}T00:00:00`); // Evitar problemas de zona horaria
+            if (fecha  > hoy) {
                 throw new Error(`La fecha ${etiqueta} no puede ser posterior a la actual.`);
             }
             return true;

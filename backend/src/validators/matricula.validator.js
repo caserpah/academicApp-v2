@@ -1,263 +1,114 @@
-import { body, param } from "express-validator";
+import { body, param, query } from "express-validator";
+import { validationErrorHandler } from "./validationErrorHandler.js";
 import { Estudiante } from "../models/estudiante.js";
 import { Grupo } from "../models/grupo.js";
-import { Vigencia } from "../models/vigencia.js";
 import { Sede } from "../models/sede.js";
-import { Matricula } from "../models/matricula.js";
 import {
-    validarCampoUnico,
-    verificarExistenciaPorCampo,
     validarCampoRequerido,
-    validarCampoOpcionalRequerido,
+    validarFechaNoFutura,
+    verificarExistenciaPorId
 } from "../utils/dbUtils.js";
-import { validationErrorHandler } from "./validationErrorHandler.js";
 
-/* -----------------------------------------------------------
- * CONFIGURACIONES GLOBALES
- * ----------------------------------------------------------- */
-const SITUACIONES_PERMITIDAS = ["NV", "AP", "RP", "NC"];
-const TIPOS_PERMITIDOS = ["PREMATRICULA", "MATRICULA"];
+const ESTADOS_VALIDOS = ["PREMATRICULADO", "ACTIVA", "RETIRADO", "DESERTADO", "REPROBADO", "PROMOVIDO"];
+const METODOLOGIAS_VALIDAS = ["TRADICIONAL", "ETNOEDUCACION", "ESCUELA_NUEVA", "ACELERACION_APRENDIZAJE"];
 
-const validarBooleanoOpcional = (campo, etiqueta) =>
-    body(campo)
-        .optional({ checkFalsy: true })
-        .isBoolean()
-        .withMessage(`${etiqueta} debe ser verdadero o falso.`)
-        .toBoolean();
-
-/* -----------------------------------------------------------
- * CREAR MATRÍCULA / PREMATRÍCULA (individual)
- * ----------------------------------------------------------- */
 export const validarCrearMatricula = [
-    validarCampoRequerido("folio", "Ingrese el número de folio.")
-        .isLength({ max: 20 }).withMessage("El número de folio no debe exceder los 20 caracteres.")
-        .bail()
-        .custom(validarCampoUnico(Matricula, "folio", false, null, "Folio")),
-
     validarCampoRequerido("estudianteId", "Seleccione un estudiante.")
         .isInt({ min: 1 }).withMessage("El estudiante seleccionado no es válido.")
         .bail()
-        .custom(verificarExistenciaPorCampo(Estudiante, "id", "el estudiante", "ID")),
+        .custom(verificarExistenciaPorId(Estudiante, "id", "el estudiante")),
 
     validarCampoRequerido("grupoId", "Seleccione un grupo.")
         .isInt({ min: 1 }).withMessage("El grupo seleccionado no es válido.")
         .bail()
-        .custom(verificarExistenciaPorCampo(Grupo, "id", "el grupo", "ID")),
+        .custom(verificarExistenciaPorId(Grupo, "id", "el grupo")),
 
-    validarCampoRequerido("sedeId", "Seleccione la sede donde se registra la matrícula.")
+    validarCampoRequerido("sedeId", "Seleccione una sede.")
         .isInt({ min: 1 }).withMessage("La sede seleccionada no es válida.")
         .bail()
-        .custom(verificarExistenciaPorCampo(Sede, "id", "la sede", "ID")),
+        .custom(verificarExistenciaPorId(Sede, "id", "la sede")),
 
-    validarCampoRequerido("metodologia", "Seleccione una metodología de estudio.")
-        .isLength({ max: 20 })
-        .withMessage("El nombre de la metodología no debe exceder los 20 caracteres."),
+    body("estado")
+        .optional()
+        .isIn(ESTADOS_VALIDOS)
+        .withMessage("El estado seleccionado no es válido"),
 
-    // tipo (si no viene, el modelo pone MATRÍCULA por defecto)
-    body("tipo")
-        .optional({ checkFalsy: true })
-        .isIn(TIPOS_PERMITIDOS)
-        .withMessage("Indique si el registro corresponde a una matrícula o una prematrícula."),
-
-    // Validación de vigencia destino solo para PREMATRÍCULA
-    body("vigenciaDestinoId")
-        .custom(async (value, { req }) => {
-            if ((req.body.tipo || "MATRICULA") === "PREMATRICULA") {
-                if (!value) throw new Error("Seleccione el año lectivo de destino para la prematrícula.");
-
-                const vigente = req.vigenciaActual?.id;
-                if (vigente && Number(value) <= vigente) {
-                    throw new Error("El año lectivo de destino para la prematrícula no es válido.");
-                }
-
-                await verificarExistenciaPorCampo(Vigencia, "id", "el año lectivo de destino", "ID")(value);
-            }
-            return true;
-        }),
-
-    // campos de control
-    validarBooleanoOpcional("repitente", "Repitente"),
-    validarBooleanoOpcional("nuevo", "Nuevo"),
-    validarBooleanoOpcional("activo", "Activo"),
-    validarBooleanoOpcional("confirmada", "Confirmada"),
-
-    // enums / strings
-    validarCampoRequerido("situacion", "Seleccione la situación académica del estudiante.")
-        .isIn(SITUACIONES_PERMITIDAS)
-        .withMessage("La situación académica debe ser NV, AP, RP o NC."),
+    validarCampoRequerido("metodologia", "Seleccione una metodología.")
+        .isIn(["TRADICIONAL", "ETNOEDUCACION", "ESCUELA_NUEVA", "ACELERACION_APRENDIZAJE"])
+        .withMessage("La metodología seleccionada no es válida."),
 
     body("observaciones")
-        .optional({ checkFalsy: true })
-        .isLength({ max: 1000 })
-        .withMessage("Las observaciones no deben exceder los 1000 caracteres."),
+        .optional()
+        .isLength({ max: 500 }).withMessage("Las observaciones no deben exceder 500 caracteres"),
 
-    validationErrorHandler,
+    validationErrorHandler
 ];
 
-/* -----------------------------------------------------------
- * ACTUALIZAR MATRÍCULA / PREMATRÍCULA
- * ----------------------------------------------------------- */
 export const validarActualizarMatricula = [
     param("id")
-        .isInt({ min: 1 })
-        .withMessage("El identificador de la matrícula no es válido."),
-
-    // folio (único, ignorando registro actual)
-    validarCampoOpcionalRequerido("folio", "Ingrese el número de folio si desea actualizarlo.")
-        .isLength({ max: 20 }).withMessage("El número de folio no debe exceder los 20 caracteres.")
-        .bail()
-        .custom(validarCampoUnico(Matricula, "folio", true, null, "Folio")),
-
-    // llaves foráneas (opcionales)
-    body("estudianteId")
-        .optional({ checkFalsy: true })
-        .isInt({ min: 1 }).withMessage("El estudiante seleccionado no es válido.")
-        .bail()
-        .custom(verificarExistenciaPorCampo(Estudiante, "id", "el estudiante", "ID")),
+        .isInt().withMessage("La matrícula seleccionada no es válida."),
 
     body("grupoId")
-        .optional({ checkFalsy: true })
-        .isInt({ min: 1 }).withMessage("El grupo seleccionado no es válido.")
-        .bail()
-        .custom(verificarExistenciaPorCampo(Grupo, "id", "el grupo", "ID")),
+        .optional()
+        .isInt()
+        .custom(verificarExistenciaPorId(Grupo, "id", "el grupo")),
 
     body("sedeId")
-        .optional({ checkFalsy: true })
-        .isInt({ min: 1 }).withMessage("La sede seleccionada no es válida.")
-        .bail()
-        .custom(verificarExistenciaPorCampo(Sede, "id", "la sede", "ID")),
+        .optional()
+        .isInt()
+        .custom(verificarExistenciaPorId(Sede, "id", "la sede")),
 
-    body("tipo")
-        .optional({ checkFalsy: true })
-        .isIn(TIPOS_PERMITIDOS)
-        .withMessage("Indique si el registro corresponde a una matrícula o una prematrícula."),
-
-    // si se manda vigenciaDestinoId, verificar y existir
-    body("vigenciaDestinoId")
-        .optional({ checkFalsy: true })
-        .isInt({ min: 1 }).withMessage("Seleccione un año lectivo de destino válido.")
-        .bail()
-        .custom(verificarExistenciaPorCampo(Vigencia, "id", "el año lectivo de destino", "ID")),
-
-    // booleans opcionales
-    validarBooleanoOpcional("repitente", "Repitente"),
-    validarBooleanoOpcional("nuevo", "Nuevo"),
-    validarBooleanoOpcional("activo", "Activo"),
-    validarBooleanoOpcional("confirmada", "Confirmada"),
-
-
-    // enums / strings
-    body("situacion")
-        .optional({ checkFalsy: true })
-        .isIn(SITUACIONES_PERMITIDAS)
-        .withMessage("Seleccione una situación académica válida: NV, AP, RP o NC."),
+    body("estado")
+        .optional()
+        .isIn(ESTADOS_VALIDOS)
+        .withMessage("El estado seleccionado no es válido"),
 
     body("metodologia")
-        .optional({ checkFalsy: true })
-        .isLength({ max: 20 })
-        .withMessage("El nombre de la metodología no debe exceder los 20 caracteres."),
+        .optional()
+        .isIn(METODOLOGIAS_VALIDAS)
+        .withMessage("La metodología seleccionada no es válida"),
 
     body("observaciones")
-        .optional({ checkFalsy: true })
-        .isLength({ max: 1000 })
-        .withMessage("Las observaciones no deben exceder los 1000 caracteres."),
+        .optional()
+        .trim()
+        .isLength({ max: 500 }).withMessage("Las observaciones no pueden exceder 500 caracteres"),
 
-    validationErrorHandler,
+    validarFechaNoFutura("fechaRetiro", "de retiro"),
+
+    body("motivoRetiro")
+        .optional({ nullable: true })
+        .trim()
+        .isLength({ max: 200 }).withMessage("El motivo de retiro no puede exceder 200 caracteres"),
+
+    validationErrorHandler
 ];
 
-/* -----------------------------------------------------------
- * PREMATRÍCULA (individual)
- * ----------------------------------------------------------- */
-export const validarPrematricula = [
-    validarCampoRequerido("estudianteId", "Seleccione un estudiante.")
-        .isInt({ min: 1 }).withMessage("El estudiante seleccionado no es válido.")
-        .bail()
-        .custom(verificarExistenciaPorCampo(Estudiante, "id", "el estudiante", "ID")),
-
-    validarCampoRequerido("grupoId", "Seleccione un grupo.")
-        .isInt({ min: 1 }).withMessage("El grupo seleccionado no es válido.")
-        .bail()
-        .custom(verificarExistenciaPorCampo(Grupo, "id", "el grupo", "ID")),
-
-    validarCampoRequerido("vigenciaDestinoId", "Seleccione un año lectivo de destino.")
-        .isInt({ min: 1 }).withMessage("El año lectivo de destino seleccionado no es válido.")
-        .bail()
-        .custom(async (value, { req }) => {
-            const vigente = req.vigenciaActual?.id;
-            if (vigente && Number(value) <= vigente) {
-                throw new Error("El año lectivo de destino debe ser posterior al año lectivo actual.");
+export const validarMasivo = [
+    body("estudiantesIds")
+        .isArray({ min: 1 }).withMessage("No se puede procesar la solicitud. Es necesario seleccionar al menos un estudiante para completar esta acción.")
+        .custom((ids) => {
+            if (!ids.every(id => Number.isInteger(id))) {
+                throw new Error("Error en la selección. Los datos de los estudiantes no son válidos; por favor, intente seleccionarlos nuevamente.");
             }
-            await verificarExistenciaPorCampo(Vigencia, "id", "el año lectivo de destino", "ID")(value);
             return true;
         }),
 
-    validationErrorHandler,
-];
-
-/* -----------------------------------------------------------
- * CONFIRMAR PREMATRÍCULA (individual)
- * ----------------------------------------------------------- */
-export const validarConfirmacion = [
-    param("id").isInt({ min: 1 }).withMessage("El registro seleccionado no es válido."),
-    validationErrorHandler,
-];
-
-/* -----------------------------------------------------------
- * CONFIRMAR PREMATRÍCULAS (MASIVO)
- * ----------------------------------------------------------- */
-export const validarConfirmacionMasiva = [
-    body().custom((value) => {
-        const hasLista = Array.isArray(value?.ids) && value.ids.length > 0;
-        const hasGrupo = Number.isInteger(Number(value?.grupoId)) && Number(value?.grupoId) > 0;
-
-        if (!hasLista && !hasGrupo) {
-            throw new Error("Seleccione un grupo o una lista de estudiantes para confirmar las prematrículas.");
-        }
-
-        if (hasLista && !value.ids.every((v) => Number.isInteger(Number(v)) && Number(v) > 0)) {
-            throw new Error("La lista de estudiantes contiene identificadores no válidos.");
-        }
-
-        return true;
-    }),
-    validationErrorHandler,
-];
-
-/* -----------------------------------------------------------
- * GENERAR PREMATRÍCULAS (MASIVO)
- * ----------------------------------------------------------- */
-export const validarGeneracionMasivaPrematricula = [
-    validarCampoRequerido("vigenciaDestinoId", "Seleccione el año lectivo de destino.")
-        .isInt({ min: 1 }).withMessage("El año lectivo de destino seleccionado no es válido.")
-        .bail()
-        .custom(async (value, { req }) => {
-            const vigente = req.vigenciaActual?.id;
-            if (vigente && Number(value) <= vigente) {
-                throw new Error("El año lectivo de destino debe ser posterior al año lectivo actual.");
-            }
-            await verificarExistenciaPorCampo(Vigencia, "id", "el año lectivo de destino", "ID")(value);
-            return true;
-        }),
-
-    body("grupoId")
-        .optional({ checkFalsy: true })
-        .isInt({ min: 1 }).withMessage("Seleccione un grupo válido.")
-        .bail()
-        .custom(verificarExistenciaPorCampo(Grupo, "id", "el grupo", "ID")),
+    body("grupoDestinoId")
+        .notEmpty().withMessage("Seleccione el grupo de destino.")
+        .custom(verificarExistenciaPorId(Grupo, "id", "el grupo destino")),
 
     body("sedeId")
-        .optional({ checkFalsy: true })
-        .isInt({ min: 1 }).withMessage("Seleccione una sede válida.")
-        .bail()
-        .custom(verificarExistenciaPorCampo(Sede, "id", "la sede", "ID")),
+        .notEmpty().withMessage("Seleccione una sede.")
+        .custom(verificarExistenciaPorId(Sede, "id", "la sede")),
 
-    validationErrorHandler,
+    validationErrorHandler
 ];
 
-/* -----------------------------------------------------------
- * EXISTENCIA GENÉRICA POR ID
- * ----------------------------------------------------------- */
-export const validarMatriculaExistente = [
-    param("id").isInt({ min: 1 }).withMessage("El registro seleccionado no es válido."),
-    validationErrorHandler,
+export const validarListar = [
+    query("page").optional().isInt({ min: 1 }),
+    query("limit").optional().isInt({ min: 1, max: 100 }),
+    query("sedeId").optional().isInt(),
+    query("grupoId").optional().isInt(),
+    query("gradoId").optional().isInt(),
+    validationErrorHandler
 ];

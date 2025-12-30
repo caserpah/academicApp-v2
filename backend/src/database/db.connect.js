@@ -10,7 +10,15 @@ export const sequelize = new Sequelize(DB, USER, PASSWORD, {
     port: PORT,
     dialect: dialect,
     pool: pool,
-    logging: false // Desactiva el logging de consultas SQL para evitar que se muestren en la consola
+    logging: false, // Desactiva el logging de consultas SQL para evitar que se muestren en la consola
+
+    // Colombia (UTC-5)
+    timezone: "-05:00",
+
+    // Fuerza la zona horaria a nivel de sesión MySQL
+    dialectOptions: {
+        timezone: "-05:00",
+    },
 });
 
 /**

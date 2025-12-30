@@ -10,6 +10,10 @@ import Areas from '../components/areas/Areas.jsx';
 import Asignaturas from '../components/asignaturas/Asignaturas.jsx';
 import Coordinadores from '../components/coordinadores/Coordinadores.jsx';
 import Juicios from '../components/juicios/Juicios.jsx';
+import Estudiantes from '../components/estudiantes/Estudiantes.jsx'
+import asignarAcudientes from '../components/estudiantes/AcudientesTab.jsx'
+import Matriculas from "../components/matriculas/Matriculas.jsx";
+import PromocionMasiva from "../components/matriculas/PromocionMasiva.jsx";
 import Login from '../pages/Auth/login.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
 
@@ -36,10 +40,9 @@ const AppRoutes = () => {
                     <Route path="bienvenida" element={<Bienvenida />} />
 
                     {/* RUTAS DE NAVEGACIÓN ESTÁNDAR (Páginas simples del Sidebar) */}
-                    <Route path="matricula" element={<div>Página de Matrícula</div>} />
-                    <Route path="estudiante" element={<div>Página de Estudiantes</div>} />
+                    <Route path="estudiantes" element={<Estudiantes />} />
                     <Route path="docentes" element={<div>Página de Docentes</div>} />
-                    <Route path="areas" element={<Areas/>} />
+                    <Route path="areas" element={<Areas />} />
                     <Route path="asignaturas" element={<Asignaturas />} />
                     <Route path="coordinadores" element={<Coordinadores />} />
                     <Route path="juicios" element={<Juicios />} />
@@ -100,6 +103,30 @@ const AppRoutes = () => {
                         element={
                             <ProtectedRoute requiredRole="admin">
                                 <Juicios />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="matriculas"
+                        element={
+                            <ProtectedRoute requiredRole="admin">
+                                <Matriculas />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="matriculas/masivo"
+                        element={
+                            <ProtectedRoute requiredRole="admin">
+                                <PromocionMasiva />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="estudiantes/acudientes"
+                        element={
+                            <ProtectedRoute requiredRole="admin">
+                                <asignarAcudientes />
                             </ProtectedRoute>
                         }
                     />

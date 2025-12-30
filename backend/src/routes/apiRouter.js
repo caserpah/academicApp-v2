@@ -47,12 +47,12 @@ router.use("/indicadores", vigenciaContext, indicadorRoutes);
    ============================================================ */
 import docenteRoutes from "./docentes.route.js";
 import coordinadorRoutes from './coordinadores.route.js';
-//import acudienteRoutes from "./acudientes.route.js";
+import acudienteRoutes from "./acudiente.routes.js";
 import estudianteRoutes from "./estudiantes.route.js";
 
 router.use("/docentes", docenteRoutes);
 router.use('/coordinadores', coordinadorRoutes);
-//router.use("/acudientes", acudienteRoutes);
+router.use("/acudientes", acudienteRoutes);
 router.use("/estudiantes", estudianteRoutes);
 
 /* ============================================================
@@ -73,14 +73,14 @@ import grupoRoutes from "./grupos.route.js";
 import cargaRoutes from "./carga.routes.js";
 //import calificacionRoutes from "./calificaciones.route.js";
 import juicioRoutes from "./juicios.route.js";
-//import matriculaRoutes from "./matriculas.route.js";
+import matriculaRoutes from "./matriculas.route.js";
 
 router.use("/vigencias-config", vigenciaConfigRoutes); // Configuración de vigencias
 router.use("/grupos", vigenciaContext, grupoRoutes);
 router.use("/cargas", vigenciaContext, cargaRoutes);
 //router.use("/calificaciones", vigenciaContext, calificacionRoutes);
 router.use("/juicios", vigenciaContext, juicioRoutes);
-//router.use("/matriculas", vigenciaContext, matriculaRoutes);
+router.use("/matriculas", vigenciaContext, matriculaRoutes);
 
 /* ============================================================
     🧭 EXPORTACIÓN DEL ENRUTADOR PRINCIPAL

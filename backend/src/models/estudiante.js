@@ -58,14 +58,7 @@ export const Estudiante = sequelize.define("estudiante", {
     /** Fecha de nacimiento (validación no futura) */
     fechaNacimiento: {
         type: DataTypes.DATEONLY,
-        allowNull: false,
-        validate: {
-            isDate: { msg: "La fecha de nacimiento del estudiante debe ser válida." },
-            isBefore: {
-                args: [new Date().toISOString().split("T")[0]],
-                msg: "La fecha de nacimiento del estudiante no puede ser futura."
-            }
-        }
+        allowNull: false
     },
 
     /** Sexo (ENUM simplificado) */
@@ -128,23 +121,26 @@ export const Estudiante = sequelize.define("estudiante", {
 
     /** Caracterización adicional */
     victimas: {
-        type: DataTypes.ENUM("DZ", "DG", "HD", "OT", "NA"),
-        allowNull: false
+        type: DataTypes.ENUM("DPZ", "DGA", "HDZ", "OTR", "NA"),
+        allowNull: false,
+        comment: "DPZ: Desplazado, DGA: Desmovilizado de Grupo Armado, HDZ: Hijo de Desmovilizado de Grupo Armado, OTR: Otro, NA: No aplica"
     },
 
     discapacidad: {
-        type: DataTypes.ENUM("DA", "DF", "DI", "DM", "NA", "DP", "DS", "DV"),
+        type: DataTypes.ENUM("FISICA", "AUDITIVA", "VISUAL", "SORDOCEGUERA", "INTELECTUAL", "PSICOSOCIAL", "MULTIPLE", "OTRA", "NINGUNA"),
         allowNull: false
     },
 
     capacidades: {
-        type: DataTypes.ENUM("SD", "TC", "TT", "TS", "NA"),
-        allowNull: false
+        type: DataTypes.ENUM("SD", "CTC", "CTT", "CTS", "NA"),
+        allowNull: false,
+        comment: "SD: Superdotado, CTC: Con Talento Científico, CTT: Con Talento Tecnológico, CTS: Con Talento Subjetivo, NA: No Aplica"
     },
 
     etnia: {
-        type: DataTypes.ENUM("RM", "IG", "NR", "PL", "RZ", "NA"),
-        allowNull: false
+        type: DataTypes.ENUM("INDIGENA", "AFROCOLOMBIANO", "RAIZAL", "ROM_GITANO", "NO_APLICA"),
+        allowNull: false,
+        comment: "Indigena, Afrocolombiano (Incluye Afrodescendientes, Negros, Mulatos, Palenqueros De San Basilio), Raizal, ROM o Gitano"
     }
 
 }, {

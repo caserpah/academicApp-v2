@@ -11,6 +11,7 @@ export const estudianteController = {
         try {
             const params = {
                 ...req.query,
+                busqueda: req.query.busqueda || req.query.search || "", // Forzamos la captura
             };
 
             // si se desea incluir matrículas, debemos pasar la vigencia
@@ -103,6 +104,31 @@ export const estudianteController = {
                 "El estudiante fue eliminado exitosamente."
             );
 
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    async addAcudiente(req, res, next) {
+        try {
+            const estudianteId = Number(req.params.id);
+            // req.body debe traer { acudienteId, afinidad }
+            await estudianteService.addAcudiente(estudianteId, req.body);
+
+            return sendSuccess(res, null, "Acudiente asignado existosamente.");
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    async removeAcudiente(req, res, next) {
+        try {
+            const estudianteId = Number(req.params.id);
+            const acudienteId = Number(req.params.acudienteId);
+
+            await estudianteService.removeAcudiente(estudianteId, acudienteId);
+
+            return sendSuccess(res, null, "Acudiente desvinculado existosamente.");
         } catch (error) {
             next(error);
         }

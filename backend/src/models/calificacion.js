@@ -68,6 +68,11 @@ export const Calificacion = sequelize.define("calificacion", {
         type: DataTypes.FLOAT,
         allowNull: false
     },
+    notaNivelacion: {
+        type: DataTypes.FLOAT,
+                allowNull: true,
+        comment: "Nota obtenida en el proceso de recuperación/nivelación final."
+    },
     recomendacionUno: {
         type: DataTypes.TEXT,
         allowNull: true

@@ -1,6 +1,10 @@
 import { DataTypes } from "sequelize";
 import { sequelize } from "../database/db.connect.js";
 
+/**
+ * Modelo: Matricula
+ * Representa una matrícula académica
+ */
 export const Matricula = sequelize.define("matricula", {
     id: {
         type: DataTypes.INTEGER,
@@ -37,6 +41,23 @@ export const Matricula = sequelize.define("matricula", {
         allowNull: false,
         defaultValue: "PREMATRICULADO",
         comment: "Estado administrativo de la matrícula según proceso institucional."
+    },
+
+    metodologia: {
+        type: DataTypes.ENUM(
+            "TRADICIONAL",
+            "ETNOEDUCACION",
+            "ESCUELA_NUEVA",
+            "ACELERACION_APRENDIZAJE"
+        ),
+        allowNull: true,
+        defaultValue: "TRADICIONAL"
+    },
+
+    observaciones: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: "Observaciones adicionales sobre la matrícula."
     },
 
     /** DATOS DE RETIRO */
@@ -122,6 +143,7 @@ export const Matricula = sequelize.define("matricula", {
         { fields: ["sedeId"], name: "idx_matricula_sede" },
         { fields: ["vigenciaId"], name: "idx_matricula_vigencia" },
         { fields: ["estado"], name: "idx_matricula_estado" },
+        { fields: ["metodologia"], name: "idx_matricula_metodologia" },
 
         /** UN ESTUDIANTE SOLO PUEDE TENER UNA MATRÍCULA POR VIGENCIA */
         {

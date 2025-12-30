@@ -17,6 +17,9 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001
 
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
+    headers: {
+        'Content-Type': 'application/json'
+    }
 });
 
 // Interceptor de Solicitudes: Adjunta el token JWT (userToken) a cada petición
@@ -37,19 +40,14 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
     (response) => response, // Si la respuesta es exitosa, la devuelve tal cual
     (error) => {
-        if (error.response) {
-            const { status } = error.response;
-
-            // Si el token expira o el usuario no está autorizado
-            if (status === 401 || status === 403) {
+            // Si el token es inválido o ha expirado, redirige al login
+            if (error.response && (error.response.status === 401 || error.response.status === 403)) {
                 localStorage.removeItem('userToken');
-                window.location.href = '/login'; // Redirige al login automáticamente
+                window.location.href = '/login';
             }
+            // Propaga el error para que los servicios o componentes puedan manejarlo también
+            return Promise.reject(error);
         }
-
-        // Propaga el error para que los servicios o componentes puedan manejarlo también
-        return Promise.reject(error);
-    }
 );
 
 // Exportamos la instancia configurada

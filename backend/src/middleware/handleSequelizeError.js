@@ -97,6 +97,13 @@ export const handleSequelizeError = (error) => {
             return err;
         }
 
+        // Caso 10: Especial para matriculas
+        if (indexName === "idx_unique_estudiante_vigencia") {
+            const err = new Error("No es posible crear la matrícula. Ya existe una matrícula registrada para este estudiante en el mismo año lectivo.");
+            err.status = 409;
+            return err;
+        }
+
         // Caso general: Fallback genérico para claves únicas simples
         const field = error?.errors?.[0]?.path || "campo";
         const value = error?.errors?.[0]?.value || "";

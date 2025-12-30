@@ -16,25 +16,35 @@ export const Acudiente = sequelize.define("acudiente", {
         type: DataTypes.STRING(20),
         allowNull: false
     },
+
+    /** Nombres y apellidos (normalizados a mayúscula) */
     primerNombre: {
         type: DataTypes.STRING(30),
-        allowNull: false
+        allowNull: false,
+        set(value) {
+            this.setDataValue("primerNombre", value?.trim().toUpperCase());
+        }
     },
     segundoNombre: {
         type: DataTypes.STRING(30),
-        allowNull: true
+        allowNull: true,
+        set(value) {
+            this.setDataValue("segundoNombre", value ? value.trim().toUpperCase() : null);
+        }
     },
     primerApellido: {
         type: DataTypes.STRING(30),
-        allowNull: false
+        allowNull: false,
+        set(value) {
+            this.setDataValue("primerApellido", value?.trim().toUpperCase());
+        }
     },
     segundoApellido: {
         type: DataTypes.STRING(30),
-        allowNull: true
-    },
-    fechaNacimiento: {
-        type: DataTypes.DATEONLY,
-        allowNull: false
+        allowNull: true,
+        set(value) {
+            this.setDataValue("segundoApellido", value ? value.trim().toUpperCase() : null);
+        }
     },
     direccion: {
         type: DataTypes.STRING(80),

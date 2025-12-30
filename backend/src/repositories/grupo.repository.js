@@ -39,7 +39,7 @@ export const grupoRepository = {
                 {
                     model: Grado,
                     as: "grado",
-                    attributes: ["id", "nombre", "codigo", "modalidad"]
+                    attributes: ["id", "nombre", "codigo", "modalidad", "nivelAcademico"]
                 },
                 {
                     model: Sede,

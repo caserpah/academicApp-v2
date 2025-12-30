@@ -51,11 +51,6 @@ export const Asignatura = sequelize.define("asignatura", {
             );
         }
     },
-    promociona: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: true
-    },
     porcentual: {
         type: DataTypes.FLOAT,
         allowNull: false

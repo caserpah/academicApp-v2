@@ -1,6 +1,5 @@
-import express from "express";
+import { Router } from "express";
 import { protect, restrictTo } from "../middleware/auth.middleware.js";
-import { validationErrorHandler } from "../validators/validationErrorHandler.js";
 
 import {
     ValidarCrearEstudiante,
@@ -9,7 +8,7 @@ import {
 
 import { estudianteController } from "../controllers/estudiante.controller.js";
 
-const router = express.Router();
+const router = Router();
 
 /**
  * Rutas: Estudiantes
@@ -17,18 +16,27 @@ const router = express.Router();
  */
 
 // Listar estudiantes con filtros
-router.get("/", protect, estudianteController.list);
+router.get(
+    "/",
+    protect,
+    restrictTo(["admin", "secretaria"]),
+    estudianteController.list
+);
 
 // Obtener estudiante por ID
-router.get("/:id", protect, estudianteController.get);
+router.get(
+    "/:id",
+    protect,
+    restrictTo(["admin", "secretaria"]),
+    estudianteController.get
+);
 
 // Crear estudiante
 router.post(
     "/",
     protect,
-    restrictTo(["admin"]),
+    restrictTo(["admin", "secretaria"]),
     ValidarCrearEstudiante,
-    validationErrorHandler,
     estudianteController.create
 );
 
@@ -36,9 +44,8 @@ router.post(
 router.put(
     "/:id",
     protect,
-    restrictTo(["admin"]),
+    restrictTo(["admin", "secretaria"]),
     ValidarActualizarEstudiante,
-    validationErrorHandler,
     estudianteController.update
 );
 
@@ -46,8 +53,24 @@ router.put(
 router.delete(
     "/:id",
     protect,
-    restrictTo(["admin"]),
+    restrictTo(["admin", "secretaria"]),
     estudianteController.remove
+);
+
+// Asignar acudiente a estudiante
+router.post(
+    "/:id/acudientes",
+    protect,
+    restrictTo(["admin", "secretaria"]),
+    estudianteController.addAcudiente
+);
+
+// Remover acudiente de estudiante
+router.delete(
+    "/:id/acudientes/:acudienteId",
+    protect,
+    restrictTo(["admin", "secretaria"]),
+    estudianteController.removeAcudiente
 );
 
 export default router;

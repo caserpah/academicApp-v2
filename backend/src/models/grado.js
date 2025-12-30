@@ -20,7 +20,7 @@ export const Grado = sequelize.define("grado", {
         allowNull: false
     },
     nivelAcademico: {
-        type: DataTypes.ENUM("PREESCOLAR", "PRIMARIA", "SECUNDARIA", "MEDIA"),
+        type: DataTypes.ENUM("PREESCOLAR", "PRIMARIA", "SECUNDARIA", "MEDIA_ACADEMICA", "MEDIA_TECNICA"),
         allowNull: false
     },
     equivalenciaMin: {

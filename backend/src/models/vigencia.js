@@ -63,7 +63,7 @@ export const Vigencia = sequelize.define("vigencia", {
 });
 
 /**
- * 🔐 Hook: antes de crear o actualizar
+ * Hook: antes de crear o actualizar
  * - Garantiza que solo una vigencia esté activa a la vez
  */
 Vigencia.beforeSave(async (vigencia) => {

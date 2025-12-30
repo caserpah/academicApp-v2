@@ -1,9 +1,10 @@
-import { Op } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 import { Estudiante } from "../models/estudiante.js";
 import { Matricula } from "../models/matricula.js";
 import { Grupo } from "../models/grupo.js";
 import { Sede } from "../models/sede.js";
 import { Grado } from "../models/grado.js";
+import { Acudiente } from "../models/acudiente.js";
 
 export const estudianteRepository = {
 
@@ -16,10 +17,11 @@ export const estudianteRepository = {
      * - Include opcional de matrículas por vigencia
      */
     async findAll({
-        page,
-        limit,
-        orderBy,
-        order,
+        page = 1,
+        limit = 20,
+        orderBy = "primerApellido",
+        order = "ASC",
+        busqueda,
         search,
         sexo,
         barrio,
@@ -32,42 +34,135 @@ export const estudianteRepository = {
         includeMatriculas,
         vigenciaId
     }) {
+
+        // Configuración de Paginación (Segura)
+        const safePage = Number(page) || 1;
+        const safeLimit = Number(limit) || 10;
+        const offset = (safePage - 1) * safeLimit;
+
+        // Construcción del WHERE
         const where = {};
 
-        // Búsqueda general: documento, nombres, apellidos
-        if (search && search.trim() !== "") {
-            const term = `%${search.trim().toUpperCase()}%`;
+        // Si llega 'busqueda' la usa, si no, usa 'search'
+        const terminoBusqueda = busqueda || search;
+
+        // Búsqueda general (Nombre o Documento)
+        if (terminoBusqueda && terminoBusqueda.trim() !== "") {
+            const term = `%${terminoBusqueda.trim()}%`;
 
             where[Op.or] = [
-                { documento: { [Op.like]: `%${search.trim()}%` } },
+                { documento: { [Op.like]: term } },
                 { primerNombre: { [Op.like]: term } },
-                { segundoNombre: { [Op.like]: term } },
                 { primerApellido: { [Op.like]: term } },
-                { segundoApellido: { [Op.like]: term } },
+
+                //Búsqueda por Nombre Completo Concatenado
+                Sequelize.where(
+                    Sequelize.fn('CONCAT',
+                        Sequelize.col('primerNombre'), ' ',
+                        Sequelize.fn('IFNULL', Sequelize.col('segundoNombre'), ''), ' ',
+                        Sequelize.col('primerApellido'), ' ',
+                        Sequelize.fn('IFNULL', Sequelize.col('segundoApellido'), '')
+                    ),
+                    { [Op.like]: term }
+                )
             ];
+
         }
 
-        // Filtros específicos
+        // Filtros específicos (Solo se agregan si tienen valor)
         if (sexo) where.sexo = sexo;
-        if (barrio) where.barrio = barrio.toUpperCase();
+        if (barrio) where.barrio = barrio;
         if (estrato) where.estrato = Number(estrato);
         if (discapacidad) where.discapacidad = discapacidad;
         if (etnia) where.etnia = etnia;
         if (victimas) where.victimas = victimas;
         if (sisben) where.sisben = sisben;
+
         if (typeof subsidiado !== "undefined") {
-            // subsidiado puede venir como string "true"/"false"
+            // Manejo robusto de booleano que llega como string
             if (typeof subsidiado === "string") {
                 where.subsidiado = subsidiado === "true";
             } else {
-                where.subsidiado = subsidiado;
+                where.subsidiado = !!subsidiado;
             }
         }
 
-        const offset = (page - 1) * limit;
-
-        // Includes
+        // Includes (Relaciones)
         const include = [];
+
+        if (includeMatriculas && vigenciaId) {
+            include.push({
+                model: Matricula,
+                as: "matriculas",
+                where: { vigenciaId },
+                required: false, // LEFT JOIN: Trae al estudiante aunque no tenga matrícula
+                include: [
+                    {
+                        model: Grupo,
+                        as: "grupo",
+                        attributes: ["id", "nombre", "jornada"],
+                        include: [{
+                            model: Grado,
+                            as: "grado",
+                            attributes: ["id", "nombre", "codigo"]
+                        }]
+                    },
+                    {
+                        model: Sede,
+                        as: "sede",
+                        attributes: ["id", "codigo", "nombre"]
+                    }
+                ]
+            });
+        }
+
+        // Ordenamiento
+        let orderClause;
+        if (orderBy.includes(".")) {
+            // Soporte para ordenar por relaciones (ej: 'matricula.folio')
+            const parts = orderBy.split(".");
+            orderClause = [[...parts, order]];
+        } else {
+            // Ordenamiento normal
+            orderClause = [[orderBy, order]];
+        }
+
+        // Ejecución de la Consulta
+        const { rows, count } = await Estudiante.findAndCountAll({
+            where,
+            limit: safeLimit,
+            offset,
+            order: orderClause,
+            include,
+            distinct: true // Importante para contar bien cuando hay includes
+        });
+
+        // Retorno formateado
+        return {
+            items: rows,
+            pagination: {
+                total: count,
+                page: safePage,
+                limit: safeLimit,
+                totalPages: Math.ceil(count / safeLimit)
+            }
+        };
+    },
+
+    /**
+     * Buscar un estudiante por Documento.
+     * Incluye matrículas de una vigencia si se especifica.
+     */
+    async findByDocumento(documento, { includeMatriculas = false, vigenciaId = null } = {}) {
+        const include = [
+            {
+                model: Acudiente,
+                as: "acudientes",
+                through: {
+                    attributes: ["afinidad"]
+                }
+            }
+        ];
 
         if (includeMatriculas && vigenciaId) {
             include.push({
@@ -80,13 +175,11 @@ export const estudianteRepository = {
                         model: Grupo,
                         as: "grupo",
                         attributes: ["id", "nombre", "jornada"],
-                        include: [
-                            {
-                                model: Grado,
-                                as: "grado",
-                                attributes: ["id", "nombre", "codigo"]
-                            }
-                        ]
+                        include: [{
+                            model: Grado,
+                            as: "grado",
+                            attributes: ["id", "nombre", "codigo"]
+                        }]
                     },
                     {
                         model: Sede,
@@ -97,32 +190,29 @@ export const estudianteRepository = {
             });
         }
 
-        const { rows, count } = await Estudiante.findAndCountAll({
-            where,
-            limit,
-            offset,
-            order: [[orderBy, order]],
+        return Estudiante.findOne({
+            where: { documento },
             include
         });
-
-        return {
-            items: rows,
-            pagination: {
-                total: count,
-                page,
-                limit,
-                totalPages: Math.ceil(count / limit)
-            }
-        };
     },
 
     /**
      * Buscar un estudiante por ID.
+     * Incluye siempre los acudientes.
      * Opcionalmente puede incluir matrículas de una vigencia.
      */
     async findById(id, { includeMatriculas = false, vigenciaId = null } = {}) {
 
-        const include = [];
+        const include = [
+            {
+                model: Acudiente,
+                as: "acudientes",
+                through: {
+                    attributes: ["afinidad", "id"]
+                },
+                attributes: ["id", "tipoDocumento", "documento", "primerNombre", "primerApellido", "contacto", "email"]
+            }
+        ];
 
         if (includeMatriculas && vigenciaId) {
             include.push({
@@ -161,10 +251,12 @@ export const estudianteRepository = {
 
     async updateById(id, data) {
         const registro = await Estudiante.findByPk(id);
+
         if (!registro) return null;
 
         await registro.update(data);
-        return registro;
+
+        return await this.findById(id);
     },
 
     async deleteById(id) {
