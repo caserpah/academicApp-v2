@@ -39,6 +39,13 @@ router.put(
     acudienteController.update
 );
 
+router.delete(
+    "/:id",
+    protect,
+    restrictTo(["admin", "secretaria"]),
+    acudienteController.delete
+);
+
 // Asignar acudiente a estudiante
 router.post(
     "/asignar",
@@ -46,6 +53,14 @@ router.post(
     restrictTo(["admin", "secretaria"]),
     ValidarAsignarAcudiente,
     acudienteController.asignar
+);
+
+// Desvincular acudiente de estudiante
+router.delete(
+    "/desvincular/:estudianteId/:acudienteId",
+    protect,
+    restrictTo(["admin", "secretaria"]),
+    acudienteController.desvincular
 );
 
 export default router;

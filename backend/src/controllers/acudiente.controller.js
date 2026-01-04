@@ -2,6 +2,9 @@ import { acudienteService } from "../services/acudiente.service.js";
 import { sendSuccess } from "../middleware/responseHandler.js";
 
 export const acudienteController = {
+    /**
+     * Listar acudientes con filtros, paginación y búsqueda
+     */
     async list(req, res, next) {
         try {
             const params = {
@@ -55,6 +58,24 @@ export const acudienteController = {
     },
 
     /**
+     * Eliminar acudiente
+     */
+    async delete(req, res, next) {
+        try {
+            const id = Number(req.params.id);
+            await acudienteService.delete(id);
+            return sendSuccess(res, null, "Acudiente eliminado exitosamente.");
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+
+    // ============================================================
+    // Lógica para asignar y desvincular acudientes de estudiantes
+    // ============================================================
+
+    /**
      * Asignar un acudiente a un estudiante (Creándolo si es necesario)
      */
     async asignar(req, res, next) {
@@ -65,5 +86,20 @@ export const acudienteController = {
         } catch (error) {
             next(error);
         }
-    }
+    },
+
+    /**
+     * Desvincular un acudiente de un estudiante
+     */
+    async desvincular(req, res, next) {
+        try {
+            const { estudianteId, acudienteId } = req.params;
+
+            await acudienteService.desvincularAcudiente(estudianteId, acudienteId);
+
+            return sendSuccess(res, null, "Acudiente desvinculado exitosamente.");
+        } catch (error) {
+            next(error);
+        }
+    },
 };

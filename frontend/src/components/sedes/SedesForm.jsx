@@ -57,134 +57,140 @@ const SedesForm = ({
     // ==========================
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* ID (solo lectura) */}
-                <div className="col-span-1">
-                    <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                        ID
-                    </label>
-                    <input
-                        type="text"
-                        name="id"
-                        value={formData.id || "Nuevo"}
-                        disabled
-                        className={getInputClasses(true)}
-                    />
+            <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+                <div className="border-b pb-2 mb-4 border-[#d8d5d5]">
+                    <h3 className="text-lg font-semibold text-gray-700">{mode === "agregar" ? "Registrar Nueva Sede" : "Editar Sede"}</h3>
                 </div>
 
-                {/* Código */}
-                <div className="col-span-1">
-                    <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                        Código {" "}
-                        <span className="text-[#e74c3c] font-semibold">*</span>
-                    </label>
-                    <input
-                        type="text"
-                        name="codigo"
-                        value={formData.codigo}
-                        onChange={handleAlphanumericInput}
-                        placeholder="Máx. 20 caracteres alfanuméricos"
-                        maxLength={20}
-                        className={getInputClasses()}
-                    />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* ID (solo lectura) */}
+                    <div className="col-span-1">
+                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
+                            ID
+                        </label>
+                        <input
+                            type="text"
+                            name="id"
+                            value={formData.id || "Nuevo"}
+                            disabled
+                            className={getInputClasses(true)}
+                        />
+                    </div>
+
+                    {/* Código */}
+                    <div className="col-span-1">
+                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
+                            Código {" "}
+                            <span className="text-[#e74c3c] font-semibold">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            name="codigo"
+                            value={formData.codigo}
+                            onChange={handleAlphanumericInput}
+                            placeholder="Máx. 20 caracteres alfanuméricos"
+                            maxLength={20}
+                            className={getInputClasses()}
+                        />
+                    </div>
+
+                    {/* Nombre */}
+                    <div className="col-span-1">
+                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
+                            Nombre{" "}
+                            <span className="text-[#e74c3c] font-semibold">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            name="nombre"
+                            value={formData.nombre}
+                            onChange={handleChange}
+                            placeholder="Nombre completo de la sede"
+                            maxLength={60}
+                            className={getInputClasses()}
+                        />
+                    </div>
+
+                    {/* Dirección */}
+                    <div className="col-span-1">
+                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
+                            Dirección{" "}
+                            <span className="text-[#e74c3c] font-semibold">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            name="direccion"
+                            value={formData.direccion}
+                            onChange={handleChange}
+                            placeholder="Ej: Calle 10 # 5-20"
+                            maxLength={80}
+                            className={getInputClasses()}
+                        />
+                    </div>
+
+                    {/* Contacto */}
+                    <div className="col-span-1">
+                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
+                            Contacto (10-12 dígitos, opcional)
+                        </label>
+                        <input
+                            type="text"
+                            name="contacto"
+                            value={formData.contacto ?? ""}
+                            onChange={handleNumericInput}
+                            placeholder="Teléfono de contacto"
+                            maxLength={12}
+                            inputMode="numeric"
+                            className={getInputClasses()}
+                        />
+                    </div>
+
+                    {/* Campo Colegio ID (solo lectura) */}
+                    <div className="col-span-1">
+                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
+                            Institución{" "}
+                            <span className="text-[#e74c3c] font-semibold">*</span>
+                        </label>
+                        <select
+                            name="colegioId"
+                            value={formData.colegioId || ""}
+                            onChange={handleChange}
+                            required
+                            disabled
+                            className={getInputClasses(true)}
+                        >
+                            {colegio ? (
+                                <option value={colegio.id}>
+                                    {colegio.nombre} (ID: {colegio.id})
+                                </option>
+                            ) : (
+                                <option value="">Cargando institución...</option>
+                            )}
+                        </select>
+                    </div>
                 </div>
 
-                {/* Nombre */}
-                <div className="col-span-1">
-                    <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                        Nombre{" "}
-                        <span className="text-[#e74c3c] font-semibold">*</span>
-                    </label>
-                    <input
-                        type="text"
-                        name="nombre"
-                        value={formData.nombre}
-                        onChange={handleChange}
-                        placeholder="Nombre completo de la sede"
-                        maxLength={60}
-                        className={getInputClasses()}
-                    />
-                </div>
-
-                {/* Dirección */}
-                <div className="col-span-1">
-                    <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                        Dirección{" "}
-                        <span className="text-[#e74c3c] font-semibold">*</span>
-                    </label>
-                    <input
-                        type="text"
-                        name="direccion"
-                        value={formData.direccion}
-                        onChange={handleChange}
-                        placeholder="Ej: Calle 10 # 5-20"
-                        maxLength={80}
-                        className={getInputClasses()}
-                    />
-                </div>
-
-                {/* Contacto */}
-                <div className="col-span-1">
-                    <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                        Contacto (10-12 dígitos, opcional)
-                    </label>
-                    <input
-                        type="text"
-                        name="contacto"
-                        value={formData.contacto ?? ""}
-                        onChange={handleNumericInput}
-                        placeholder="Teléfono de contacto"
-                        maxLength={12}
-                        inputMode="numeric"
-                        className={getInputClasses()}
-                    />
-                </div>
-
-                {/* Campo Colegio ID (solo lectura) */}
-                <div className="col-span-1">
-                    <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                        Institución{" "}
-                        <span className="text-[#e74c3c] font-semibold">*</span>
-                    </label>
-                    <select
-                        name="colegioId"
-                        value={formData.colegioId || ""}
-                        onChange={handleChange}
-                        required
-                        disabled
-                        className={getInputClasses(true)}
+                {/* Botones del formulario */}
+                <div className="pt-4 flex justify-center space-x-3 border-t border-[#eee] mt-6">
+                    <button
+                        type="submit"
+                        className="bg-blue-600 text-white px-5 py-2 rounded-lg shadow-md hover:bg-blue-700 transition duration-150 flex items-center"
+                        disabled={loading}
                     >
-                        {colegio ? (
-                            <option value={colegio.id}>
-                                {colegio.nombre} (ID: {colegio.id})
-                            </option>
-                        ) : (
-                            <option value="">Cargando institución...</option>
-                        )}
-                    </select>
+                        <FontAwesomeIcon icon={faSave} className="w-4 h-4 mr-2" />
+                        {mode === "agregar" ? "Guardar" : "Guardar Cambios"}
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={resetForm}
+                        className="bg-red-500 text-white px-5 py-2 rounded-lg shadow-md hover:bg-red-600 transition duration-150 flex items-center hover:scale-[1.01]"
+                        disabled={loading}
+                    >
+                        <FontAwesomeIcon icon={faTimes} className="mr-2" />
+                        Cancelar
+                    </button>
                 </div>
-            </div>
-
-            {/* Botones del formulario */}
-            <div className="pt-4 flex justify-center space-x-3 border-t border-[#eee] mt-6">
-                <button
-                    type="submit"
-                    className="bg-blue-600 text-white px-5 py-2 rounded-lg shadow-md hover:bg-blue-700 transition duration-150 flex items-center"
-                    disabled={loading}
-                >
-                    <FontAwesomeIcon icon={faSave} className="w-4 h-4 mr-2" />
-                    {mode === "agregar" ? "Guardar" : "Guardar Cambios"}
-                </button>
-
-                <button
-                    type="button"
-                    onClick={resetForm}
-                    className="bg-red-500 text-white px-5 py-2 rounded-lg shadow-md hover:bg-red-600 transition duration-150 flex items-center hover:scale-[1.01]"
-                    disabled={loading}
-                >
-                    <FontAwesomeIcon icon={faTimes} className="mr-2" />
-                    Cancelar
-                </button>
             </div>
         </form>
     );

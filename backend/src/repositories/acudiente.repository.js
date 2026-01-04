@@ -16,7 +16,7 @@ export const acudienteRepository = {
                 { documento: { [Op.like]: term } },
                 { primerNombre: { [Op.like]: term } },
                 { primerApellido: { [Op.like]: term } },
-                // Búsqueda compuesta (Nombre completo)
+                // Concatenación para buscar por nombre completo
                 Sequelize.where(
                     Sequelize.fn('CONCAT',
                         Sequelize.col('primerNombre'), ' ',
@@ -60,9 +60,17 @@ export const acudienteRepository = {
     },
 
     async update(id, data) {
-        const registro = await Acudiente.findByPk(id);
-        if (!registro) return null;
-        return await registro.update(data);
+        const acudiente = await Acudiente.findByPk(id);
+        if (!acudiente) return null;
+        return await acudiente.update(data);
+    },
+
+    async delete(id) {
+        const acudiente = await Acudiente.findByPk(id);
+        if (!acudiente) return false;
+
+        await acudiente.destroy();
+        return true;
     },
 
     // Lógica para vincular un Acudiente con un Estudiante

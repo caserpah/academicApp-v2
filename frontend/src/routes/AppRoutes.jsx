@@ -11,6 +11,7 @@ import Asignaturas from '../components/asignaturas/Asignaturas.jsx';
 import Coordinadores from '../components/coordinadores/Coordinadores.jsx';
 import Juicios from '../components/juicios/Juicios.jsx';
 import Estudiantes from '../components/estudiantes/Estudiantes.jsx'
+import Acudientes from '../components/acudientes/Acudientes.jsx'
 import asignarAcudientes from '../components/estudiantes/AcudientesTab.jsx'
 import Matriculas from "../components/matriculas/Matriculas.jsx";
 import PromocionMasiva from "../components/matriculas/PromocionMasiva.jsx";
@@ -41,6 +42,7 @@ const AppRoutes = () => {
 
                     {/* RUTAS DE NAVEGACIÓN ESTÁNDAR (Páginas simples del Sidebar) */}
                     <Route path="estudiantes" element={<Estudiantes />} />
+                    <Route path="acudientes" element={<Acudientes />} />
                     <Route path="docentes" element={<div>Página de Docentes</div>} />
                     <Route path="areas" element={<Areas />} />
                     <Route path="asignaturas" element={<Asignaturas />} />
@@ -127,6 +129,14 @@ const AppRoutes = () => {
                         element={
                             <ProtectedRoute requiredRole="admin">
                                 <asignarAcudientes />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="acudientes"
+                        element={
+                            <ProtectedRoute requiredRole="admin">
+                                <Acudientes />
                             </ProtectedRoute>
                         }
                     />

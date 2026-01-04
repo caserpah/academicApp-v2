@@ -1,4 +1,4 @@
-import { body, check, param } from "express-validator";
+import { body, param } from "express-validator";
 import { Estudiante } from "../models/estudiante.js";
 
 import {

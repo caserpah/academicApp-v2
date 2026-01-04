@@ -201,32 +201,4 @@ export const estudianteService = {
             );
         }
     },
-
-    async addAcudiente(estudianteId, data) {
-        const { acudienteId, afinidad } = data;
-
-        // Validar que el estudiante exista
-        const estudiante = await estudianteRepository.findById(estudianteId);
-        if (!estudiante) throw new Error("Estudiante no encontrado.");
-
-        // Validar si ya existe la relación
-        const relacionExistente = await estudianteRepository.findRelacion(estudianteId, acudienteId);
-        if (relacionExistente) {
-            throw new Error("Este estudiante ya está asignado al acudiente.");
-        }
-
-        // Crear la relación
-        return await estudianteRepository.addAcudiente(estudianteId, acudienteId, afinidad);
-    },
-
-    /**
-     * Remover acudiente
-     */
-    async removeAcudiente(estudianteId, acudienteId) {
-        const resultado = await estudianteRepository.removeAcudiente(estudianteId, acudienteId);
-        if (!resultado) {
-            throw new Error("No se pudo eliminar la relación entre estudiante y acudiente (o no existía).");
-        }
-        return true;
-    }
 };

@@ -116,10 +116,10 @@ const Estudiantes = () => {
                 </div>
                 <button
                     onClick={() => handleAbrirModal()}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow flex items-center text-sm font-medium gap-2 transition-colors"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg shadow flex items-center text-sm font-medium gap-2 transition-colors"
                 >
                     <FontAwesomeIcon icon={faPlus} />
-                    <span>Nuevo Estudiante</span>
+                    <span>Registrar Nuevo Estudiante</span>
                 </button>
             </div>
 
@@ -177,7 +177,7 @@ const Estudiantes = () => {
                                                     {est.primerNombre?.charAt(0)}{est.primerApellido?.charAt(0)}
                                                 </div>
                                                 <div className="ml-4">
-                                                    <div className="text-sm font-medium text-gray-900">
+                                                    <div className="text-sm font-medium text-gray-900 uppercase">
                                                         {est.primerApellido} {est.segundoApellido} {est.primerNombre} {est.segundoNombre}
                                                     </div>
                                                     <div className="text-xs text-gray-500">
@@ -257,13 +257,14 @@ const Estudiantes = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-full max-h-[90vh] flex flex-col">
                         {/* Cabecera del Modal */}
-                        <div className="flex justify-between items-center p-5 border-b">
-                            <h2 className="text-xl font-bold text-gray-800">
-                                {estudianteEditar ? "Editar Estudiante" : "Nuevo Estudiante"}
+                        <div className="flex justify-between items-center p-5 border-b bg-gray-50 rounded-t-lg">
+                            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                <FontAwesomeIcon icon={faUserGraduate} className="text-gray-800" />
+                                {estudianteEditar ? "Editar Estudiante" : "Registrar Nuevo Estudiante"}
                             </h2>
                             <button
                                 onClick={handleCerrarModal}
-                                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
+                                className="text-gray-400 hover:text-red-500 transition-colors"
                             >
                                 <FontAwesomeIcon icon={faTimes} size="lg" />
                             </button>

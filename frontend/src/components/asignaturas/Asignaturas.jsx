@@ -22,7 +22,6 @@ const Asignaturas = () => {
         nombre: "",
         abreviatura: "",
         porcentual: 0,
-        promociona: true,
         areaId: "",
         vigenciaId: "",
     };
@@ -197,14 +196,6 @@ const Asignaturas = () => {
     };
 
     /**
-     * Manejar cambio del checkbox promociona
-     */
-    const handleCheckboxChange = (e) => {
-        const { name, checked } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: checked }));
-    };
-
-    /**
      * Manejar cambio del input porcentual
      */
     const handlePorcentualChange = (e) => {
@@ -236,12 +227,16 @@ const Asignaturas = () => {
     }
 
     return (
-        <div className="min-h-full bg-[#f7f9fc] p-4 md:p-8 font-inter rounded-xl">
+        <div className="p-6 bg-gray-50 min-h-screen">
             <div className="max-w-7xl mx-auto space-y-8">
-                <h1 className="text-2xl font-semibold text-gray-800 mb-6 border-b pb-2">
-                    <FontAwesomeIcon icon={faBookOpen} className="w-6 h-6 mr-3 text-[#2c3e50]" />
-                    Gestión de Asignaturas
-                </h1>
+
+                {/* HEADER */}
+                <div className="flex flex-col md:flex-row justify-between items-center border-b pb-4">
+                    <h1 className="text-2xl font-semibold text-gray-800 flex items-center mb-4 md:mb-0">
+                        <FontAwesomeIcon icon={faBookOpen} className="w-6 h-6 mr-3 text-[#2c3e50]" />
+                        Gestión de Asignaturas
+                    </h1>
+                </div>
 
                 <div ref={formContainerRef}>
                     <AsignaturasForm
@@ -251,7 +246,6 @@ const Asignaturas = () => {
                         loading={loading}
                         handleChange={(e) => setFormData((p) => ({ ...p, [e.target.name]: e.target.value }))}
                         handlePorcentualChange={handlePorcentualChange}
-                        handleCheckboxChange={handleCheckboxChange}
                         handleSubmit={handleSubmit}
                         resetForm={resetForm}
                         areas={areas}
@@ -259,9 +253,9 @@ const Asignaturas = () => {
                     />
                 </div>
 
-                <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-lg p-6">
+                <div className="bg-white rounded-xl shadow-lg p-6">
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-semibold text-gray-700 border-b pb-3">
+                        <h2 className="text-xl font-semibold text-gray-700 mb-4 pb-3">
                             Asignaturas registradas ({filteredAsignaturas.length})
                         </h2>
 
@@ -294,9 +288,7 @@ const Asignaturas = () => {
                                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
                                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Abreviatura</th>
                                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Área</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Porcentual</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Promociona</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Porcentual</th>                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
@@ -312,11 +304,6 @@ const Asignaturas = () => {
                                                 <td className="px-3 py-3 text-sm text-gray-700">{getAreaNombre(asignatura.areaId)}</td>
                                                 <td className="px-3 py-3 text-sm text-gray-700">
                                                     <span className="font-medium">{asignatura.porcentual}%</span>
-                                                </td>
-                                                <td className="px-3 py-3 text-sm text-gray-700">
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${asignatura.promociona ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                                        {asignatura.promociona ? 'Sí' : 'No'}
-                                                    </span>
                                                 </td>
                                                 <td className="px-3 py-3 text-right text-sm font-medium space-x-2">
                                                     <button

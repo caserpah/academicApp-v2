@@ -54,112 +54,118 @@ const AreasForm = ({
     // ==========================
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* ID (solo lectura) */}
-                <div className="col-span-1">
-                    <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                        ID
-                    </label>
-                    <input
-                        type="text"
-                        name="id"
-                        value={formData.id || "Nuevo"}
-                        disabled
-                        className={getInputClasses(true)}
-                    />
+            <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+                <div className="border-b pb-2 mb-4 border-[#d8d5d5]">
+                    <h3 className="text-lg font-semibold text-gray-700">{mode === "agregar" ? "Registrar Nueva Área" : "Editar Área"}</h3>
                 </div>
 
-                {/* Código */}
-                <div className="col-span-1">
-                    <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                        Código {" "}
-                        <span className="text-[#e74c3c] font-semibold">*</span>
-                    </label>
-                    <input
-                        type="text"
-                        name="codigo"
-                        value={formData.codigo}
-                        onChange={(e) => handleAlphanumericInput(e, 6)}
-                        placeholder="Entre 3-6 caracteres alfanuméricos"
-                        maxLength={6}
-                        className={getInputClasses()}
-                    />
-                </div>
-
-                {/* Nombre */}
-                <div className="col-span-1">
-                    <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                        Nombre{" "}
-                        <span className="text-[#e74c3c] font-semibold">*</span>
-                    </label>
-                    <input
-                        type="text"
-                        name="nombre"
-                        value={formData.nombre}
-                        onChange={(e) => handleUpperCaseInput(e, 60)}
-                        placeholder="Nombre completo del área"
-                        maxLength={60}
-                        className={getInputClasses()}
-                    />
-                </div>
-
-                {/* Abreviatura */}
-                <div className="col-span-1">
-                    <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                        Abreviatura{" "}
-                        <span className="text-[#e74c3c] font-semibold">*</span>
-                    </label>
-                    <input
-                        type="text"
-                        name="abreviatura"
-                        value={formData.abreviatura}
-                        onChange={(e) => handleAlphanumericInput(e, 6)}
-                        placeholder="Entre 3-6 caracteres"
-                        maxLength={6}
-                        className={getInputClasses()}
-                    />
-                </div>
-
-                {/* Promociona (Checkbox) */}
-                <div className="col-span-1">
-                    <label className="flex items-center space-x-2 mt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* ID (solo lectura) */}
+                    <div className="col-span-1">
+                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
+                            ID
+                        </label>
                         <input
-                            type="checkbox"
-                            name="promociona"
-                            checked={formData.promociona}
-                            onChange={handleCheckboxChange}
-                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                            type="text"
+                            name="id"
+                            value={formData.id || "Nuevo"}
+                            disabled
+                            className={getInputClasses(true)}
                         />
-                        <span className="text-sm font-medium text-[#4a5568]">
-                            ¿El area promociona?
-                        </span>
-                    </label>
-                    <p className="text-xs text-gray-500 mt-1">
-                        Si está marcado, el área permite promoción de estudiantes.
-                    </p>
+                    </div>
+
+                    {/* Código */}
+                    <div className="col-span-1">
+                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
+                            Código {" "}
+                            <span className="text-[#e74c3c] font-semibold">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            name="codigo"
+                            value={formData.codigo}
+                            onChange={(e) => handleAlphanumericInput(e, 6)}
+                            placeholder="Entre 3-6 caracteres alfanuméricos"
+                            maxLength={6}
+                            className={getInputClasses()}
+                        />
+                    </div>
+
+                    {/* Nombre */}
+                    <div className="col-span-1">
+                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
+                            Nombre{" "}
+                            <span className="text-[#e74c3c] font-semibold">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            name="nombre"
+                            value={formData.nombre}
+                            onChange={(e) => handleUpperCaseInput(e, 60)}
+                            placeholder="Nombre completo del área"
+                            maxLength={60}
+                            className={getInputClasses()}
+                        />
+                    </div>
+
+                    {/* Abreviatura */}
+                    <div className="col-span-1">
+                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
+                            Abreviatura{" "}
+                            <span className="text-[#e74c3c] font-semibold">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            name="abreviatura"
+                            value={formData.abreviatura}
+                            onChange={(e) => handleAlphanumericInput(e, 6)}
+                            placeholder="Entre 3-6 caracteres alfanuméricos"
+                            maxLength={6}
+                            className={getInputClasses()}
+                        />
+                    </div>
+
+                    {/* Promociona (Checkbox) */}
+                    <div className="col-span-1">
+                        <label className="flex items-center space-x-2 mt-6">
+                            <input
+                                type="checkbox"
+                                name="promociona"
+                                checked={formData.promociona}
+                                onChange={handleCheckboxChange}
+                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <span className="text-sm font-medium text-[#4a5568]">
+                                ¿El area promociona?
+                            </span>
+                        </label>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Si está marcado, el área permite promoción de estudiantes.
+                        </p>
+                    </div>
                 </div>
-            </div>
 
-            {/* Botones del formulario */}
-            <div className="pt-4 flex justify-center space-x-3 border-t border-[#eee] mt-6">
-                <button
-                    type="submit"
-                    className="bg-blue-600 text-white px-5 py-2 rounded-lg shadow-md hover:bg-blue-700 transition duration-150 flex items-center"
-                    disabled={loading}
-                >
-                    <FontAwesomeIcon icon={faSave} className="w-4 h-4 mr-2" />
-                    {mode === "agregar" ? "Guardar" : "Guardar Cambios"}
-                </button>
+                {/* Botones del formulario */}
+                <div className="pt-4 flex justify-center space-x-3 border-t border-[#eee] mt-6">
+                    <button
+                        type="submit"
+                        className="bg-blue-600 text-white px-5 py-2 rounded-lg shadow-md hover:bg-blue-700 transition duration-150 flex items-center"
+                        disabled={loading}
+                    >
+                        <FontAwesomeIcon icon={faSave} className="w-4 h-4 mr-2" />
+                        {mode === "agregar" ? "Guardar" : "Guardar Cambios"}
+                    </button>
 
-                <button
-                    type="button"
-                    onClick={resetForm}
-                    className="bg-red-500 text-white px-5 py-2 rounded-lg shadow-md hover:bg-red-600 transition duration-150 flex items-center hover:scale-[1.01]"
-                    disabled={loading}
-                >
-                    <FontAwesomeIcon icon={faTimes} className="mr-2" />
-                    Cancelar
-                </button>
+                    <button
+                        type="button"
+                        onClick={resetForm}
+                        className="bg-red-500 text-white px-5 py-2 rounded-lg shadow-md hover:bg-red-600 transition duration-150 flex items-center hover:scale-[1.01]"
+                        disabled={loading}
+                    >
+                        <FontAwesomeIcon icon={faTimes} className="mr-2" />
+                        Cancelar
+                    </button>
+                </div>
             </div>
         </form>
     );

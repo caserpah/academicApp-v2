@@ -15,7 +15,6 @@ export const listarEstudiantes = async (params = {}) => {
     try {
         const response = await apiClient.get(ENDPOINT, { params });
 
-        // Asumiendo que tu backend devuelve { status: 'success', data: { items: [], total: ... } }
         const apiData = response.data;
 
         if (apiData.status !== 'success') {
@@ -29,7 +28,7 @@ export const listarEstudiantes = async (params = {}) => {
 };
 
 /**
- * 🔍 Obtener Estudiante por ID
+ * Obtener Estudiante por ID
  * Útil para validar o mostrar detalles antes de matricular.
  */
 export const obtenerEstudiante = async (id, params = {}) => {

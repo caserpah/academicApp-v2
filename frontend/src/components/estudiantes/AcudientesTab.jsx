@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSearch, faTrash, faTimes, faSave, faUserPlus, faCheckCircle, faIdCard } from "@fortawesome/free-solid-svg-icons";
-import { buscarAcudientePorDocumento, asignarAcudiente } from "../../api/acudientesService.js";
-import { showSuccess, showError, showConfirm, showWarning } from "../../utils/notifications.js";
+import { buscarAcudientePorDocumento, asignarAcudiente, desvincularAcudiente } from "../../api/acudientesService.js";
+import { showSuccess, showError, showConfirm } from "../../utils/notifications.js";
 
 // Enums para el select de afinidad
 const AFINIDADES = [
@@ -100,14 +100,14 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
         }
     };
 
-    // --- DESVINCULAR ---
-    /*const handleDesvincular = async (acudienteId) => {
-        const confirmar = await showConfirm("¿Seguro que desea quitar este acudiente del estudiante?");
+    // --- DESVINCULAR ACUDIENTE ---
+    const handleDesvincular = async (acudienteId) => {
+        const confirmar = await showConfirm("¿Seguro que desea desvincular este acudiente del estudiante?");
         if (!confirmar) return;
 
         setLoading(true);
         try {
-            //await desvincularAcudiente(estudiante.id, acudienteId);
+            await desvincularAcudiente(estudiante.id, acudienteId);
             showSuccess("Acudiente desvinculado exitosamente.");
             if (onUpdate) onUpdate();
         } catch (error) {
@@ -115,7 +115,7 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
         } finally {
             setLoading(false);
         }
-    };*/
+    };
 
     // --- VISTA BLOQUEADA (SI NO HAY ESTUDIANTE) ---
     if (!estudiante || !estudiante.id) {
@@ -323,10 +323,15 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
                                     <span>📧 {acu.email || "Sin email"}</span>
                                 </div>
                                 <button
-                                    //onClick={() => handleDesvincular(acu.id)}
-                                    disabled={loading}
-                                    className="text-gray-400 hover:text-red-600 p-1.5 rounded hover:bg-red-50 transition-colors"
-                                    title="Quitar acudiente"
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();  // Detiene comportamiento nativo
+                                        e.stopPropagation(); // Detiene que el clic suba al formulario padre
+                                        handleDesvincular(acu.id);
+                                    }}
+                                    disabled={loading} // Evita múltiples clics
+                                    className="text-gray-400 hover:text-red-600 p-2 transition-colors rounded hover:bg-red-50"
+                                    title="Desvincular acudiente"
                                 >
                                     <FontAwesomeIcon icon={faTrash} />
                                 </button>

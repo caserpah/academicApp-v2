@@ -107,30 +107,5 @@ export const estudianteController = {
         } catch (error) {
             next(error);
         }
-    },
-
-    async addAcudiente(req, res, next) {
-        try {
-            const estudianteId = Number(req.params.id);
-            // req.body debe traer { acudienteId, afinidad }
-            await estudianteService.addAcudiente(estudianteId, req.body);
-
-            return sendSuccess(res, null, "Acudiente asignado existosamente.");
-        } catch (error) {
-            next(error);
-        }
-    },
-
-    async removeAcudiente(req, res, next) {
-        try {
-            const estudianteId = Number(req.params.id);
-            const acudienteId = Number(req.params.acudienteId);
-
-            await estudianteService.removeAcudiente(estudianteId, acudienteId);
-
-            return sendSuccess(res, null, "Acudiente desvinculado existosamente.");
-        } catch (error) {
-            next(error);
-        }
     }
 };

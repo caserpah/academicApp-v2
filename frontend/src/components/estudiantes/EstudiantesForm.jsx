@@ -151,7 +151,8 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
             setFormData({
                 ...INITIAL_STATE, // Asegura que existan todos los campos
                 ...estudianteEditar,
-                fechaNacimiento: estudianteEditar.fechaNacimiento ? estudianteEditar.fechaNacimiento.split('T')[0] : "", // Formato YYYY-MM-DD
+                // Formato YYYY-MM-DD
+                fechaNacimiento: estudianteEditar.fechaNacimiento ? estudianteEditar.fechaNacimiento.split('T')[0] : "",
                 subsidiado: estudianteEditar.subsidiado,
                 acudientes: [] // Inicializamos vacío para evitar errores mientras carga
             });
@@ -262,7 +263,7 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
         const campoFaltante = camposRequeridos.find(c => !formData[c] || formData[c] === "");
 
         if (campoFaltante) {
-            showWarning(`Complete los campos requeridos antes de continuar (*).`);
+            showWarning("Todos los campos obligatorios (<span class='text-[#e74c3c]'>*</span>) deben completarse.");
             enfocarError(campoFaltante); // Ir a la pestaña y enfocar
             return;
         }
@@ -327,13 +328,13 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
                 {/* TAB 1: INFORMACIÓN PERSONAL */}
                 {activeTab === 1 && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <SelectGroup label="Tipo Documento" name="tipoDocumento" value={formData.tipoDocumento} onChange={handleChange} options={TIPOS_DOC} required />
-                        <InputGroup label="Número Documento" name="documento" value={formData.documento} onChange={handleChange} required />
+                        <SelectGroup label="Tipo Documento" name="tipoDocumento" value={formData.tipoDocumento} required onChange={handleChange} options={TIPOS_DOC} />
+                        <InputGroup label="Número Documento" name="documento" value={formData.documento} required onChange={handleChange} />
 
-                        <InputGroup label="Primer Nombre" name="primerNombre" value={formData.primerNombre} onChange={handleChange} required />
+                        <InputGroup label="Primer Nombre" name="primerNombre" value={formData.primerNombre} required onChange={handleChange} />
                         <InputGroup label="Segundo Nombre" name="segundoNombre" value={formData.segundoNombre} onChange={handleChange} />
 
-                        <InputGroup label="Primer Apellido" name="primerApellido" value={formData.primerApellido} onChange={handleChange} required />
+                        <InputGroup label="Primer Apellido" name="primerApellido" value={formData.primerApellido} required onChange={handleChange} />
                         <InputGroup label="Segundo Apellido" name="segundoApellido" value={formData.segundoApellido} onChange={handleChange} />
 
                         {/* Fecha de Nacimiento y Edad */}
@@ -346,7 +347,6 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
                                     value={formData.fechaNacimiento}
                                     onChange={handleChange}
                                     type="date"
-                                    required
                                     width="w-full" // Forzamos ancho completo dentro del flex
                                 />
                             </div>
@@ -364,7 +364,7 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
                                 />
                             </div>
                         </div>
-                        <SelectGroup label="Sexo" name="sexo" value={formData.sexo} onChange={handleChange} options={SEXOS} mapOption required />
+                        <SelectGroup label="Sexo" name="sexo" value={formData.sexo} onChange={handleChange} options={SEXOS} mapOption />
                     </div>
                 )}
 
@@ -406,10 +406,10 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
 
                         <h3 className="text-gray-800 font-semibold border-b border-gray-300 pb-4">Caracterización</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <SelectGroup label="Población Víctima" name="victimas" value={formData.victimas} onChange={handleChange} options={VICTIMAS} mapOption required />
-                            <SelectGroup label="Discapacidad" name="discapacidad" value={formData.discapacidad} onChange={handleChange} options={DISCAPACIDADES} mapOption required />
-                            <SelectGroup label="Capacidades Excepcionales" name="capacidades" value={formData.capacidades} onChange={handleChange} options={CAPACIDADES} mapOption required />
-                            <SelectGroup label="Etnia" name="etnia" value={formData.etnia} onChange={handleChange} options={ETNIAS} mapOption required />
+                            <SelectGroup label="Población Víctima" name="victimas" value={formData.victimas} onChange={handleChange} options={VICTIMAS} mapOption />
+                            <SelectGroup label="Discapacidad" name="discapacidad" value={formData.discapacidad} onChange={handleChange} options={DISCAPACIDADES} mapOption />
+                            <SelectGroup label="Capacidades Excepcionales" name="capacidades" value={formData.capacidades} onChange={handleChange} options={CAPACIDADES} mapOption />
+                            <SelectGroup label="Etnia" name="etnia" value={formData.etnia} onChange={handleChange} options={ETNIAS} mapOption />
                         </div>
                     </div>
                 )}
@@ -436,7 +436,7 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
                     {loading && (
                         <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     )}
-                    <FontAwesomeIcon icon={faSave} className="mr-2" /> {formData.id ? "Actualizar" : "Guardar"}
+                    <FontAwesomeIcon icon={faSave} className="mr-2" /> {formData.id ? "Guardar Cambios" : "Guardar"}
                 </button>
 
                 {/*<Botón de cierre */}

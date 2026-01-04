@@ -137,6 +137,7 @@ const Sedes = () => {
         });
         setMode("editar");
 
+        // Desplazar al formulario al editar
         if (formContainerRef.current) {
             formContainerRef.current.scrollIntoView({ behavior: "smooth" });
         }
@@ -186,12 +187,16 @@ const Sedes = () => {
     }
 
     return (
-        <div className="min-h-full bg-[#f7f9fc] p-4 md:p-8 font-inter rounded-xl">
+        <div className="p-6 bg-gray-50 min-h-screen">
             <div className="max-w-7xl mx-auto space-y-8">
-                <h1 className="text-2xl font-semibold text-gray-800 mb-6 border-b pb-2">
-                    <FontAwesomeIcon icon={faBuilding} className="w-6 h-6 mr-3 text-[#2c3e50]" />
-                    Gestión de Sedes
-                </h1>
+
+                {/* HEADER */}
+                <div className="flex flex-col md:flex-row justify-between items-center border-b pb-4">
+                    <h1 className="text-2xl font-semibold text-gray-800 flex items-center mb-4 md:mb-0">
+                        <FontAwesomeIcon icon={faBuilding} className="w-6 h-6 mr-3 text-[#2c3e50]" />
+                        Gestión de Sedes
+                    </h1>
+                </div>
 
                 <div ref={formContainerRef}>
                     <SedesForm
@@ -206,8 +211,8 @@ const Sedes = () => {
                     />
                 </div>
 
-                <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-6">
-                    <h2 className="text-xl font-semibold text-gray-700 mb-4 border-b pb-3">
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                    <h2 className="text-xl font-semibold text-gray-700 mb-4 pb-3">
                         Sedes registradas ({sedes.length})
                     </h2>
 

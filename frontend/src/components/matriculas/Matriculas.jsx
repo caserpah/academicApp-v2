@@ -149,7 +149,7 @@ const Matriculas = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData.estudianteId || !formData.sedeId || !formData.grupoId) {
-            return showWarning("Estudiante, Sede y Grupo son obligatorios.");
+            return showWarning("Todos los campos obligatorios (<span class='text-[#e74c3c]'>*</span>) deben completarse.");
         }
 
         try {
@@ -205,7 +205,7 @@ const Matriculas = () => {
     // RENDERIZADO
     // ----------------------------------------------------------------
     return (
-        <div className="min-h-full bg-[#f7f9fc] p-4 md:p-8 font-inter rounded-xl">
+        <div className="p-6 bg-gray-50 min-h-screen">
             <div className="max-w-7xl mx-auto space-y-8">
 
                 {/* HEADER */}

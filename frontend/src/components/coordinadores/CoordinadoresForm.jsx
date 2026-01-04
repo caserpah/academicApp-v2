@@ -48,12 +48,12 @@ const CoordinadoresForm = ({
     // Campos del formulario
     // ==========================
     return (
-        <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-700 mb-6 border-b pb-3">
-                {mode === "agregar" ? "Registrar Nuevo Coordinador" : "Editar Coordinador"}
-            </h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+                <div className="border-b pb-2 mb-4 border-[#d8d5d5]">
+                    <h3 className="text-lg font-semibold text-gray-700">{mode === "agregar" ? "Registrar Nuevo Coordinador" : "Editar Coordinador"}</h3>
+                </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* ID (solo lectura) */}
                     <div className="col-span-1">
@@ -80,10 +80,9 @@ const CoordinadoresForm = ({
                             name="numeroDocumento"
                             value={formData.numeroDocumento}
                             onChange={(e) => handleNumericInput(e, 20)}
-                            placeholder="Solo números"
+                            placeholder="Máx. 20 dígitos"
                             maxLength={20}
                             className={getInputClasses()}
-                            required
                         />
                     </div>
 
@@ -101,7 +100,6 @@ const CoordinadoresForm = ({
                             placeholder="Nombres y apellidos"
                             maxLength={100}
                             className={getInputClasses()}
-                            required
                         />
                     </div>
 
@@ -119,7 +117,6 @@ const CoordinadoresForm = ({
                             placeholder="ejemplo@colegio.edu.co"
                             maxLength={100}
                             className={getInputClasses()}
-                            required
                         />
                         {formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && (
                             <p className="text-xs text-red-500 mt-1">Formato de email inválido</p>
@@ -141,25 +138,19 @@ const CoordinadoresForm = ({
                             inputMode="numeric"
                             className={getInputClasses()}
                         />
-                        <p className="text-xs text-gray-500 mt-1">
-                            {formData.contacto && formData.contacto.length < 10 ?
-                                "Mínimo 10 dígitos" :
-                                "Formato: 10-12 dígitos"
-                            }
-                        </p>
                     </div>
 
                     {/* Dirección */}
                     <div className="col-span-1">
                         <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                            Dirección (opcional)
+                            Dirección
                         </label>
                         <input
                             type="text"
                             name="direccion"
                             value={formData.direccion}
                             onChange={handleChange}
-                            placeholder="Dirección completa"
+                            placeholder="Ej: Calle 10 # 5-20"
                             maxLength={200}
                             className={getInputClasses()}
                         />
@@ -187,8 +178,8 @@ const CoordinadoresForm = ({
                         Cancelar
                     </button>
                 </div>
-            </form>
-        </div>
+            </div>
+        </form>
     );
 };
 

@@ -9,8 +9,7 @@ const ENDPOINT_ACUDIENTES = "/api/acudientes";
 export const listarAcudientes = async (params = {}) => {
     try {
         const response = await apiClient.get(ENDPOINT_ACUDIENTES, { params });
-        const apiData = response.data;
-        return apiData.data || apiData;
+        return response.data.data; // Retorna { items: [...], total: ... }
     } catch (error) {
         throw parseError(error);
     }
@@ -40,6 +39,42 @@ export const buscarAcudientePorDocumento = async (documento) => {
 };
 
 /**
+ * Crear nuevo Acudiente
+ */
+export const crearAcudiente = async (data) => {
+    try {
+        const response = await apiClient.post(ENDPOINT_ACUDIENTES, data);
+        return response.data;
+    } catch (error) {
+        throw parseError(error);
+    }
+};
+
+/**
+ * Actualizar datos de un Acudiente
+ */
+export const actualizarAcudiente = async (id, data) => {
+    try {
+        const response = await apiClient.put(`${ENDPOINT_ACUDIENTES}/${id}`, data);
+        return response.data;
+    } catch (error) {
+        throw parseError(error);
+    }
+};
+
+/**
+ * Eliminar Acudiente
+ */
+export const eliminarAcudiente = async (id) => {
+    try {
+        const response = await apiClient.delete(`${ENDPOINT_ACUDIENTES}/${id}`);
+        return response.data;
+    } catch (error) {
+        throw parseError(error);
+    }
+};
+
+/**
  * Asignar Acudiente (HÍBRIDO)
  * Busca, crea (si no existe) y vincula al estudiante en un solo paso.
  * @param {Object} payload - { estudianteId, afinidad, documento, primerNombre... }
@@ -54,11 +89,13 @@ export const asignarAcudiente = async (payload) => {
 };
 
 /**
- * Actualizar datos de un Acudiente
+ * Desvincular Acudiente de Estudiante
+ * @param {Object} payload - { estudianteId, documento }
  */
-export const actualizarAcudiente = async (id, data) => {
+export const desvincularAcudiente = async (estudianteId, acudienteId) => {
     try {
-        const response = await apiClient.put(`${ENDPOINT_ACUDIENTES}/${id}`, data);
+        const url = `${ENDPOINT_ACUDIENTES}/desvincular/${estudianteId}/${acudienteId}`;
+        const response = await apiClient.delete(url);
         return response.data;
     } catch (error) {
         throw parseError(error);

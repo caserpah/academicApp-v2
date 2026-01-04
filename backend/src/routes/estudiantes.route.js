@@ -57,20 +57,4 @@ router.delete(
     estudianteController.remove
 );
 
-// Asignar acudiente a estudiante
-router.post(
-    "/:id/acudientes",
-    protect,
-    restrictTo(["admin", "secretaria"]),
-    estudianteController.addAcudiente
-);
-
-// Remover acudiente de estudiante
-router.delete(
-    "/:id/acudientes/:acudienteId",
-    protect,
-    restrictTo(["admin", "secretaria"]),
-    estudianteController.removeAcudiente
-);
-
 export default router;

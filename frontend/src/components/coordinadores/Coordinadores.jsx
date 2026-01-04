@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faEdit,
@@ -42,6 +42,8 @@ const Coordinadores = () => {
     const [showAsignarModal, setShowAsignarModal] = useState(false);
     const [selectedCoordinador, setSelectedCoordinador] = useState(null);
 
+    const formContainerRef = useRef(null);
+
     /**
      * Cargar coordinadores y sedes
      */
@@ -81,7 +83,7 @@ const Coordinadores = () => {
      */
     const validateForm = () => {
         if (!formData.numeroDocumento || !formData.nombres || !formData.email) {
-            return "Los campos Documento, Nombres y Email son obligatorios (<span class='text-[#e74c3c]'>*</span>).";
+            return "Todos los campos obligatorios (<span class='text-[#e74c3c]'>*</span>) deben completarse.";
         }
 
         // Validar formato de email
@@ -149,6 +151,11 @@ const Coordinadores = () => {
             direccion: coordinador.direccion ?? ""
         });
         setMode("editar");
+
+        // Desplazar al formulario al editar
+        if (formContainerRef.current) {
+            formContainerRef.current.scrollIntoView({ behavior: "smooth" });
+        }
     };
 
     /**
@@ -230,25 +237,31 @@ const Coordinadores = () => {
     }
 
     return (
-        <div className="min-h-full bg-[#f7f9fc] p-4 md:p-8 font-inter rounded-xl">
+        <div className="p-6 bg-gray-50 min-h-screen">
             <div className="max-w-7xl mx-auto space-y-8">
-                <h1 className="text-2xl font-semibold text-gray-800 mb-6 border-b pb-2">
-                    <FontAwesomeIcon icon={faUserTie} className="w-6 h-6 mr-3 text-[#2c3e50]" />
-                    Gestión de Coordinadores
-                </h1>
 
-                <CoordinadoresForm
-                    formData={formData}
-                    setFormData={setFormData}
-                    mode={mode}
-                    loading={loading}
-                    handleChange={(e) => setFormData((p) => ({ ...p, [e.target.name]: e.target.value }))}
-                    handleSubmit={handleSubmit}
-                    resetForm={resetForm}
-                />
+                {/* HEADER */}
+                <div className="flex flex-col md:flex-row justify-between items-center border-b pb-4">
+                    <h1 className="text-2xl font-semibold text-gray-800 flex items-center mb-4 md:mb-0">
+                        <FontAwesomeIcon icon={faUserTie} className="w-6 h-6 mr-3 text-[#2c3e50]" />
+                        Gestión de Coordinadores
+                    </h1>
+                </div>
 
-                <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-lg p-6">
-                    <h2 className="text-xl font-semibold text-gray-700 mb-4 border-b pb-3">
+                <div ref={formContainerRef}>
+                    <CoordinadoresForm
+                        formData={formData}
+                        setFormData={setFormData}
+                        mode={mode}
+                        loading={loading}
+                        handleChange={(e) => setFormData((p) => ({ ...p, [e.target.name]: e.target.value }))}
+                        handleSubmit={handleSubmit}
+                        resetForm={resetForm}
+                    />
+                </div>
+
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                    <h2 className="text-xl font-semibold text-gray-700 mb-4 pb-3">
                         Coordinadores registrados ({coordinadores.length})
                     </h2>
 

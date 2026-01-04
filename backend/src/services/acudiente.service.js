@@ -176,5 +176,13 @@ export const acudienteService = {
         } catch (error) {
             throw handleSequelizeError(error);
         }
-    }
+    },
+
+    async desvincularAcudiente(estudianteId, acudienteId) {
+        const resultado = await acudienteRepository.desvincularAcudiente(estudianteId, acudienteId);
+        if (!resultado) {
+            throw new Error("No se pudo eliminar la relación entre estudiante y acudiente (o no existía).");
+        }
+        return true;
+    },
 };

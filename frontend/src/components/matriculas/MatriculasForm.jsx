@@ -41,7 +41,7 @@ const MatriculasForm = ({
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
                     <div className="border-b pb-2 mb-4 border-[#d8d5d5]">
-                        <h3 className="text-lg font-medium text-gray-700">{mode === "agregar" ? "Nueva Matrícula" : "Editar Matrícula"}</h3>
+                        <h3 className="text-lg font-semibold text-gray-700">{mode === "agregar" ? "Registrar Nueva Matrícula" : "Editar Matrícula"}</h3>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -127,7 +127,6 @@ const MatriculasForm = ({
                                 value={formData.sedeId || ""}
                                 onChange={handleChange}
                                 className={getInputClasses()}
-                                required
                             >
                                 <option value="">Seleccione Sede...</option>
                                 {listas.sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
@@ -144,7 +143,6 @@ const MatriculasForm = ({
                                 value={formData.grupoId || ""}
                                 onChange={handleChange}
                                 className={getInputClasses()}
-                                required
                                 disabled={!formData.sedeId || loadingGrupos} // Se deshabilita si carga
                             >
                                 <option value="">
@@ -213,7 +211,7 @@ const MatriculasForm = ({
 
                     <div className="pt-4 flex justify-center space-x-3 border-t border-[#eee] mt-6">
                         <button type="submit" disabled={loading} className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition flex items-center shadow-md">
-                            <FontAwesomeIcon icon={faSave} className="mr-2" /> {mode === "agregar" ? "Guardar" : "Actualizar"}
+                            <FontAwesomeIcon icon={faSave} className="mr-2" /> {mode === "agregar" ? "Guardar" : "Guardar Cambios"}
                         </button>
                         <button type="button" onClick={resetForm} disabled={loading} className="bg-red-500 text-white px-5 py-2 rounded-lg hover:bg-red-600 transition flex items-center shadow-md">
                             <FontAwesomeIcon icon={faTimes} className="mr-2" /> Cancelar
