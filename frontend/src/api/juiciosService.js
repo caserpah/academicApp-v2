@@ -7,162 +7,103 @@ import apiClient from './apiClient.js';
 const JUICIOS_ENDPOINT = '/api/juicios';
 const ASIGNATURAS_ENDPOINT = '/api/asignaturas';
 const VIGENCIAS_ENDPOINT = '/api/vigencias';
+const GRADOS_ENDPOINT = '/api/grados';
+const DIMENSIONES_ENDPOINT = '/api/dimensiones';
+const DESEMPENOS_ENDPOINT = '/api/desempenos';
+const RANGOS_ENDPOINT = '/api/desempenos/rangos';
 
 /* -------------------------------------------------------------------------- */
 /* Funciones principales del servicio                                      */
 /* -------------------------------------------------------------------------- */
 
-// Obtiene todos los juicios, asignaturas y la vigencia activa
-export const fetchInitialData = async () => {
+/**
+ * Obtiene todos los datos iniciales necesarios para el módulo.
+ * Carga catálogos (Grados, Dimensiones, Desempeños) y datos transaccionales (Juicios).
+ */
+export const fetchCatalogs = async () => {
     try {
         // Obtener vigencias para encontrar la activa
         const vigenciasResponse = await apiClient.get(VIGENCIAS_ENDPOINT);
-        const vigenciasApi = vigenciasResponse.data;
+        const vigenciasItems = vigenciasResponse.data?.data?.items || [];
 
-        if (vigenciasApi.status !== 'success' || !vigenciasApi.data) {
-            throw new Error(vigenciasApi.message || 'No se pudo obtener la información de vigencias.');
-        }
-
-        const vigenciasItems = vigenciasApi.data.items;
-
-        if (!Array.isArray(vigenciasItems) || vigenciasItems.length === 0) {
-            throw new Error("No se encontró ninguna vigencia. Crea una vigencia primero.");
-        }
-
-        // Buscar vigencia activa
         const vigenciaActiva = vigenciasItems.find(v => v.activa === true);
 
-        if (!vigenciaActiva) {
-            throw new Error("No hay una vigencia activa. Activa una vigencia en el sistema.");
-        }
+        if (!vigenciaActiva) throw new Error("No se encontró una vigencia activa.");
 
-        // Obtener datos relacionados en paralelo
-        const [juiciosResponse, asignaturasResponse] = await Promise.all([
+        // Cargar todo lo demás en paralelo
+        // Nota: Rangos de desempeño y Juicios dependen de la vigencia.
+        // Los Grados, Dimensiones y Desempeños son catálogos globales.
+        const [
+            juiciosRes,
+            asignaturasRes,
+            gradosRes,
+            dimensionesRes,
+            desempenosRes,
+            rangosRes
+        ] = await Promise.all([
             apiClient.get(`${JUICIOS_ENDPOINT}?vigenciaId=${vigenciaActiva.id}`),
-            apiClient.get(`${ASIGNATURAS_ENDPOINT}?vigenciaId=${vigenciaActiva.id}`)
+            apiClient.get(`${ASIGNATURAS_ENDPOINT}?vigenciaId=${vigenciaActiva.id}`),
+            apiClient.get(GRADOS_ENDPOINT),
+            apiClient.get(DIMENSIONES_ENDPOINT),
+            apiClient.get(DESEMPENOS_ENDPOINT),
+            // El backend filtra por vigencia usando el token (req.vigenciaActual)
+            apiClient.get(RANGOS_ENDPOINT)
         ]);
 
-        const juiciosApi = juiciosResponse.data;
-        const asignaturasApi = asignaturasResponse.data;
-
-        // Validar y extraer juicios
-        if (juiciosApi.status !== 'success' || !juiciosApi.data) {
-            throw new Error(juiciosApi.message || 'No se pudo obtener la lista de juicios.');
-        }
-        const juicios = juiciosApi.data.items || [];
-
-        // Validar y extraer asignaturas
-        const asignaturas = (asignaturasApi.status === 'success' && asignaturasApi.data)
-            ? asignaturasApi.data.items
-            : [];
+        // Helper para extraer datos de la estructura estandar: { data: ... } o { data: { items: ... } }
+        const extract = (res) => res.data?.data?.items || res.data?.data || [];
 
         return {
-            juicios,
-            asignaturas,
-            vigencia: vigenciaActiva
+            vigencia: vigenciaActiva,
+            juicios: extract(juiciosRes),
+            asignaturas: extract(asignaturasRes),
+            grados: extract(gradosRes),
+            dimensiones: extract(dimensionesRes),
+            desempenos: extract(desempenosRes),
+            rangos: extract(rangosRes)
         };
 
     } catch (error) {
-        console.error('Error en fetchInitialData:', error);
-
-        const msg =
-            error.response?.data?.message ||
-            error.message ||
-            'Ocurrió un error al obtener los datos iniciales.';
-
+        console.error('Error en fetchCatalogs:', error);
+        const msg = error.response?.data?.message || error.message || 'Error cargando datos iniciales.';
         throw new Error(msg);
     }
 };
 
 /**
- * Crea un nuevo juicio
- * @param {Object} juicioData - { tipo, grado, periodo, dimension, desempeno, minNota, maxNota, texto, activo, asignaturaId, vigenciaId }
+ * Carga los Juicios con Filtros y Paginación
+ * @param {Object} params - { page, limit, gradoId, asignaturaId, dimensionId, periodo, vigenciaId }
  */
-export const crearJuicio = async (juicioData) => {
+export const fetchJuiciosPaginated = async (params) => {
     try {
-        const response = await apiClient.post(JUICIOS_ENDPOINT, juicioData);
-        const apiData = response.data;
+        // Limpiamos params vacíos para no enviarlos como string vacía ""
+        const cleanParams = {};
+        Object.keys(params).forEach(key => {
+            if (params[key] !== '' && params[key] !== null && params[key] !== undefined) {
+                cleanParams[key] = params[key];
+            }
+        });
 
-        if (apiData.status !== 'success') {
-            throw new Error(apiData.message || 'Ocurrió un error al crear el juicio.');
-        }
-
-        return apiData.data;
+        const response = await apiClient.get(JUICIOS_ENDPOINT, { params: cleanParams });
+        return response.data.data; // Debe devolver { items: [], pagination: {} }
     } catch (error) {
-        const data = error.response?.data;
-        const status = error.response?.status;
-
-        // Error de validación (422)
-        if (status === 422 && Array.isArray(data?.errors)) {
-            const primerError = data.errors[0];
-            const mensaje =
-                primerError.message || primerError.msg || 'Error de validación.';
-            throw new Error(mensaje);
-        }
-
-        // Error controlado (404, 409, etc.)
-        if (data?.message) {
-            throw new Error(data.message);
-        }
-
-        // Genérico
-        throw new Error(`Ocurrió un error al crear el juicio: ${error.message}`);
+        throw new Error(error.response?.data?.message || 'Error cargando juicios.');
     }
 };
 
-/**
- * Actualiza un juicio existente
- * @param {number} id - ID del juicio
- * @param {Object} juicioData - Datos a actualizar
- */
-export const actualizarJuicio = async (id, juicioData) => {
-    try {
-        const response = await apiClient.put(`${JUICIOS_ENDPOINT}/${id}`, juicioData);
-        const apiData = response.data;
+// ... Métodos CRUD (Crear, Actualizar, Eliminar) ...
 
-        if (apiData.status !== 'success') {
-            throw new Error(apiData.message || 'Ocurrió un error al actualizar el juicio.');
-        }
-
-        return apiData.data;
-    } catch (error) {
-        const data = error.response?.data;
-        const status = error.response?.status;
-
-        if (status === 422 && Array.isArray(data?.errors)) {
-            const primerError = data.errors[0];
-            const mensaje =
-                primerError.message || primerError.msg || 'Error de validación.';
-            throw new Error(mensaje);
-        }
-
-        if (data?.message) {
-            throw new Error(data.message);
-        }
-
-        throw new Error(`Ocurrió un error al actualizar el juicio: ${error.message}`);
-    }
+export const crearJuicio = async (data) => {
+    const response = await apiClient.post(JUICIOS_ENDPOINT, data);
+    return response.data.data;
 };
 
-/**
- * Elimina un juicio
- * @param {number} id - ID del juicio
- */
+export const actualizarJuicio = async (id, data) => {
+    const response = await apiClient.put(`${JUICIOS_ENDPOINT}/${id}`, data);
+    return response.data.data;
+};
+
 export const eliminarJuicio = async (id) => {
-    try {
-        const response = await apiClient.delete(`${JUICIOS_ENDPOINT}/${id}`);
-        const apiData = response.data;
-
-        if (apiData.status !== 'success') {
-            throw new Error(apiData.message || 'Ocurrió un error al eliminar el juicio.');
-        }
-
-        return apiData.message || 'Juicio eliminado correctamente.';
-    } catch (error) {
-        const data = error.response?.data;
-        if (data?.message) {
-            throw new Error(data.message);
-        }
-        throw new Error(`Ocurrió un error al eliminar el juicio: ${error.message}`);
-    }
+    const response = await apiClient.delete(`${JUICIOS_ENDPOINT}/${id}`);
+    return response.data.message;
 };

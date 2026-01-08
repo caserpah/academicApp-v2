@@ -126,7 +126,8 @@ const Colegios = () => {
                             setIsEditing(true);
                             setTimeout(() => firstEditableInputRef.current?.focus(), 0);
                         }}
-                        className="bg-[#f39c12] hover:bg-[#e67e22] text-white py-2 px-4 rounded-lg shadow-md transition duration-200 ease-in-out disabled:opacity-50"
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition flex items-center shadow-sm text-sm font-medium"
+                        title="Editar Información"
                         disabled={loading}
                     >
                         <FontAwesomeIcon icon="fa-edit" className="mr-2" />

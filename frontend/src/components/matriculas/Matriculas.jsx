@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom"; // Importamos Link para la navegación
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faUserGraduate, faEdit, faAngleLeft, faAngleRight, faUsers,faSearch
+    faFilePen, faEdit, faAngleLeft, faAngleRight, faUsers,faSearch
 } from "@fortawesome/free-solid-svg-icons";
 
 // Hooks y Servicios
@@ -73,6 +73,7 @@ const Matriculas = () => {
     // EFECTO: CARGA DE TABLA (Al montar y al cambiar filtros)
     // ----------------------------------------------------------------
     useEffect(() => {
+        // Configuramos un temporizador para no llamar a la API en cada tecla
         const timer = setTimeout(() => {
             cargarMatriculas({ page, limit: 10, busqueda });
         }, 500);
@@ -205,13 +206,13 @@ const Matriculas = () => {
     // RENDERIZADO
     // ----------------------------------------------------------------
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="min-h-full bg-[#f7f9fc] p-4 md:p-8 font-inter rounded-xl">
             <div className="max-w-7xl mx-auto space-y-8">
 
                 {/* HEADER */}
                 <div className="flex flex-col md:flex-row justify-between items-center border-b pb-4">
                     <h1 className="text-2xl font-semibold text-gray-800 flex items-center mb-4 md:mb-0">
-                        <FontAwesomeIcon icon={faUserGraduate} className="w-6 h-6 mr-3 text-[#2c3e50]" />
+                        <FontAwesomeIcon icon={faFilePen} className="w-6 h-6 mr-3 text-[#2c3e50]" />
                         Gestión de Matrículas
                     </h1>
 
@@ -250,9 +251,9 @@ const Matriculas = () => {
                 </div>
 
                 {/* TABLA */}
-                <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-lg p-6">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-xl font-semibold text-gray-700">Matrículas registradas ({paginacion.total})</h2>
+                        <h2 className="text-xl font-semibold text-gray-700 mb-4 pb-3">Matrículas registradas ({paginacion.total})</h2>
                         <div className="relative w-64">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                                 <FontAwesomeIcon icon={faSearch} />
@@ -260,7 +261,7 @@ const Matriculas = () => {
                             <input
                                 type="text"
                                 placeholder="Buscar..."
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition"
                                 value={busqueda}
                                 onChange={(e) => { setBusqueda(e.target.value); setPage(1); }}
                             />
@@ -300,7 +301,7 @@ const Matriculas = () => {
                                                 </td>
                                                 <td className="px-3 py-3 text-center">{getStatusBadge(mat.estado)}</td>
                                                 <td className="px-3 py-3 text-right">
-                                                    <button onClick={() => handleEdit(mat)} className="text-yellow-600 hover:scale-110 transition">
+                                                    <button onClick={() => handleEdit(mat)} className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50 transition">
                                                         <FontAwesomeIcon icon={faEdit} />
                                                     </button>
                                                 </td>

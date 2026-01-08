@@ -1,152 +1,78 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
-// Importa los componentes de Layout y Páginas
+// Layouts y Páginas
 import DashboardLayout from '../layouts/DashboardLayout.jsx';
 import Bienvenida from '../pages/Bienvenida/Bienvenida.jsx';
+import Login from '../pages/Auth/login.jsx';
+import ProtectedRoute from './ProtectedRoute.jsx';
+
+// Componentes Existentes
 import Colegios from '../components/colegios/Colegios.jsx';
-import Sedes from '../components/sedes/Sedes.jsx'
+import Sedes from '../components/sedes/Sedes.jsx';
 import Areas from '../components/areas/Areas.jsx';
 import Asignaturas from '../components/asignaturas/Asignaturas.jsx';
 import Coordinadores from '../components/coordinadores/Coordinadores.jsx';
 import Juicios from '../components/juicios/Juicios.jsx';
-import Estudiantes from '../components/estudiantes/Estudiantes.jsx'
-import Acudientes from '../components/acudientes/Acudientes.jsx'
-import asignarAcudientes from '../components/estudiantes/AcudientesTab.jsx'
+import Estudiantes from '../components/estudiantes/Estudiantes.jsx';
+import Acudientes from '../components/acudientes/Acudientes.jsx';
+import AsignarAcudientes from '../components/estudiantes/AcudientesTab.jsx';
 import Matriculas from "../components/matriculas/Matriculas.jsx";
 import PromocionMasiva from "../components/matriculas/PromocionMasiva.jsx";
-import Login from '../pages/Auth/login.jsx';
-import ProtectedRoute from './ProtectedRoute.jsx';
+
+// --- COMPONENTE TEMPORAL PARA RUTAS FALTANTES ---
+// Utilizar mientras se está en desarrollo de componentes reales
+const PaginaEnConstruccion = ({ titulo }) => (
+    <div className="p-8 text-center border-2 border-dashed border-gray-300 rounded-lg">
+        <h2 className="text-2xl font-bold text-gray-400 mb-2">🚧 En Construcción</h2>
+        <p className="text-gray-500">El módulo <strong>{titulo}</strong> estará disponible pronto.</p>
+    </div>
+);
 
 const AppRoutes = () => {
     return (
         <Routes>
-
-            {/* RUTA PÚBLICA: Login */}
+            {/* RUTA PÚBLICA */}
             <Route path="/login" element={<Login />} />
 
-            {/* ========================================================== */}
-            {/* GRUPO DE RUTAS PROTEGIDAS (Requiere Autenticación) */}
-
-            {/* 1. PROTECCIÓN PRINCIPAL: Si no hay login, redirige a /login. */}
+            {/* RUTAS PROTEGIDAS */}
             <Route element={<ProtectedRoute />}>
-
-                {/* 2. RUTA PADRE/LAYOUT: Todas las rutas aquí dentro usarán el DashboardLayout */}
                 <Route path="/" element={<DashboardLayout />}>
 
-                    {/* RUTA INDEX: Redirige automáticamente de / a /bienvenida (Se renderiza en el <Outlet /> del Layout) */}
                     <Route index element={<Navigate to="/bienvenida" replace />} />
-
-                    {/* RUTA DE BIENVENIDA (Contenido por defecto del Dashboard) */}
                     <Route path="bienvenida" element={<Bienvenida />} />
 
-                    {/* RUTAS DE NAVEGACIÓN ESTÁNDAR (Páginas simples del Sidebar) */}
-                    <Route path="estudiantes" element={<Estudiantes />} />
-                    <Route path="acudientes" element={<Acudientes />} />
-                    <Route path="docentes" element={<div>Página de Docentes</div>} />
-                    <Route path="areas" element={<Areas />} />
-                    <Route path="asignaturas" element={<Asignaturas />} />
-                    <Route path="coordinadores" element={<Coordinadores />} />
-                    <Route path="juicios" element={<Juicios />} />
-                    {/* Agrega aquí el resto de las rutas de navegación... */}
+                    {/* === INSTITUCIONAL === */}
+                    <Route path="colegios" element={<ProtectedRoute requiredRole="admin"><Colegios /></ProtectedRoute>} />
+                    <Route path="sedes" element={<ProtectedRoute requiredRole="admin"><Sedes /></ProtectedRoute>} />
+                    <Route path="coordinadores" element={<ProtectedRoute requiredRole="admin"><Coordinadores /></ProtectedRoute>} />
 
+                    {/* === GESTIÓN ACADÉMICA === */}
+                    <Route path="areas" element={<ProtectedRoute requiredRole="admin"><Areas /></ProtectedRoute>} />
+                    <Route path="asignaturas" element={<ProtectedRoute requiredRole="admin"><Asignaturas /></ProtectedRoute>} />
 
-                    {/* RUTAS DE GESTIÓN CON RESTRICCIÓN DE ROL (Dentro del Layout) */}
+                    {/* Nuevas rutas agregadas del Sidebar */}
+                    <Route path="grupos" element={<ProtectedRoute requiredRole="admin"><PaginaEnConstruccion titulo="Grupos" /></ProtectedRoute>} />
+                    <Route path="carga-academica" element={<ProtectedRoute requiredRole="admin"><PaginaEnConstruccion titulo="Carga Académica" /></ProtectedRoute>} />
+                    <Route path="docentes" element={<ProtectedRoute requiredRole="admin"><PaginaEnConstruccion titulo="Docentes" /></ProtectedRoute>} />
 
-                    {/* Colegios (Protegido por Rol 'admin'):
-                        Usamos ProtectedRoute como un componente envolvente que chequea el rol y renderiza <Colegios /> si pasa.
-                    */}
-                    <Route
-                        path="colegios"
-                        element={
-                            <ProtectedRoute requiredRole="admin">
-                                <Colegios />
-                            </ProtectedRoute>
-                        }
-                    />
+                    {/* === ESTUDIANTES & MATRÍCULAS === */}
+                    <Route path="estudiantes" element={<ProtectedRoute requiredRole="admin"><Estudiantes /></ProtectedRoute>} />
+                    <Route path="estudiantes/acudientes" element={<ProtectedRoute requiredRole="admin"><AsignarAcudientes /></ProtectedRoute>} />
+                    <Route path="acudientes" element={<ProtectedRoute requiredRole="admin"><Acudientes /></ProtectedRoute>} />
+                    <Route path="matriculas" element={<ProtectedRoute requiredRole="admin"><Matriculas /></ProtectedRoute>} />
+                    <Route path="matriculas/masivo" element={<ProtectedRoute requiredRole="admin"><PromocionMasiva /></ProtectedRoute>} />
 
-                    {/* Sedes (Protegido por Rol 'admin') */}
-                    <Route
-                        path="sedes"
-                        element={
-                            <ProtectedRoute requiredRole="admin">
-                                <Sedes />
-                            </ProtectedRoute>
-                        }
-                    />
+                    {/* === EVALUACIÓN === */}
+                    <Route path="juicios" element={<ProtectedRoute requiredRole="admin"><Juicios /></ProtectedRoute>} />
+                    <Route path="calificaciones" element={<ProtectedRoute requiredRole="admin"><PaginaEnConstruccion titulo="Calificaciones" /></ProtectedRoute>} />
 
-                    {/* Áreas (Protegido por Rol 'admin') */}
-                    <Route
-                        path="areas"
-                        element={
-                            <ProtectedRoute requiredRole="admin">
-                                <Areas />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="asignaturas"
-                        element={
-                            <ProtectedRoute requiredRole="admin">
-                                <Asignaturas />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="coordinadores"
-                        element={
-                            <ProtectedRoute requiredRole="admin">
-                                <Coordinadores />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="juicios"
-                        element={
-                            <ProtectedRoute requiredRole="admin">
-                                <Juicios />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="matriculas"
-                        element={
-                            <ProtectedRoute requiredRole="admin">
-                                <Matriculas />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="matriculas/masivo"
-                        element={
-                            <ProtectedRoute requiredRole="admin">
-                                <PromocionMasiva />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="estudiantes/acudientes"
-                        element={
-                            <ProtectedRoute requiredRole="admin">
-                                <asignarAcudientes />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="acudientes"
-                        element={
-                            <ProtectedRoute requiredRole="admin">
-                                <Acudientes />
-                            </ProtectedRoute>
-                        }
-                    />
+                </Route>
+            </Route>
 
-                </Route> {/* Cierre de la ruta principal (DashboardLayout) */}
-            </Route> {/* Cierre de la protección principal */}
-
-            {/* RUTA CATCH-ALL: 404 */}
-            <Route path="*" element={<div>404 | Página no encontrada</div>} />
-        </Routes >
+            {/* 404 */}
+            <Route path="*" element={<div className="text-center mt-10">404 | Página no encontrada</div>} />
+        </Routes>
     );
 };
 

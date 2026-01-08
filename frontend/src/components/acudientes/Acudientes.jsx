@@ -5,7 +5,7 @@ import {
     faPlus,
     faEdit,
     faTrash,
-    faUserTie,
+    faHandsHoldingChild,
     faChevronLeft,
     faChevronRight,
     faSpinner
@@ -112,7 +112,7 @@ const Acudientes = () => {
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                 <div>
                     <h1 className="text-2xl font-semibold text-gray-800 flex items-center mb-4 md:mb-0">
-                        <FontAwesomeIcon icon={faUserTie} className="w-6 h-6 mr-3 text-[#2c3e50]" />
+                        <FontAwesomeIcon icon={faHandsHoldingChild} className="w-6 h-6 mr-3 text-[#2c3e50]" />
                         Gestión de Acudientes
                     </h1>
                     <p className="text-gray-500 text-sm">Gestión de información de padres y tutores</p>
@@ -200,7 +200,7 @@ const Acudientes = () => {
                                             </td>
 
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">{item.contacto || 'Sin celular'}</div>
+                                                <div className="text-sm text-gray-900">{item.contacto || 'Sin teléfono'}</div>
                                                 <div className="text-xs text-blue-500 lowercase truncate max-w-[150px]" title={item.email}>
                                                     {item.email || 'Sin email'}
                                                 </div>

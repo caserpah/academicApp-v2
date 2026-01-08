@@ -14,7 +14,7 @@ const CoordinadoresForm = ({
     resetForm,
 }) => {
     const inputBaseClasses =
-        "mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150";
+        "mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150";
     const readOnlyClasses = "bg-gray-100 cursor-not-allowed text-gray-700";
     const getInputClasses = (readOnly = false) =>
         readOnly ? `${inputBaseClasses} ${readOnlyClasses}` : inputBaseClasses;
@@ -51,7 +51,9 @@ const CoordinadoresForm = ({
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
                 <div className="border-b pb-2 mb-4 border-[#d8d5d5]">
-                    <h3 className="text-lg font-semibold text-gray-700">{mode === "agregar" ? "Registrar Nuevo Coordinador" : "Editar Coordinador"}</h3>
+                    <h2 className="text-lg font-semibold text-gray-700">
+                        {mode === "agregar" ? "Registrar Nuevo Coordinador" : "Editar Coordinador"}
+                    </h2>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

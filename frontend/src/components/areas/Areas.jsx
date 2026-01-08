@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faTrash, faAtom } from "@fortawesome/free-solid-svg-icons";
+import { faEdit, faTrash, faLayerGroup } from "@fortawesome/free-solid-svg-icons";
 
 import {
     fetchInitialData,
@@ -202,13 +202,13 @@ const Areas = () => {
     }
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="min-h-full bg-[#f7f9fc] p-4 md:p-8 font-inter rounded-xl">
             <div className="max-w-7xl mx-auto space-y-8">
 
                 {/* HEADER */}
                 <div className="flex flex-col md:flex-row justify-between items-center border-b pb-4">
                     <h1 className="text-2xl font-semibold text-gray-800 flex items-center mb-4 md:mb-0">
-                        <FontAwesomeIcon icon={faAtom} className="w-6 h-6 mr-3 text-[#2c3e50]" />
+                        <FontAwesomeIcon icon={faLayerGroup} className="w-6 h-6 mr-3 text-[#2c3e50]" />
                         Gestión de Áreas Académicas
                     </h1>
                 </div>
@@ -227,7 +227,7 @@ const Areas = () => {
                     />
                 </div>
 
-                <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-lg p-6">
                     <h2 className="text-xl font-semibold text-gray-700 mb-4 pb-3">
                         Áreas registradas ({areas.length})
                     </h2>
@@ -263,7 +263,7 @@ const Areas = () => {
                                                 </td>
                                                 <button
                                                     onClick={() => handleEdit(area)}
-                                                    className="text-yellow-600 hover:text-yellow-800 p-1 rounded-full transition duration-150 hover:scale-[1.05]"
+                                                    className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50 transition"
                                                     title="Editar"
                                                     disabled={loading}
                                                 >
@@ -271,7 +271,7 @@ const Areas = () => {
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(area)}
-                                                    className="text-red-600 hover:text-red-800 p-1 rounded-full transition duration-150"
+                                                    className="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-50 transition"
                                                     title="Eliminar"
                                                     disabled={loading}
                                                 >

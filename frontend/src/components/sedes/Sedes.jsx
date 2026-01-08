@@ -187,7 +187,7 @@ const Sedes = () => {
     }
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="min-h-full bg-[#f7f9fc] p-4 md:p-8 font-inter rounded-xl">
             <div className="max-w-7xl mx-auto space-y-8">
 
                 {/* HEADER */}
@@ -211,7 +211,7 @@ const Sedes = () => {
                     />
                 </div>
 
-                <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-lg p-6">
                     <h2 className="text-xl font-semibold text-gray-700 mb-4 pb-3">
                         Sedes registradas ({sedes.length})
                     </h2>
@@ -223,11 +223,11 @@ const Sedes = () => {
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dirección</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contacto</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
+                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dirección</th>
+                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contacto</th>
+                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
@@ -241,10 +241,10 @@ const Sedes = () => {
                                                 <td className="px-3 py-3 text-sm font-medium text-gray-900">{sede.nombre}</td>
                                                 <td className="px-3 py-3 text-sm text-gray-700">{sede.direccion}</td>
                                                 <td className="px-3 py-3 text-sm text-gray-700">{sede.contacto || "N/A"}</td>
-                                                <td className="px-3 py-3 text-right text-sm font-medium space-x-2">
+                                                <td className="px-3 py-3 text-right space-x-2">
                                                     <button
                                                         onClick={() => handleEdit(sede)}
-                                                        className="text-yellow-600 hover:text-yellow-800 p-1 rounded-full transition duration-150 hover:scale-[1.05]"
+                                                        className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50 transition hover:scale-[1.05]"
                                                         title="Editar"
                                                         disabled={loading}
                                                     >
@@ -252,7 +252,7 @@ const Sedes = () => {
                                                     </button>
                                                     <button
                                                         onClick={() => handleDelete(sede)}
-                                                        className="text-red-600 hover:text-red-800 p-1 rounded-full transition duration-150"
+                                                        className="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-50 transition"
                                                         title="Eliminar"
                                                         disabled={loading}
                                                     >

@@ -348,6 +348,7 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
                                     onChange={handleChange}
                                     type="date"
                                     width="w-full" // Forzamos ancho completo dentro del flex
+                                    required
                                 />
                             </div>
 
@@ -364,7 +365,7 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
                                 />
                             </div>
                         </div>
-                        <SelectGroup label="Sexo" name="sexo" value={formData.sexo} onChange={handleChange} options={SEXOS} mapOption />
+                        <SelectGroup label="Sexo" name="sexo" value={formData.sexo} required onChange={handleChange} options={SEXOS} mapOption />
                     </div>
                 )}
 
@@ -396,6 +397,7 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
                                     type="checkbox"
                                     checked={formData.subsidiado}
                                     onChange={handleChange}
+                                    required
                                     className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                 />
                                 <label htmlFor="subsidiado" className="ml-2 block text-sm text-gray-900">
@@ -406,10 +408,10 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
 
                         <h3 className="text-gray-800 font-semibold border-b border-gray-300 pb-4">Caracterización</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <SelectGroup label="Población Víctima" name="victimas" value={formData.victimas} onChange={handleChange} options={VICTIMAS} mapOption />
-                            <SelectGroup label="Discapacidad" name="discapacidad" value={formData.discapacidad} onChange={handleChange} options={DISCAPACIDADES} mapOption />
-                            <SelectGroup label="Capacidades Excepcionales" name="capacidades" value={formData.capacidades} onChange={handleChange} options={CAPACIDADES} mapOption />
-                            <SelectGroup label="Etnia" name="etnia" value={formData.etnia} onChange={handleChange} options={ETNIAS} mapOption />
+                            <SelectGroup label="Población Víctima" name="victimas" value={formData.victimas} required onChange={handleChange} options={VICTIMAS} mapOption />
+                            <SelectGroup label="Discapacidad" name="discapacidad" value={formData.discapacidad} required onChange={handleChange} options={DISCAPACIDADES} mapOption />
+                            <SelectGroup label="Capacidades Excepcionales" name="capacidades" value={formData.capacidades} required onChange={handleChange} options={CAPACIDADES} mapOption />
+                            <SelectGroup label="Etnia" name="etnia" value={formData.etnia} required onChange={handleChange} options={ETNIAS} mapOption />
                         </div>
                     </div>
                 )}

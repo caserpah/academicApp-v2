@@ -45,7 +45,8 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
 
         // Validaciones Manuales Básicas
         if (!formData.tipoDocumento || !formData.documento || !formData.primerNombre || !formData.primerApellido) {
-            showWarning(`Complete los campos requeridos antes de continuar (*).`);
+            showWarning("Todos los campos obligatorios (<span class='text-[#e74c3c]'>*</span>) deben completarse.");
+            return;
         }
 
         setLoading(true);
@@ -98,12 +99,14 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
 
                         {/* Fila 1: Documento */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1 required">Tipo Documento *</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1 required">Tipo Documento {" "}
+                                <span className="text-red-500">*</span>
+                            </label>
                             <select
                                 name="tipoDocumento"
                                 value={formData.tipoDocumento}
                                 onChange={handleChange}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                             >
                                 <option value="CC">Cédula de Ciudadanía</option>
                                 <option value="CE">Cédula de Extranjería</option>
@@ -112,52 +115,57 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1 required">Número Documento *</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1 required">Número de Documento {" "}
+                                <span className="text-red-500">*</span>
+                            </label>
                             <input
                                 type="text"
                                 name="documento"
                                 value={formData.documento}
                                 onChange={handleChange}
-                                disabled={!!registro} // No editar documento si ya existe
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                                placeholder="Ej: 12345678"
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                placeholder="Máx. 20 dígitos"
                             />
                         </div>
 
                         {/* Fila 2: Nombres */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Primer Nombre *</label>
-                            <input type="text" name="primerNombre" value={formData.primerNombre} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" />
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Primer Nombre {" "}
+                                <span className="text-red-500">*</span>
+                            </label>
+                            <input type="text" name="primerNombre" value={formData.primerNombre} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none uppercase" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Segundo Nombre</label>
-                            <input type="text" name="segundoNombre" value={formData.segundoNombre} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" />
+                            <input type="text" name="segundoNombre" value={formData.segundoNombre} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none uppercase" />
                         </div>
 
                         {/* Fila 3: Apellidos */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Primer Apellido *</label>
-                            <input type="text" name="primerApellido" value={formData.primerApellido} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" />
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Primer Apellido {" "}
+                                <span className="text-red-500">*</span>
+                            </label>
+                            <input type="text" name="primerApellido" value={formData.primerApellido} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none uppercase" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Segundo Apellido</label>
-                            <input type="text" name="segundoApellido" value={formData.segundoApellido} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" />
+                            <input type="text" name="segundoApellido" value={formData.segundoApellido} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none uppercase" />
                         </div>
 
                         {/* Fila 4: Contacto */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono / Celular</label>
-                            <input type="text" name="contacto" value={formData.contacto} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ej: 3001234567" />
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Contacto (10-12 dígitos, opcional)</label>
+                            <input type="text" name="contacto" value={formData.contacto} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Teléfono de contacto" />
                         </div>
 
                         {/* Fila 5: Datos Extra (Full Width) */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
-                            <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 lowercase" placeholder="ejemplo@correo.com" />
+                            <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none lowercase" placeholder="ejemplo@colegio.edu.co" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Dirección de Residencia</label>
-                            <input type="text" name="direccion" value={formData.direccion} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Dirección completa" />
+                            <input type="text" name="direccion" value={formData.direccion} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Ej: Calle 10 # 5-20" />
                         </div>
 
                     </form>

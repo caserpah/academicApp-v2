@@ -74,6 +74,10 @@ import cargaRoutes from "./carga.routes.js";
 //import calificacionRoutes from "./calificaciones.route.js";
 import juicioRoutes from "./juicios.route.js";
 import matriculaRoutes from "./matriculas.route.js";
+import gradoRoutes from "./grado.routes.js";
+import dimensionRoutes from "./dimension.routes.js";
+import desempenoRoutes from "./desempeno.routes.js";
+import desempenoRangoRoutes from "./desempenoRango.routes.js";
 
 router.use("/vigencias-config", vigenciaConfigRoutes); // Configuración de vigencias
 router.use("/grupos", vigenciaContext, grupoRoutes);
@@ -81,6 +85,10 @@ router.use("/cargas", vigenciaContext, cargaRoutes);
 //router.use("/calificaciones", vigenciaContext, calificacionRoutes);
 router.use("/juicios", vigenciaContext, juicioRoutes);
 router.use("/matriculas", vigenciaContext, matriculaRoutes);
+router.use("/grados", gradoRoutes);
+router.use("/dimensiones", dimensionRoutes);
+router.use("/desempenos", desempenoRoutes);
+router.use("/desempenos/rangos", vigenciaContext, desempenoRangoRoutes);
 
 /* ============================================================
     🧭 EXPORTACIÓN DEL ENRUTADOR PRINCIPAL

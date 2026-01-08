@@ -104,6 +104,33 @@ export const acudienteService = {
     },
 
     /**
+     * Eliminar Acudiente
+     */
+    async delete(id) {
+        try {
+            const actual = await acudienteRepository.findById(id);
+            if (!actual) {
+                const error = new Error("No se encontró el acudiente solicitado.");
+                error.status = 404;
+                throw error;
+            }
+
+            const eliminado = await acudienteRepository.delete(id);
+
+            if (!eliminado) {
+                const err = new Error("Ocurrió un error al eliminar el acudiente.");
+                err.status = 400;
+                throw err;
+            }
+
+            return true;
+        }
+        catch (error) {
+            throw handleSequelizeError(error);
+        }
+    },
+
+    /**
      * LÓGICA DE NEGOCIO AVANZADA:
      * 1. Busca si el acudiente existe (por documento).
      * 2. Si no existe, lo crea.
@@ -149,7 +176,7 @@ export const acudienteService = {
                         mensaje: "El vínculo de acudiente con el estudiante ha sido actualizado exitosamente.",
                         acudienteId
                     };
-                } else{
+                } else {
                     // Si es la misma afinidad, lanzamos error
                     const err = new Error(`Esta persona ya se encuentra registrada como acudiente de este estudiante con el parentesco de: ${relacionExistente.afinidad}.`);
                     err.status = 409; // Conflicto

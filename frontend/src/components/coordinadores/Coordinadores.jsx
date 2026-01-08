@@ -237,7 +237,7 @@ const Coordinadores = () => {
     }
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="min-h-full bg-[#f7f9fc] p-4 md:p-8 font-inter rounded-xl">
             <div className="max-w-7xl mx-auto space-y-8">
 
                 {/* HEADER */}
@@ -260,7 +260,7 @@ const Coordinadores = () => {
                     />
                 </div>
 
-                <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-lg p-6">
                     <h2 className="text-xl font-semibold text-gray-700 mb-4 pb-3">
                         Coordinadores registrados ({coordinadores.length})
                     </h2>
@@ -272,13 +272,13 @@ const Coordinadores = () => {
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documento</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombres</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contacto</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dirección</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sedes</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Documento</th>
+                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombres</th>
+                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contacto</th>
+                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dirección</th>
+                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sedes</th>
+                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
@@ -313,7 +313,7 @@ const Coordinadores = () => {
                                                             <span className="text-gray-400 italic">Sin asignar</span>
                                                         )}
                                                     </td>
-                                                    <td className="px-3 py-3 text-right text-sm font-medium space-x-2">
+                                                    <td className="px-3 py-3 text-right space-x-2">
                                                         <button
                                                             onClick={() => handleAsignarSede(coordinador)}
                                                             className="text-purple-600 hover:text-purple-800 p-1 rounded-full transition duration-150 hover:scale-[1.05] group relative"
@@ -327,7 +327,7 @@ const Coordinadores = () => {
                                                         </button>
                                                         <button
                                                             onClick={() => handleEdit(coordinador)}
-                                                            className="text-yellow-600 hover:text-yellow-800 p-1 rounded-full transition duration-150 hover:scale-[1.05]"
+                                                            className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50 transition"
                                                             title="Editar"
                                                             disabled={loading}
                                                         >

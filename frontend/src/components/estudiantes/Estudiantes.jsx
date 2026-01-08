@@ -9,7 +9,7 @@ import {
     faTimes,
     faChevronLeft,
     faChevronRight,
-    faUserGraduate
+    faUsers
 } from "@fortawesome/free-solid-svg-icons";
 
 import { listarEstudiantes, eliminarEstudiante } from "../../api/estudiantesService.js";
@@ -109,7 +109,7 @@ const Estudiantes = () => {
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                 <div>
                     <h1 className="text-2xl font-semibold text-gray-800 flex items-center mb-4 md:mb-0">
-                        <FontAwesomeIcon icon={faUserGraduate} className="w-6 h-6 mr-3 text-[#2c3e50]" />
+                        <FontAwesomeIcon icon={faUsers} className="w-6 h-6 mr-3 text-[#2c3e50]" />
                         Gestión de Estudiantes
                     </h1>
                     <p className="text-gray-500 text-sm">Gestión de información personal y académica</p>
@@ -259,7 +259,7 @@ const Estudiantes = () => {
                         {/* Cabecera del Modal */}
                         <div className="flex justify-between items-center p-5 border-b bg-gray-50 rounded-t-lg">
                             <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                                <FontAwesomeIcon icon={faUserGraduate} className="text-gray-800" />
+                                <FontAwesomeIcon icon={faUsers} className="text-gray-800" />
                                 {estudianteEditar ? "Editar Estudiante" : "Registrar Nuevo Estudiante"}
                             </h2>
                             <button

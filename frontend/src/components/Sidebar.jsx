@@ -3,128 +3,169 @@ import { Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useAuth } from "../context/AuthContext.jsx";
 
-const navItems = [
-    { path: "/matriculas", label: "Matrícula", icon: "file-pen", requiredRole: 'admin' },
-    { path: "/estudiantes", label: "Estudiantes", icon: "users", requiredRole: 'admin' },
-    { path: "/acudientes", label: "Acudientes", icon: "hands-holding-child", requiredRole: 'admin' },
-    { path: "/coordinadores", label: "Coordinadores", icon: "user-tie", requiredRole: 'admin' },
-    { path: "/colegios", label: "Colegios", icon: "school", requiredRole: 'admin' },
-    { path: "/asignaturas", label: "Asignaturas", icon: "book-open", requiredRole: 'admin' },
-    { path: "/calificaciones", label: "Calificaciones", icon: "star", requiredRole: 'docente' },
+// 1. ESTRUCTURA DE DATOS ORGANIZADA
+// Agrupamos todo en un solo array de objetos para facilitar el renderizado y la búsqueda.
+const menuStructure = [
+    {
+        title: "Institucional",
+        key: "institucional", // Clave única para el estado
+        items: [
+            { path: "/colegios", label: "Colegios", icon: "school", requiredRole: 'admin' },
+            { path: "/sedes", label: "Sedes", icon: "building", requiredRole: 'admin' },
+            { path: "/coordinadores", label: "Coordinadores", icon: "user-tie", requiredRole: 'admin' },
+        ]
+    },
+    {
+        title: "Gestión Académica",
+        key: "academica",
+        items: [
+            { path: "/areas", label: "Áreas", icon: "layer-group", requiredRole: 'admin' },
+            { path: "/asignaturas", label: "Asignaturas", icon: "book-open", requiredRole: 'admin' },
+            { path: "/grupos", label: "Grupos", icon: "users-rectangle", requiredRole: 'admin' },
+            { path: "/carga-academica", label: "Carga Académica", icon: "chalkboard-user", requiredRole: 'admin' },
+            { path: "/docentes", label: "Docentes", icon: "person-chalkboard", requiredRole: 'admin' },
+        ]
+    },
+    {
+        title: "Estudiantes & Matrículas",
+        key: "estudiantes",
+        items: [
+            { path: "/matriculas", label: "Matrículas", icon: "file-pen", requiredRole: 'admin' },
+            { path: "/estudiantes", label: "Estudiantes", icon: "users", requiredRole: 'admin' },
+            { path: "/acudientes", label: "Acudientes", icon: "hands-holding-child", requiredRole: 'admin' },
+        ]
+    },
+    {
+        title: "Evaluación",
+        key: "evaluacion",
+        items: [
+            { path: "/calificaciones", label: "Calificaciones", icon: "star", requiredRole: 'admin' },
+            { path: "/juicios", label: "Juicios Académicos", icon: "gavel", requiredRole: 'admin' },
+        ]
+    }
 ];
 
-const subItems = [
-    { path: "/sedes", label: "Sedes", requiredRole: 'admin' },
-    { path: "/docentes", label: "Docentes", requiredRole: 'admin' },
-    { path: "/grupos", label: "Grupos", requiredRole: 'admin' },
-    { path: "/areas", label: "Áreas", requiredRole: 'admin' },
-    { path: "/carga-academica", label: "Carga Académica", requiredRole: 'admin' },
-    // { path: "/indicadores", label: "Indicadores", requiredRole: 'admin' },
-    { path: "/juicios", label: "Juicios", requiredRole: 'admin' },
-];
+const Sidebar = ({ isOpen }) => {
+    const [searchTerm, setSearchTerm] = useState("");
 
-const Sidebar = () => {
-    const [isOpenRegistros, setIsOpenRegistros] = useState(false);
-    const { logout, hasRole } = useAuth(); // Obtenemos la función logout y hasRole()
+    // Estado para controlar qué grupos están abiertos.
+    // Inicializamos con true si quieres que alguno empiece abierto, o vacío {} para todos cerrados.
+    const [openGroups, setOpenGroups] = useState({
+        institucional: true, // Ejemplo: El primero empieza abierto
+    });
+
+    const { logout, hasRole } = useAuth();
     const navigate = useNavigate();
 
-    // Clases básicas de navegación
-    const defaultLinkClasses = 'py-2 px-4 text-gray-300 hover:bg-gray-700 hover:text-white transition duration-200 flex items-center space-x-3 rounded-md';
-    const subMenuLinkClasses = 'py-2 px-6 text-sm text-gray-400 hover:bg-gray-700 hover:text-white transition duration-200 block rounded-md';
-
-    // Función para manejar el cierre de sesión
     const handleLogout = () => {
-        logout(); // Limpia el token y el usuario del contexto/localStorage
-        navigate('/login'); // Redirige al usuario a la página de inicio de sesión
+        logout();
+        navigate('/login');
     };
 
-    // Verifica si el ítem requiere un rol O si el usuario lo tiene.
-    const canView = (item) => {
-        if (!item.requiredRole) {
-            return true; // Si no requiere rol, cualquiera logeado lo ve
-        }
-        return hasRole(item.requiredRole); // Verifica si el usuario tiene el rol
+    // Función para alternar (toggle) un grupo
+    const toggleGroup = (groupKey) => {
+        setOpenGroups(prevState => ({
+            ...prevState,
+            [groupKey]: !prevState[groupKey]
+        }));
     };
 
-    const visibleSubItems = subItems.filter(canView);
+    // Filtrado (Igual que antes)
+    const filteredMenu = menuStructure.map(group => {
+        const filteredItems = group.items.filter(item => {
+            const matchesRole = item.requiredRole ? hasRole(item.requiredRole) : true;
+            const matchesSearch = item.label.toLowerCase().includes(searchTerm.toLowerCase());
+            return matchesRole && matchesSearch;
+        });
+        return { ...group, items: filteredItems };
+    }).filter(group => group.items.length > 0);
 
     return (
-        // Contenedor Sidebar: Ancho fijo, altura total, y ¡CRUCIAL! flex-shrink-0 para que el flexbox padre respete su ancho.
-        <div className="w-64 bg-gray-800 h-screen shadow-2xl flex flex-col flex-shrink-0">
+        <div className={`bg-gray-800 h-screen shadow-2xl flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out ${isOpen ? 'w-64' : 'w-0 overflow-hidden'}`}>
 
-            {/* Título de la App */}
-            <div className="p-4 text-white text-2xl font-bold border-b border-gray-700">
-                AcademicApp
+            {/* Header Sidebar */}
+            <div className="p-4 cursor-pointer text-white text-2xl font-bold border-b border-gray-700 whitespace-nowrap overflow-hidden flex items-center gap-2"
+                onClick={() => navigate("/bienvenida")}
+                title="Ir al inicio"
+            >
+                <span className="text-blue-500">Academic</span>App
             </div>
 
-            {/* Sección de Búsqueda */}
+            {/* Buscador */}
             <div className="p-4 border-b border-gray-700">
                 <div className="relative">
                     <FontAwesomeIcon icon="search" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <input
                         type="text"
                         placeholder="Buscar..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 text-sm"
                     />
                 </div>
             </div>
 
-            {/* Lista de navegación */}
-            <ul className="flex-1 overflow-y-auto p-3 space-y-1">
-                {/* SECCIÓN REGISTROS PRELIMINARES (con Submenú) */}
-                <li>
-                    {/* Solo mostramos la cabecera si hay algún ítem visible en el submenú */}
-                    {visibleSubItems.length > 0 && (
-                        <>
-                            <div
-                                onClick={() => setIsOpenRegistros(!isOpenRegistros)}
-                                className={`cursor-pointer ${defaultLinkClasses} ${isOpenRegistros ? 'bg-gray-700 text-white' : ''}`}
-                            >
-                                <div className="flex items-center space-x-3 flex-1">
-                                    <FontAwesomeIcon icon="folder-open" className="w-5 h-5" />
-                                    <span>Registros Preliminares</span>
+            {/* Lista Menú */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
+                {filteredMenu.length > 0 ? (
+                    filteredMenu.map((group) => {
+                        // Si hay búsqueda, forzamos que esté "abierto". Si no, usamos el estado del acordeón.
+                        const isExpanded = searchTerm.length > 0 || openGroups[group.key];
+
+                        return (
+                            <div key={group.key} className="mb-1">
+                                {/* CABECERA DEL ACORDEÓN (Botón) */}
+                                <button
+                                    onClick={() => toggleGroup(group.key)}
+                                    className="w-full flex items-center justify-between p-2 text-gray-400 hover:bg-gray-700 hover:text-white rounded-md transition-colors duration-200 group"
+                                >
+                                    <span className="text-xs font-bold uppercase tracking-wider group-hover:text-blue-400">
+                                        {group.title}
+                                    </span>
+                                    {/* Icono Chevron: Rota si está abierto */}
+                                    {!searchTerm && ( // Ocultamos la flecha si estamos buscando (porque todo está abierto)
+                                        <FontAwesomeIcon
+                                            icon={isExpanded ? "chevron-down" : "chevron-right"}
+                                            className="w-3 h-3 transition-transform duration-200"
+                                        />
+                                    )}
+                                </button>
+
+                                {/* LISTA DE ITEMS (Contenido del Acordeón) */}
+                                {/* Usamos una transición simple de altura o display */}
+                                <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                                    <ul className="pl-2 mt-1 space-y-1 border-l-2 border-gray-700 ml-2">
+                                        {group.items.map((item) => (
+                                            <li key={item.path}>
+                                                <Link
+                                                    to={item.path}
+                                                    className="flex items-center py-2 px-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white rounded-r-md transition duration-200"
+                                                >
+                                                    <FontAwesomeIcon icon={item.icon} className="w-4 h-4 mr-3 text-center opacity-70" />
+                                                    <span className="whitespace-nowrap">{item.label}</span>
+                                                </Link>
+                                            </li>
+                                        ))}
+                                    </ul>
                                 </div>
-                                <FontAwesomeIcon
-                                    icon={isOpenRegistros ? "chevron-down" : "chevron-right"}
-                                    className="w-3 h-3 transition-transform duration-300"
-                                />
                             </div>
+                        );
+                    })
+                ) : (
+                    <div className="text-center text-gray-500 text-sm mt-4 italic">
+                        No hay coincidencias.
+                    </div>
+                )}
+            </div>
 
-                            {/* Submenú: Animación simple con Tailwind (usaremos clases condicionales simples) */}
-                            <div
-                                className={`ml-4 mt-1 space-y-1 transition-all duration-300 ease-in-out ${isOpenRegistros ? 'block opacity-100 max-h-96' : 'hidden opacity-0 max-h-0'}`}
-                            >
-                                {visibleSubItems.map((item) => (
-                                    <Link key={item.path} to={item.path} className={subMenuLinkClasses}>
-                                        {item.label}
-                                    </Link>
-                                ))}
-                            </div>
-                        </>
-                    )}
-                </li>
-
-                {/* SECCIONES PRINCIPALES */}
-                {/* Filtramos los navItems aquí */}
-                {navItems.filter(canView).map((item) => (
-                    <li key={item.path}>
-                        <Link to={item.path} className={defaultLinkClasses}>
-                            <FontAwesomeIcon icon={item.icon} className="w-5 h-5" />
-                            <span>{item.label}</span>
-                        </Link>
-                    </li>
-                ))}
-            </ul>
-
-            {/* BOTÓN DE CIERRE DE SESIÓN */}
+            {/* Footer Logout */}
             <div className="p-3 border-t border-gray-700">
                 <button
                     onClick={handleLogout}
-                    // Usamos las mismas clases, pero con un color de hover que sugiere "salir"
-                    className={`w-full ${defaultLinkClasses} bg-gray-700 hover:bg-red-600 text-red-400 hover:text-white justify-start cursor-pointer`}
+                    className="flex items-center justify-center w-full py-2 px-4 bg-gray-900 text-red-400 hover:bg-red-600 hover:text-white rounded-lg transition duration-200 shadow-md"
                 >
-                    <FontAwesomeIcon icon="sign-out-alt" className="w-5 h-5" />
-                    <span>Cerrar Sesión</span>
+                    <FontAwesomeIcon icon="sign-out-alt" className="w-4 h-4 mr-2" />
+                    <span className="font-semibold text-sm">Cerrar Sesión</span>
                 </button>
             </div>
         </div>

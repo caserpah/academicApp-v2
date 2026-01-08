@@ -10,7 +10,7 @@ const ColegiosForm = ({
     handleCancel,
 }) => {
     const inputBaseClasses =
-        "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 shadow-sm";
+        "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition outline-none duration-150 shadow-sm";
     const readOnlyClasses = "bg-gray-100 cursor-not-allowed text-gray-700";
     const getInputClasses = (readOnly = false) =>
         readOnly ? `${inputBaseClasses} ${readOnlyClasses}` : inputBaseClasses;
@@ -143,7 +143,7 @@ const ColegiosForm = ({
                     <button
                         type="button"
                         onClick={handleCancel}
-                        className="px-6 py-2 bg-[#e74c3c] text-white rounded-lg shadow-md hover:bg-[#c0392b] transition duration-300 ease-in-out flex items-center disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.01]"
+                        className="bg-red-500 text-white px-5 py-2 rounded-lg shadow-md hover:bg-red-600 transition duration-150 flex items-center hover:scale-[1.01]"
                         disabled={loading}
                     >
                         Cancelar
@@ -152,7 +152,7 @@ const ColegiosForm = ({
 
                     <button
                         type="submit"
-                        className="px-6 py-2 bg-[#4299e1] text-white rounded-lg shadow-md hover:bg-[#2980b9] transition duration-300 ease-in-out flex items-center disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.01]"
+                        className="bg-blue-600 text-white px-5 py-2 rounded-lg shadow-md hover:bg-blue-700 transition duration-150 flex items-center"
                         disabled={loading}
                     >
                         Actualizar información

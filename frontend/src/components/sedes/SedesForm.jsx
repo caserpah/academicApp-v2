@@ -24,7 +24,7 @@ const SedesForm = ({
     colegio,
 }) => {
     const inputBaseClasses =
-        "mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150";
+        "mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150";
     const readOnlyClasses = "bg-gray-100 cursor-not-allowed text-gray-700";
     const getInputClasses = (readOnly = false) =>
         readOnly ? `${inputBaseClasses} ${readOnlyClasses}` : inputBaseClasses;

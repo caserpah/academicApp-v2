@@ -162,7 +162,9 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
 
                         {/* Parentesco (Campo Principal) */}
                         <div className="md:col-span-2 bg-white p-3 rounded border border-blue-200 shadow-sm">
-                            <label className="block text-xs font-semibold text-blue-800 uppercase mb-2">Parentesco con el Estudiante *</label>
+                            <label className="block text-xs font-semibold text-blue-800 uppercase mb-2">Parentesco con el Estudiante {" "}
+                                <span className="text-red-500">*</span>
+                            </label>
                             <select
                                 name="afinidad"
                                 value={formData.afinidad}
@@ -176,7 +178,9 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
 
                         {/* Documento */}
                         <div className="bg-white p-3 rounded border border-gray-200">
-                            <label className="block text-sm text-gray-500 mb-2">Tipo Documento *</label>
+                            <label className="block text-sm text-gray-500 mb-2">Tipo Documento {" "}
+                                <span className="text-red-500">*</span>
+                            </label>
                             <select
                                 name="tipoDocumento"
                                 value={formData.tipoDocumento}
@@ -189,7 +193,9 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
                                 <option value="PA">Pasaporte</option>
                             </select>
 
-                            <label className="block text-sm text-gray-500 mb-1">Número Documento *</label>
+                            <label className="block text-sm text-gray-500 mb-1">Número Documento {" "}
+                                <span className="text-red-500">*</span>
+                            </label>
                             <div className="relative">
                                 <input
                                     type="text"
@@ -211,14 +217,18 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
                         {/* Datos Personales */}
                         <div className="md:col-span-1 bg-white p-3 rounded border border-gray-200 grid grid-cols-1 gap-3">
                             <div>
-                                <label className="block text-sm text-gray-500 mb-1">Nombres *</label>
+                                <label className="block text-sm text-gray-500 mb-1">Nombres {" "}
+                                    <span className="text-red-500">*</span>
+                                </label>
                                 <div className="flex gap-2">
                                     <input type="text" name="primerNombre" placeholder="Primer Nombre" value={formData.primerNombre} onChange={handleChange} className="w-1/2 border border-gray-300 rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
                                     <input type="text" name="segundoNombre" placeholder="Segundo Nombre" value={formData.segundoNombre} onChange={handleChange} className="w-1/2 border border-gray-300 rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm text-gray-500 mb-1">Apellidos *</label>
+                                <label className="block text-sm text-gray-500 mb-1">Apellidos {" "}
+                                    <span className="text-red-500">*</span>
+                                </label>
                                 <div className="flex gap-2">
                                     <input type="text" name="primerApellido" placeholder="Primer Apellido" value={formData.primerApellido} onChange={handleChange} className="w-1/2 border border-gray-300 rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
                                     <input type="text" name="segundoApellido" placeholder="Segundo Apellido" value={formData.segundoApellido} onChange={handleChange} className="w-1/2 border border-gray-300 rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
@@ -230,15 +240,15 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
                         <div className="md:col-span-2 bg-white p-3 rounded border border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
                                 <label className="block text-sm text-gray-500 mb-1">Contacto / Celular</label>
-                                <input type="text" name="contacto" value={formData.contacto} onChange={handleChange} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                                <input type="text" name="contacto" placeholder="Teléfono de contacto" value={formData.contacto} onChange={handleChange} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
                             </div>
                             <div>
                                 <label className="block text-sm text-gray-500 mb-1">Dirección</label>
-                                <input type="text" name="direccion" placeholder="Cra. 8 # 23-10" value={formData.direccion} onChange={handleChange} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                                <input type="text" name="direccion" placeholder="Ej: Calle 5 # 10-23" value={formData.direccion} onChange={handleChange} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
                             </div>
                             <div>
                                 <label className="block text-sm text-gray-500 mb-1">Email</label>
-                                <input type="email" name="email" placeholder="acudiente@midomino.com" value={formData.email} onChange={handleChange} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                                <input type="email" name="email" placeholder="acudiente@colegio.edu.co" value={formData.email} onChange={handleChange} className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
                             </div>
                         </div>
 

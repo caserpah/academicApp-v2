@@ -10,7 +10,7 @@ const Bienvenida = () => {
             {/* Contenido visual, como la imagen que mostraste */}
             <div className="mt-8">
                 <img
-                    src="/src/assets/student-image.jpg"
+                    src="/src/assets/knowledge.jpg"
                     alt="Estudiante en clase"
                     className="w-full h-auto max-h-96 object-cover rounded-lg shadow-md"
                 />

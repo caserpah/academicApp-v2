@@ -227,7 +227,7 @@ const Asignaturas = () => {
     }
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="min-h-full bg-[#f7f9fc] p-4 md:p-8 font-inter rounded-xl">
             <div className="max-w-7xl mx-auto space-y-8">
 
                 {/* HEADER */}
@@ -253,7 +253,7 @@ const Asignaturas = () => {
                     />
                 </div>
 
-                <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-lg p-6">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-xl font-semibold text-gray-700 mb-4 pb-3">
                             Asignaturas registradas ({filteredAsignaturas.length})
@@ -284,11 +284,11 @@ const Asignaturas = () => {
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Abreviatura</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Área</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Porcentual</th>                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
+                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Abreviatura</th>
+                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Área</th>
+                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Peso Porcentual</th>                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
@@ -305,10 +305,10 @@ const Asignaturas = () => {
                                                 <td className="px-3 py-3 text-sm text-gray-700">
                                                     <span className="font-medium">{asignatura.porcentual}%</span>
                                                 </td>
-                                                <td className="px-3 py-3 text-right text-sm font-medium space-x-2">
+                                                <td className="px-3 py-3 text-right space-x-3">
                                                     <button
                                                         onClick={() => handleEdit(asignatura)}
-                                                        className="text-yellow-600 hover:text-yellow-800 p-1 rounded-full transition duration-150 hover:scale-[1.05]"
+                                                        className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50 transition"
                                                         title="Editar"
                                                         disabled={loading}
                                                     >
@@ -316,7 +316,7 @@ const Asignaturas = () => {
                                                     </button>
                                                     <button
                                                         onClick={() => handleDelete(asignatura)}
-                                                        className="text-red-600 hover:text-red-800 p-1 rounded-full transition duration-150"
+                                                        className="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-50 transition"
                                                         title="Eliminar"
                                                         disabled={loading}
                                                     >

@@ -225,18 +225,18 @@ const MatriculasForm = ({
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in-up">
                         {/* Header del Modal */}
-                        <div className="bg-gray-600 px-6 py-4 flex justify-between items-center">
-                            <h3 className="text-white text-lg font-bold flex items-center gap-2">
+                        <div className="bg-gray-50 px-6 py-4 flex border-b border-gray-400 justify-between items-center">
+                            <h3 className="text-gray-800 text-lg font-bold flex items-center gap-2">
                                 <FontAwesomeIcon icon={faUser} /> Información del Estudiante
                             </h3>
-                            <button onClick={() => setMostrarDetalle(false)} className="text-blue-100 hover:text-white transition">
+                            <button onClick={() => setMostrarDetalle(false)} className="text-gray-400 hover:text-red-500 transition">
                                 <FontAwesomeIcon icon={faTimes} size="lg" />
                             </button>
                         </div>
 
                         {/* Body del Modal */}
                         <div className="p-6 space-y-4 text-sm text-gray-700">
-                            <div className="flex flex-col items-center pb-4 border-b">
+                            <div className="flex flex-col items-center pb-4 border-b border-gray-300">
                                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-2xl font-bold mb-2">
                                     {est.primerNombre?.charAt(0)}{est.primerApellido?.charAt(0)}
                                 </div>
@@ -284,12 +284,12 @@ const MatriculasForm = ({
                         </div>
 
                         {/* Footer del Modal */}
-                        <div className="bg-gray-50 px-6 py-3 flex justify-end">
+                        <div className="bg-gray-50 px-6 py-3 flex justify-end border-t border-gray-300">
                             <button
                                 onClick={() => setMostrarDetalle(false)}
-                                className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition text-sm font-medium"
+                                className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 hover:text-white text-sm font-medium"
                             >
-                                Cerrar
+                                <FontAwesomeIcon icon={faTimes} className="mr-2" /> Cerrar
                             </button>
                         </div>
                     </div>
