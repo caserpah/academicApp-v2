@@ -200,7 +200,7 @@ const Estudiantes = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <button
                                                 onClick={() => handleAbrirModal(est)}
-                                                className="text-yellow-600 hover:text-yellow-800 p-1 rounded-full transition duration-150 hover:scale-[1.05]"
+                                                className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50 transition"
                                                 title="Editar"
                                             >
                                                 <FontAwesomeIcon icon={faEdit} />
@@ -233,7 +233,7 @@ const Estudiantes = () => {
                                 <button
                                     onClick={() => setPage(p => Math.max(1, p - 1))}
                                     disabled={page === 1}
-                                    className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${page === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'}`}
+                                    className={`relative inline-flex items-center px-2 py-2 rounded-l-md border hover:text-blue-600 border-gray-300 bg-white text-sm font-medium ${page === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'}`}
                                 >
                                     <span className="sr-only">Anterior</span>
                                     <FontAwesomeIcon icon={faChevronLeft} className="h-4 w-4" />

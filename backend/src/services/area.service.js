@@ -10,8 +10,15 @@ export const areaService = {
 
     async list(params, vigenciaId) {
         try {
+            const page = Number(params.page) || 1;
+            const limit = Number(params.limit) || 10;
+            const search = params.nombre || params.search;
+
             return await areaRepository.findAll({
                 ...params,
+                page,
+                limit,
+                search,
                 vigenciaId,
                 includeVigencia: true,
             });

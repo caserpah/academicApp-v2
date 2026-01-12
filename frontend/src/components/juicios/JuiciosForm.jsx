@@ -121,7 +121,9 @@ const JuiciosForm = ({
                         >
                             <option value="">-- Seleccione Grado --</option>
                             {grados.map(g => (
-                                <option key={g.id} value={g.id}>{g.nombre}</option>
+                                <option key={g.id} value={g.id}>
+                                    {g.nombre.replace(/_/g, " ")}
+                                </option>
                             ))}
                         </select>
                     </div>
@@ -159,7 +161,9 @@ const JuiciosForm = ({
                         >
                             <option value="">-- Seleccione --</option>
                             {dimensiones.map(d => (
-                                <option key={d.id} value={d.id}>{d.nombre}</option>
+                                <option key={d.id} value={d.id}>
+                                    {d.nombre.replace(/_/g, " ")}
+                                </option>
                             ))}
                         </select>
                     </div>

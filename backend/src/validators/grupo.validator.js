@@ -24,18 +24,18 @@ export const validarCrearGrupo = [
         .bail()
         .custom(verificarExistenciaPorId(Grado, "id", "el grado")),
 
-    validarCampoRequerido("jornada", "Seleccione la jornada del grupo.")
+    validarCampoRequerido("jornada", "Seleccione la jornada.")
         .isIn(["MANANA", "TARDE", "NOCHE", "COMPLETA"])
         .withMessage("La jornada seleccionada no es válida."),
 
-    validarCampoRequerido("sedeId", "Seleccione la sede del grupo.")
+    validarCampoRequerido("sedeId", "Seleccione la sede.")
         .isInt({ min: 1 }).withMessage("La sede seleccionada no es válida.")
         .bail()
         .custom(verificarExistenciaPorId(Sede, "id", "la sede", "ID")),
 
     // directorId es OPCIONAL
     body("directorId")
-        .optional()
+        .optional({ nullable: true, checkFalsy: true })
         .isInt({ min: 1 }).withMessage("El docente seleccionado no es válido.")
         .bail()
         .custom(verificarExistenciaPorId(Docente, "id", "el docente seleccionado", "ID")),
@@ -53,23 +53,23 @@ export const validarActualizarGrupo = [
         .matches(NOMBRE_GRUPO_REGEX)
         .withMessage("El nombre del grupo solo puede contener letras, números, espacios y guiones."),
 
-    validarCampoOpcionalRequerido("gradoId", "Ingrese el grado si desea actualizarlo.")
+    validarCampoOpcionalRequerido("gradoId", "Seleccione el grado del grupo.")
         .isInt({ min: 1 })
         .withMessage("El grado seleccionado no es válido.")
         .bail()
         .custom(verificarExistenciaPorId(Grado, "id", "el grado")),
 
-    validarCampoOpcionalRequerido("jornada", "Indique la jornada si desea actualizarla.")
+    validarCampoOpcionalRequerido("jornada", "Seleccione la jornada.")
         .isIn(["MANANA", "TARDE", "NOCHE", "COMPLETA"])
         .withMessage("La jornada seleccionada no es válida."),
 
-    validarCampoOpcionalRequerido("sedeId", "Seleccione la sede del grupo.")
+    validarCampoOpcionalRequerido("sedeId", "Seleccione la sede.")
         .isInt({ min: 1 }).withMessage("La sede seleccionada no es válida.")
         .bail()
         .custom(verificarExistenciaPorId(Sede, "id", "la sede", "ID")),
 
     body("directorId")
-        .optional()
+        .optional({ nullable: true, checkFalsy: true })
         .isInt({ min: 1 }).withMessage("El docente seleccionado no es válido.")
         .bail()
         .custom(verificarExistenciaPorId(Docente, "id", "el docente seleccionado", "ID")),

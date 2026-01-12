@@ -11,7 +11,6 @@ const AsignaturasForm = ({
     loading,
     handleChange,
     handlePorcentualChange,
-    handleCheckboxChange,
     handleSubmit,
     resetForm,
     areas,
@@ -150,6 +149,30 @@ const AsignaturasForm = ({
                         </p>
                     </div>
 
+                    {/* Campo Vigencia ID (solo lectura) */}
+                    <div className="col-span-1">
+                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
+                            Vigencia{" "}
+                            <span className="text-[#e74c3c] font-semibold">*</span>
+                        </label>
+                        <select
+                            name="vigenciaId"
+                            value={formData.vigenciaId || ""}
+                            onChange={handleChange}
+                            required
+                            disabled
+                            className={getInputClasses(true)}
+                        >
+                            {vigencia ? (
+                                <option value={vigencia.id}>
+                                    {vigencia.anio} (ID: {vigencia.id})
+                                </option>
+                            ) : (
+                                <option value="">Cargando vigencia...</option>
+                            )}
+                        </select>
+                    </div>
+
                     {/* Área (Select con búsqueda) */}
                     <div className="col-span-2">
                         <label className="block text-sm font-medium text-[#4a5568] mb-1">
@@ -198,30 +221,6 @@ const AsignaturasForm = ({
                                 Área seleccionada: {areas.find(a => a.id === parseInt(formData.areaId))?.nombre}
                             </p>
                         )}
-                    </div>
-
-                    {/* Campo Vigencia ID (solo lectura) */}
-                    <div className="col-span-2">
-                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                            Vigencia{" "}
-                            <span className="text-[#e74c3c] font-semibold">*</span>
-                        </label>
-                        <select
-                            name="vigenciaId"
-                            value={formData.vigenciaId || ""}
-                            onChange={handleChange}
-                            required
-                            disabled
-                            className={getInputClasses(true)}
-                        >
-                            {vigencia ? (
-                                <option value={vigencia.id}>
-                                    {vigencia.anio} (ID: {vigencia.id})
-                                </option>
-                            ) : (
-                                <option value="">Cargando vigencia...</option>
-                            )}
-                        </select>
                     </div>
                 </div>
 

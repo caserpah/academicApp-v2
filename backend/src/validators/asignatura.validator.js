@@ -26,8 +26,6 @@ export const validarCrearAsignatura = [
         .bail()
         .custom(validarCampoUnico(Asignatura, "abreviatura", "una asignatura", false, null, "la abreviatura")),
 
-    validarCampoRequerido("promociona", "Indique si la asignatura pertenece a un área que promociona o no."),
-
     validarCampoRequerido("porcentual", "Ingrese el peso porcentual de la asignatura.")
         .isFloat({ min: 1, max: 100 })
         .withMessage("El peso porcentual debe estar entre 1 y 100."),
@@ -61,8 +59,6 @@ export const validarActualizarAsignatura = [
         .isAlphanumeric().withMessage("La abreviatura de la asignatura solo puede contener letras y números.")
         .bail()
         .custom(validarCampoUnico(Asignatura, "abreviatura", "una asignatura", true, null, "la abreviatura")),
-
-    validarCampoOpcionalRequerido("promociona", "Indique si la asignatura pertenece a un área que promociona o no."),
 
     validarCampoOpcionalRequerido("porcentual", "Ingrese el peso porcentual de la asignatura si desea actualizarlo.")
         .isFloat({ min: 1, max: 100 })

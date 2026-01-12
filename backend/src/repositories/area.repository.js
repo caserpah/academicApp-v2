@@ -25,7 +25,7 @@ export const areaRepository = {
     async findAll(params = {}) {
         const {
             page = 1,
-            limit = 20,
+            limit = 10,
             vigenciaId,
             search,
             orderBy = "nombre",
@@ -34,7 +34,10 @@ export const areaRepository = {
             includeVigencia = true,
         } = params;
 
-        const offset = (page - 1) * limit;
+        // Convertimos explícitamente a enteros para evitar el error de sintaxis SQL
+        const pageNum = Number(page) || 1;
+        const limitNum = Number(limit) || 10;
+        const offset = (pageNum - 1) * limitNum;
 
         const where = {};
 
@@ -57,8 +60,6 @@ export const areaRepository = {
             "nombre",
             "abreviatura",
             "promociona",
-            /*"fechaCreacion",
-            "fechaActualizacion",*/
         ];
         const safeOrderBy = validOrderFields.includes(orderBy) ? orderBy : "nombre";
         const safeOrderDirection = order?.toUpperCase() === "DESC" ? "DESC" : "ASC";
@@ -74,8 +75,8 @@ export const areaRepository = {
 
         const { rows, count } = await Area.findAndCountAll({
             where,
-            limit,
-            offset,
+            limit: limitNum,
+            offset: offset,
             order: [[safeOrderBy, safeOrderDirection]],
             attributes,
             include,
@@ -83,9 +84,12 @@ export const areaRepository = {
 
         return {
             items: rows,
-            total: count,
-            page,
-            limit,
+            pagination: {
+                total: count,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil(count / limitNum),
+            }
         };
     },
 

@@ -13,15 +13,14 @@ const VIGENCIAS_ENDPOINT = '/api/vigencias';
 /* -------------------------------------------------------------------------- */
 
 // Obtiene todas las asignaturas, áreas y vigencia activa
-export const fetchInitialData = async () => {
+export const fetchInitialData = async (params = {}) => {
     try {
-        const [asignaturasResponse, areasResponse, vigenciasResponse] = await Promise.all([
-            apiClient.get(ASIGNATURAS_ENDPOINT),
-            apiClient.get(AREAS_ENDPOINT),
+        // Obtener áreas y vigencias (Catálogos necesarios)
+        const [areasResponse, vigenciasResponse] = await Promise.all([
+            apiClient.get(`${AREAS_ENDPOINT}?limit=200`),
             apiClient.get(VIGENCIAS_ENDPOINT),
         ]);
 
-        const asignaturasApi = asignaturasResponse.data;
         const areasApi = areasResponse.data;
         const vigenciasApi = vigenciasResponse.data;
 
@@ -50,13 +49,28 @@ export const fetchInitialData = async () => {
 
         const areas = areasApi.data.items || [];
 
-        // Validar respuesta de asignaturas
-        let asignaturas = [];
-        if (asignaturasApi.status === 'success' && asignaturasApi.data) {
-            asignaturas = asignaturasApi.data.items || [];
-        }
+        // Obtener asignaturas para la vigencia activa (Paginadas y Filtradas)
+        const { page = 1, limit = 10, search = '', areaId = '' } = params;
 
-        return { asignaturas, areas, vigencia: vigenciaData };
+        const asignaturasResponse = await apiClient.get(ASIGNATURAS_ENDPOINT, {
+            params: {
+                vigenciaId: vigenciaData.id,
+                page,
+                limit,
+                search,
+                areaId // Enviamos el filtro de área al backend
+            }
+        });
+
+        const asignaturasApi = asignaturasResponse.data;
+        const responseData = (asignaturasApi.status === 'success' && asignaturasApi.data) ? asignaturasApi.data : {};
+
+        return {
+            items: responseData.items || [], // Asignaturas
+            pagination: responseData.pagination || {},
+            areas,
+            vigencia: vigenciaData
+        };
 
     } catch (error) {
         console.error('Error en fetchInitialData:', error);

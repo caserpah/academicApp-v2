@@ -116,6 +116,7 @@ export const grupoService = {
             return true;
 
         } catch (error) {
+            console.log(error);
             throw formatearErrorForaneo(
                 error,
                 "este grupo",

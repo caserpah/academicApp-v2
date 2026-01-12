@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faTrash, faLayerGroup } from "@fortawesome/free-solid-svg-icons";
+import {
+    faEdit, faTrash, faLayerGroup,
+    faSearch, faSpinner, faChevronLeft, faChevronRight
+} from "@fortawesome/free-solid-svg-icons";
 
 import {
     fetchInitialData,
@@ -10,7 +13,6 @@ import {
 } from "../../api/areasService.js";
 
 import { showSuccess, showError, showWarning, showConfirm } from "../../utils/notifications.js";
-
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
 import AreasForm from "./AreasForm.jsx";
 
@@ -28,35 +30,95 @@ const Areas = () => {
     const [formData, setFormData] = useState(initialFormState);
     const [areas, setAreas] = useState([]);
     const [vigencia, setVigencia] = useState(null);
+
+    // Búsqueda y Paginación
+    const [searchTerm, setSearchTerm] = useState("");
+    const [activeSearch, setActiveSearch] = useState("");
+
+    const [pagination, setPagination] = useState({
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0
+    });
+
     const [mode, setMode] = useState("agregar");
+
+    // Carga del formulario y tabla
     const [loading, setLoading] = useState(false);
+    const [loadingData, setLoadingData] = useState(false);
 
     const formContainerRef = useRef(null);
+
+    // --- EFECTO DEBOUNCE (BÚSQUEDA) ---
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            setActiveSearch(searchTerm);
+            setPagination(prev => ({ ...prev, page: 1 })); // Reset a página 1 al buscar
+        }, 500);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchTerm]);
 
     /**
      * Cargar áreas y vigencia activa
      */
     const loadData = useCallback(async () => {
         try {
-            setLoading(true);
-            const { areas: fetchedAreas, vigencia: fetchedVigencia } = await fetchInitialData();
-            setAreas(fetchedAreas || []);
-            setVigencia(fetchedVigencia || null);
+            setLoadingData(true);
 
-            if (fetchedVigencia?.id) {
-                setFormData((prev) => ({ ...prev, vigenciaId: fetchedVigencia.id }));
+            const params = {
+                page: pagination.page,
+                limit: pagination.limit,
+                search: activeSearch,
+            };
+
+            const response = await fetchInitialData(params);
+
+            const listaAreas = response.items || response.areas || [];
+            const datosPaginacion = response.pagination || {};
+            const vigenciaActiva = response.vigencia || null;
+
+            setAreas(listaAreas);
+
+            if (datosPaginacion.total !== undefined) {
+                setPagination(prev => ({
+                    ...prev,
+                    total: datosPaginacion.total,
+                    totalPages: datosPaginacion.totalPages
+                }));
             }
+
+            if (vigenciaActiva) {
+                setVigencia(vigenciaActiva);
+                // Solo setear el ID si estamos agregando y no hay uno puesto
+                if (mode === 'agregar' && !formData.vigenciaId) {
+                    setFormData(prev => ({ ...prev, vigenciaId: vigenciaActiva.id }));
+                }
+            }
+
         } catch (err) {
             console.error("Error cargando datos:", err);
-            showError(err.message || "No se pudieron cargar los datos de áreas o vigencia.");
+            showError(err.message || "No se pudieron cargar los datos.");
         } finally {
-            setLoading(false);
+            setLoadingData(false);
         }
-    }, []);
+    }, [pagination.page, pagination.limit, activeSearch, mode, formData.vigenciaId]);
 
     useEffect(() => {
         loadData();
     }, [loadData]);
+
+    // --- HANDLERS PAGINACIÓN Y BÚSQUEDA ---
+    const handleSearchInput = (e) => {
+        setSearchTerm(e.target.value);
+    };
+
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= pagination.totalPages) {
+            setPagination(prev => ({ ...prev, page: newPage }));
+        }
+    };
 
     /**
      * Normaliza valores vacíos ("" → null)
@@ -112,23 +174,18 @@ const Areas = () => {
             setLoading(true);
             if (mode === "agregar") {
                 const { id, ...dataToCreate } = dataToSubmit;
-                const nuevaArea = await crearArea(dataToCreate);
-                setAreas((prev) => [...prev, nuevaArea]);
-                showSuccess(`El área <b>${nuevaArea.nombre}</b> fue creada exitosamente.`);
+                await crearArea(dataToCreate);
+                showSuccess(`Área creada exitosamente.`);
             } else if (mode === "editar") {
                 const { id, ...dataToUpdate } = dataToSubmit;
-                if (!id) throw new Error("No se encontró el ID del área para editar.");
-
-                const areaActualizada = await actualizarArea(id, dataToUpdate);
-                setAreas((prev) =>
-                    prev.map((a) => (a.id === id ? { ...a, ...areaActualizada } : a))
-                );
-                showSuccess(`El área <b>${areaActualizada.nombre}</b> fue actualizada correctamente.`);
+                if (!id) throw new Error("No se encontró el área seleccionada.");
+                await actualizarArea(id, dataToUpdate);
+                showSuccess(`Área actualizada correctamente.`);
             }
-
+            loadData(); // Recargar tabla completa
             resetForm();
         } catch (err) {
-            console.error("Error al guardar área:", err);
+            console.error(err);
             showError(err.message || "Error al guardar los cambios del área.");
         } finally {
             setLoading(false);
@@ -144,10 +201,7 @@ const Areas = () => {
             abreviatura: area.abreviatura ?? "",
         });
         setMode("editar");
-
-        if (formContainerRef.current) {
-            formContainerRef.current.scrollIntoView({ behavior: "smooth" });
-        }
+        formContainerRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
     /**
@@ -164,11 +218,11 @@ const Areas = () => {
         try {
             setLoading(true);
             await eliminarArea(area.id);
-            setAreas((prev) => prev.filter((a) => a.id !== area.id));
-            showSuccess(`El área <b>${area.nombre}</b> fue eliminada correctamente.`);
+            showSuccess(`Área eliminada exitosamente.`);
+            loadData(); // Recargar tabla
             if (formData.id === area.id) resetForm();
         } catch (err) {
-            console.error("Error al eliminar área:", err);
+            console.error(err);
             showError(err.message || "No se pudo eliminar el área.");
         } finally {
             setLoading(false);
@@ -197,10 +251,6 @@ const Areas = () => {
     // ===============================
     // Renderizado
     // ===============================
-    if (loading && !areas.length) {
-        return <LoadingSpinner message="Cargando datos de áreas..." />;
-    }
-
     return (
         <div className="min-h-full bg-[#f7f9fc] p-4 md:p-8 font-inter rounded-xl">
             <div className="max-w-7xl mx-auto space-y-8">
@@ -227,45 +277,70 @@ const Areas = () => {
                     />
                 </div>
 
-                <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-lg p-6">
-                    <h2 className="text-xl font-semibold text-gray-700 mb-4 pb-3">
-                        Áreas registradas ({areas.length})
-                    </h2>
+                {/* TABLA Y FILTROS */}
+                <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-lg p-6">
 
-                    {loading ? (
-                        <LoadingSpinner />
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Abreviatura</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Promociona</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {areas.length > 0 ? (
-                                        areas.map((area, index) => (
-                                            <tr
-                                                key={area.id}
-                                                className={index % 2 === 0 ? "bg-white hover:bg-[#e6f7ff]" : "bg-[#f8f8f8] hover:bg-[#e6f7ff]"}
-                                            >
-                                                <td className="px-3 py-3 text-sm text-gray-700">{area.codigo}</td>
-                                                <td className="px-3 py-3 text-sm font-medium text-gray-900">{area.nombre}</td>
-                                                <td className="px-3 py-3 text-sm text-gray-700">{area.abreviatura}</td>
-                                                <td className="px-3 py-3 text-sm text-gray-700">
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${area.promociona ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                                        {area.promociona ? 'Sí' : 'No'}
-                                                    </span>
-                                                </td>
+                    {/* Header Tabla: Título y Buscador */}
+                    <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                        <h2 className="text-xl font-semibold text-gray-700">
+                            Áreas registradas ({pagination.total})
+                        </h2>
+
+                        {/* Buscador */}
+                        <div className="relative w-full md:w-72">
+                            <input
+                                type="text"
+                                placeholder="Buscar código, nombre..."
+                                value={searchTerm}
+                                onChange={handleSearchInput}
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition"
+                            />
+                            <FontAwesomeIcon
+                                icon={faSearch}
+                                className="absolute left-3 top-2.5 text-gray-400 text-sm"
+                            />
+                            {loadingData && (
+                                <div className="absolute right-3 top-2.5">
+                                    <FontAwesomeIcon icon={faSpinner} spin className="text-blue-500" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Tabla */}
+                    <div className="overflow-x-auto min-h-[200px]">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
+                                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Abreviatura</th>
+                                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Promociona</th>
+                                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {loadingData && areas.length === 0 ? (
+                                    <tr><td colSpan="5" className="py-10 text-center"><LoadingSpinner /></td></tr>
+                                ) : areas.length > 0 ? (
+                                    areas.map((area, index) => (
+                                        <tr
+                                            key={area.id}
+                                            className={index % 2 === 0 ? "bg-white hover:bg-[#e6f7ff]" : "bg-[#f8f8f8] hover:bg-[#e6f7ff]"}
+                                        >
+                                            <td className="px-3 py-3 text-sm text-gray-700">{area.codigo}</td>
+                                            <td className="px-3 py-3 text-sm font-medium text-gray-900">{area.nombre}</td>
+                                            <td className="px-3 py-3 text-sm text-gray-700">{area.abreviatura}</td>
+                                            <td className="px-3 py-3 text-sm text-gray-700">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${area.promociona ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                    {area.promociona ? 'Sí' : 'No'}
+                                                </span>
+                                            </td>
+                                            <td className="px-3 py-3 text-sm space-x-2">
                                                 <button
                                                     onClick={() => handleEdit(area)}
                                                     className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50 transition"
                                                     title="Editar"
-                                                    disabled={loading}
                                                 >
                                                     <FontAwesomeIcon icon={faEdit} size="lg" />
                                                 </button>
@@ -273,23 +348,56 @@ const Areas = () => {
                                                     onClick={() => handleDelete(area)}
                                                     className="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-50 transition"
                                                     title="Eliminar"
-                                                    disabled={loading}
                                                 >
                                                     <FontAwesomeIcon icon={faTrash} className="w-4 h-4" />
                                                 </button>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan="5" className="px-6 py-4 text-center text-gray-500 italic">
-                                                No hay áreas registradas.
                                             </td>
                                         </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="5" className="px-6 py-12 text-center text-gray-500 italic">
+                                            {activeSearch
+                                                ? `No se encontraron resultados para "${activeSearch}"`
+                                                : "No hay áreas registradas."}
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* PAGINACIÓN */}
+                    <div className="bg-white px-4 py-3 border-t border-gray-200 flex items-center justify-between sm:px-6 mt-4">
+                        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p className="text-sm text-gray-700">
+                                    Página <span className="font-medium">{pagination.page}</span> de <span className="font-medium">{pagination.totalPages || 1}</span>
+                                </p>
+                            </div>
+                            <div>
+                                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                    <button
+                                        onClick={() => handlePageChange(pagination.page - 1)}
+                                        disabled={pagination.page === 1}
+                                        className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${pagination.page === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'}`}
+                                    >
+                                        <span className="sr-only">Anterior</span>
+                                        <FontAwesomeIcon icon={faChevronLeft} className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => handlePageChange(pagination.page + 1)}
+                                        disabled={pagination.page >= pagination.totalPages}
+                                        className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${pagination.page >= pagination.totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'}`}
+                                    >
+                                        <span className="sr-only">Siguiente</span>
+                                        <FontAwesomeIcon icon={faChevronRight} className="h-4 w-4" />
+                                    </button>
+                                </nav>
+                            </div>
                         </div>
-                    )}
+                    </div>
+
                 </div>
             </div>
         </div>

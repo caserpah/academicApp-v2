@@ -11,8 +11,8 @@ const VIGENCIAS_ENDPOINT = '/api/vigencias';
 /* Funciones principales del servicio                                      */
 /* -------------------------------------------------------------------------- */
 
-// Obtiene todas las áreas y la vigencia activa
-export const fetchInitialData = async () => {
+// Obtiene todas las áreas y la vigencia activa con PAGINACIÓN
+export const fetchInitialData = async (params = {}) => {
     try {
         // Primero obtener la vigencia activa
         const vigenciasResponse = await apiClient.get(VIGENCIAS_ENDPOINT);
@@ -35,14 +35,27 @@ export const fetchInitialData = async () => {
             throw new Error("No hay una vigencia activa. Activa una vigencia en el sistema.");
         }
 
-        // Luego obtener las áreas de esa vigencia
-        const areasResponse = await apiClient.get(`${AREAS_ENDPOINT}?vigenciaId=${vigenciaActiva.id}`);
+        const { page = 1, limit = 10, search = '' } = params;
+
+        // Obtener las áreas de esa vigencia pasando los params
+        const areasResponse = await apiClient.get(AREAS_ENDPOINT, {
+            params: {
+                vigenciaId: vigenciaActiva.id,
+                page,
+                limit,
+                search
+            }
+        });
+
         const areasApi = areasResponse.data;
+        const responseData = (areasApi.status === 'success' && areasApi.data) ? areasApi.data : {};
 
-        // Si no hay áreas, devolver array vacío
-        const areas = (areasApi.status === 'success' && areasApi.data) ? areasApi.data.items : [];
-
-        return { areas, vigencia: vigenciaActiva };
+        // Retornar estructura completa (items + pagination + vigencia)
+        return {
+            items: responseData.items || [],
+            pagination: responseData.pagination || {},
+            vigencia: vigenciaActiva
+        };
 
     } catch (error) {
         console.error('Error en fetchInitialData:', error);

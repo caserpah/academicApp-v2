@@ -12,6 +12,24 @@ const DIMENSIONES_ENDPOINT = '/api/dimensiones';
 const DESEMPENOS_ENDPOINT = '/api/desempenos';
 const RANGOS_ENDPOINT = '/api/desempenos/rangos';
 
+/* ------------------------------------------------ */
+/* Helper para extraer mensajes de error detallados */
+/* ------------------------------------------------ */
+const parseError = (error) => {
+    // Intentamos leer response.data (donde el backend manda el JSON)
+    const apiError = error.response?.data;
+
+    // Si hay un array 'errors' (típico de validaciones o tu middleware), tomamos el primero
+    if (apiError?.errors && Array.isArray(apiError.errors) && apiError.errors.length > 0) {
+        // Puede venir como string directo o como objeto { message: '...' }
+        const firstError = apiError.errors[0];
+        return new Error(firstError.message || firstError);
+    }
+
+    // Si no, usamos el mensaje genérico 'message' o un fallback
+    return new Error(apiError?.message || error.message || "Ocurrió un error en el servicio de juicios.");
+};
+
 /* -------------------------------------------------------------------------- */
 /* Funciones principales del servicio                                      */
 /* -------------------------------------------------------------------------- */
@@ -41,13 +59,13 @@ export const fetchCatalogs = async () => {
             desempenosRes,
             rangosRes
         ] = await Promise.all([
-            apiClient.get(`${JUICIOS_ENDPOINT}?vigenciaId=${vigenciaActiva.id}`),
-            apiClient.get(`${ASIGNATURAS_ENDPOINT}?vigenciaId=${vigenciaActiva.id}`),
-            apiClient.get(GRADOS_ENDPOINT),
-            apiClient.get(DIMENSIONES_ENDPOINT),
-            apiClient.get(DESEMPENOS_ENDPOINT),
             // El backend filtra por vigencia usando el token (req.vigenciaActual)
-            apiClient.get(RANGOS_ENDPOINT)
+            apiClient.get(`${JUICIOS_ENDPOINT}?vigenciaId=${vigenciaActiva.id}`),
+            apiClient.get(`${ASIGNATURAS_ENDPOINT}?vigenciaId=${vigenciaActiva.id}&limit=100&activo=true`),
+            apiClient.get(`${GRADOS_ENDPOINT}?limit=100`),
+            apiClient.get(`${DIMENSIONES_ENDPOINT}?limit=100`),
+            apiClient.get(`${DESEMPENOS_ENDPOINT}?limit=100`),
+            apiClient.get(`${RANGOS_ENDPOINT}?vigenciaId=${vigenciaActiva.id}&limit=100`)
         ]);
 
         // Helper para extraer datos de la estructura estandar: { data: ... } o { data: { items: ... } }
@@ -65,8 +83,7 @@ export const fetchCatalogs = async () => {
 
     } catch (error) {
         console.error('Error en fetchCatalogs:', error);
-        const msg = error.response?.data?.message || error.message || 'Error cargando datos iniciales.';
-        throw new Error(msg);
+        throw parseError(error); // Usamos el helper
     }
 };
 
@@ -87,23 +104,35 @@ export const fetchJuiciosPaginated = async (params) => {
         const response = await apiClient.get(JUICIOS_ENDPOINT, { params: cleanParams });
         return response.data.data; // Debe devolver { items: [], pagination: {} }
     } catch (error) {
-        throw new Error(error.response?.data?.message || 'Error cargando juicios.');
+        throw parseError(error); // Usamos el helper
     }
 };
 
 // ... Métodos CRUD (Crear, Actualizar, Eliminar) ...
 
 export const crearJuicio = async (data) => {
-    const response = await apiClient.post(JUICIOS_ENDPOINT, data);
-    return response.data.data;
+    try {
+        const response = await apiClient.post(JUICIOS_ENDPOINT, data);
+        return response.data.data;
+    } catch (error) {
+        throw parseError(error);
+    }
 };
 
 export const actualizarJuicio = async (id, data) => {
-    const response = await apiClient.put(`${JUICIOS_ENDPOINT}/${id}`, data);
-    return response.data.data;
+    try {
+        const response = await apiClient.put(`${JUICIOS_ENDPOINT}/${id}`, data);
+        return response.data.data;
+    } catch (error) {
+        throw parseError(error);
+    }
 };
 
 export const eliminarJuicio = async (id) => {
-    const response = await apiClient.delete(`${JUICIOS_ENDPOINT}/${id}`);
-    return response.data.message;
+    try {
+        const response = await apiClient.delete(`${JUICIOS_ENDPOINT}/${id}`);
+        return response.data.message;
+    } catch (error) {
+        throw parseError(error);
+    }
 };

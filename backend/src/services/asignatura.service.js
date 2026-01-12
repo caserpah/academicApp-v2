@@ -1,42 +1,7 @@
-import { Op } from "sequelize";
 import { asignaturaRepository } from "../repositories/asignatura.repository.js";
 import { areaRepository } from "../repositories/area.repository.js";
-import { Asignatura } from "../models/asignatura.js"
 import { handleSequelizeError } from "../middleware/handleSequelizeError.js";
 import { formatearErrorForaneo } from "../utils/dbUtils.js";
-
-/** Función reutilizable para controlar que la suma de los
- *  porcentajes de todas las asignaturas NO superen el 100%.
- **/
-
-/*async function validarPorcentualArea({ areaId, vigenciaId, porcentual, excluirAsignaturaId = null }) {
-    porcentual = Number(porcentual);
-    if (isNaN(porcentual)) {
-        const err = new Error("El valor peso porcentual no es válido.");
-        err.status = 400;
-        throw err;
-    }
-
-    // Obtener asignaturas existentes en esa área/vigencia
-    const existentes = await Asignatura.findAll({
-        where: {
-            areaId,
-            vigenciaId,
-            ...(excluirAsignaturaId && { id: { [Op.ne]: excluirAsignaturaId } })
-        },
-        attributes: ["porcentual"]
-    });
-
-    const sumaActual = existentes.reduce((acc, a) => acc + a.porcentual, 0);
-
-    if (sumaActual + porcentual > 100) {
-        const err = new Error(
-            `La suma de porcentajes del área supera el 100%. Disponible actualmente: ${100 - sumaActual}%.`
-        );
-        err.status = 400;
-        throw err;
-    }
-}*/
 
 /**
  * Service: Asignatura
@@ -49,8 +14,14 @@ export const asignaturaService = {
      */
     async list(params, vigenciaId) {
         try {
+            const page = Number(params.page) || 1;
+            const limit = Number(params.limit) || 10;
+            // Mapeamos params para el repositorio
             return await asignaturaRepository.findAll({
                 ...params,
+                page,
+                limit,
+                search: params.nombre || params.search, // Soporte para 'nombre' como alias de 'search'
                 vigenciaId,
                 includeArea: true,
                 includeVigencia: true,

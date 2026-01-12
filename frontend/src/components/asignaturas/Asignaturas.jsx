@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faTrash, faBookOpen } from "@fortawesome/free-solid-svg-icons";
+import {
+    faEdit, faTrash, faBookOpen, faSearch, faSpinner,
+    faEraser, faChevronLeft, faChevronRight
+} from "@fortawesome/free-solid-svg-icons";
 
 import {
     fetchInitialData,
@@ -10,7 +13,6 @@ import {
 } from "../../api/asignaturaService.js";
 
 import { showSuccess, showError, showWarning, showConfirm } from "../../utils/notifications.js";
-
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
 import AsignaturasForm from "./AsignaturasForm.jsx";
 
@@ -28,39 +30,93 @@ const Asignaturas = () => {
 
     const [formData, setFormData] = useState(initialFormState);
     const [asignaturas, setAsignaturas] = useState([]);
-    const [areas, setAreas] = useState([]);
+    const [areas, setAreas] = useState([]); // Catálogo para el select
     const [vigencia, setVigencia] = useState(null);
+
+    // Paginación y Filtros Server-Side
+    const [pagination, setPagination] = useState({
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0
+    });
+
+    // Búsqueda (Debounce)
+    const [searchTerm, setSearchTerm] = useState("");
+    const [activeSearch, setActiveSearch] = useState("");
+
     const [mode, setMode] = useState("agregar");
     const [loading, setLoading] = useState(false);
-    const [filterArea, setFilterArea] = useState("");
+    const [loadingData, setLoadingData] = useState(false); // Carga tabla
 
     const formContainerRef = useRef(null);
+
+    // --- EFECTO DEBOUNCE ---
+    // // Espera 500ms después de que el usuario deja de escribir para actualizar activeSearch
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setActiveSearch(searchTerm);
+            if (searchTerm !== activeSearch) {
+                setPagination(prev => ({ ...prev, page: 1 })); // Reset a pág 1 si cambia la búsqueda
+            }
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm, activeSearch]);
 
     /**
      * Cargar asignaturas, áreas y vigencia activa
      */
     const loadData = useCallback(async () => {
         try {
-            setLoading(true);
-            const { asignaturas: fetchedAsignaturas, areas: fetchedAreas, vigencia: fetchedVigencia } = await fetchInitialData();
-            setAsignaturas(fetchedAsignaturas || []);
-            setAreas(fetchedAreas || []);
-            setVigencia(fetchedVigencia || null);
+            setLoadingData(true);
 
-            if (fetchedVigencia?.id) {
-                setFormData((prev) => ({ ...prev, vigenciaId: fetchedVigencia.id }));
+            const params = {
+                page: pagination.page,
+                limit: pagination.limit,
+                search: activeSearch
+            };
+
+            const response = await fetchInitialData(params);
+
+            setAsignaturas(response.items || []);
+            setAreas(response.areas || []); // Actualizamos catálogo áreas. Necesario para el formulario de crear/editar
+
+            // Actualizar paginación
+            if (response.pagination) {
+                setPagination(prev => ({
+                    ...prev,
+                    total: response.pagination.total,
+                    totalPages: response.pagination.totalPages
+                }));
+            }
+
+            // Configurar vigencia
+            if (response.vigencia) {
+                setVigencia(response.vigencia);
+                if (mode === 'agregar' && !formData.vigenciaId) {
+                    setFormData(prev => ({ ...prev, vigenciaId: response.vigencia.id }));
+                }
             }
         } catch (err) {
             console.error("Error cargando datos:", err);
             showError(err.message || "No se pudieron cargar los datos de asignaturas.");
         } finally {
-            setLoading(false);
+            setLoadingData(false);
         }
-    }, []);
+    }, [pagination.page, pagination.limit, activeSearch, mode, formData.vigenciaId]);
 
     useEffect(() => {
         loadData();
     }, [loadData]);
+
+    // --- HANDLERS PAGINACIÓN ---
+    const handleSearchInput = (e) => setSearchTerm(e.target.value);
+
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= pagination.totalPages) {
+            setPagination(prev => ({ ...prev, page: newPage }));
+        }
+    };
 
     /**
      * Normaliza valores vacíos
@@ -114,26 +170,18 @@ const Asignaturas = () => {
             return;
         }
 
-        const dataToSubmit = normalizeEmptyFields(formData);
-
         try {
             setLoading(true);
+            const data = normalizeEmptyFields(formData);
             if (mode === "agregar") {
-                const { id, ...dataToCreate } = dataToSubmit;
-                const nuevaAsignatura = await crearAsignatura(dataToCreate);
-                setAsignaturas((prev) => [...prev, nuevaAsignatura]);
-                showSuccess(`La asignatura <b>${nuevaAsignatura.nombre}</b> fue creada exitosamente.`);
+                const { id, ...rest } = data;
+                await crearAsignatura(rest);
+                showSuccess("Asignatura creada exitosamente.");
             } else if (mode === "editar") {
-                const { id, ...dataToUpdate } = dataToSubmit;
-                if (!id) throw new Error("No se encontró el ID de la asignatura para editar.");
-
-                const asignaturaActualizada = await actualizarAsignatura(id, dataToUpdate);
-                setAsignaturas((prev) =>
-                    prev.map((a) => (a.id === id ? { ...a, ...asignaturaActualizada } : a))
-                );
-                showSuccess(`La asignatura <b>${asignaturaActualizada.nombre}</b> fue actualizada correctamente.`);
+                await actualizarAsignatura(data.id, data);
+                showSuccess("Asignatura actualizada exitosamente.");
             }
-
+            loadData();
             resetForm();
         } catch (err) {
             console.error("Error al guardar asignatura:", err);
@@ -146,17 +194,14 @@ const Asignaturas = () => {
     /**
      * Cargar datos de una asignatura en el formulario
      */
-    const handleEdit = (asignatura) => {
+    const handleEdit = (item) => {
         setFormData({
-            ...asignatura,
-            abreviatura: asignatura.abreviatura ?? "",
-            porcentual: asignatura.porcentual ?? 0,
+            ...item,
+            abreviatura: item.abreviatura ?? "",
+            porcentual: item.porcentual ?? 0,
         });
         setMode("editar");
-
-        if (formContainerRef.current) {
-            formContainerRef.current.scrollIntoView({ behavior: "smooth" });
-        }
+        formContainerRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
     /**
@@ -173,8 +218,8 @@ const Asignaturas = () => {
         try {
             setLoading(true);
             await eliminarAsignatura(asignatura.id);
-            setAsignaturas((prev) => prev.filter((a) => a.id !== asignatura.id));
-            showSuccess(`La asignatura <b>${asignatura.nombre}</b> fue eliminada correctamente.`);
+            showSuccess(`Asignatura eliminada exitosamente.`);
+            loadData();
             if (formData.id === asignatura.id) resetForm();
         } catch (err) {
             console.error("Error al eliminar asignatura:", err);
@@ -204,28 +249,12 @@ const Asignaturas = () => {
         setFormData((prev) => ({ ...prev, [name]: numericValue }));
     };
 
-    /**
-     * Asignaturas filtradas por área seleccionada
-     */
-    const filteredAsignaturas = filterArea
-        ? asignaturas.filter(asignatura => asignatura.areaId === parseInt(filterArea))
-        : asignaturas;
-
-    /**
-     * Obtener nombre del área por ID
-     */
-    const getAreaNombre = (areaId) => {
-        const area = areas.find(a => a.id === areaId);
-        return area ? area.nombre : "N/A";
-    };
+    // Obtener nombre del área por ID
+    const getAreaNombre = (id) => areas.find(a => a.id === id)?.nombre || "N/A";
 
     // ===============================
     // Renderizado
     // ===============================
-    if (loading && !asignaturas.length) {
-        return <LoadingSpinner message="Cargando datos de asignaturas..." />;
-    }
-
     return (
         <div className="min-h-full bg-[#f7f9fc] p-4 md:p-8 font-inter rounded-xl">
             <div className="max-w-7xl mx-auto space-y-8">
@@ -244,7 +273,7 @@ const Asignaturas = () => {
                         setFormData={setFormData}
                         mode={mode}
                         loading={loading}
-                        handleChange={(e) => setFormData((p) => ({ ...p, [e.target.name]: e.target.value }))}
+                        handleChange={(e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }))}
                         handlePorcentualChange={handlePorcentualChange}
                         handleSubmit={handleSubmit}
                         resetForm={resetForm}
@@ -253,89 +282,105 @@ const Asignaturas = () => {
                     />
                 </div>
 
-                <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-lg p-6">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-semibold text-gray-700 mb-4 pb-3">
-                            Asignaturas registradas ({filteredAsignaturas.length})
+                {/* Tabla y Filtros */}
+                <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-lg p-6">
+
+                    {/* Header Tabla */}
+                    <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                        <h2 className="text-xl font-semibold text-gray-700">
+                            Asignaturas ({pagination.total})
                         </h2>
 
-                        {/* Filtro por área */}
-                        <div className="flex items-center space-x-2">
-                            <label className="text-sm font-medium text-gray-600">Filtrar por área:</label>
-                            <select
-                                value={filterArea}
-                                onChange={(e) => setFilterArea(e.target.value)}
-                                className="border border-gray-300 rounded-lg p-2 text-sm"
-                            >
-                                <option value="">Todas las áreas</option>
-                                {areas.map(area => (
-                                    <option key={area.id} value={area.id}>
-                                        {area.nombre} ({area.codigo})
-                                    </option>
-                                ))}
-                            </select>
+                        {/* Buscador Texto */}
+                        <div className="relative w-full md:w-72">
+                            <input
+                                type="text"
+                                placeholder="Buscar asignatura..."
+                                value={searchTerm}
+                                onChange={handleSearchInput}
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                            />
+                            <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-2.5 text-gray-400 text-sm" />
+                            {loadingData && (
+                                <div className="absolute right-3 top-2.5">
+                                    <FontAwesomeIcon icon={faSpinner} spin className="text-blue-500" />
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    {loading ? (
-                        <LoadingSpinner />
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Abreviatura</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Área</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Peso Porcentual</th>                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {filteredAsignaturas.length > 0 ? (
-                                        filteredAsignaturas.map((asignatura, index) => (
-                                            <tr
-                                                key={asignatura.id}
-                                                className={index % 2 === 0 ? "bg-white hover:bg-[#e6f7ff]" : "bg-[#f8f8f8] hover:bg-[#e6f7ff]"}
-                                            >
-                                                <td className="px-3 py-3 text-sm text-gray-700">{asignatura.codigo}</td>
-                                                <td className="px-3 py-3 text-sm font-medium text-gray-900">{asignatura.nombre}</td>
-                                                <td className="px-3 py-3 text-sm text-gray-700">{asignatura.abreviatura}</td>
-                                                <td className="px-3 py-3 text-sm text-gray-700">{getAreaNombre(asignatura.areaId)}</td>
-                                                <td className="px-3 py-3 text-sm text-gray-700">
-                                                    <span className="font-medium">{asignatura.porcentual}%</span>
-                                                </td>
-                                                <td className="px-3 py-3 text-right space-x-3">
-                                                    <button
-                                                        onClick={() => handleEdit(asignatura)}
-                                                        className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50 transition"
-                                                        title="Editar"
-                                                        disabled={loading}
-                                                    >
-                                                        <FontAwesomeIcon icon={faEdit} size="lg" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(asignatura)}
-                                                        className="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-50 transition"
-                                                        title="Eliminar"
-                                                        disabled={loading}
-                                                    >
-                                                        <FontAwesomeIcon icon={faTrash} className="w-4 h-4" />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan="7" className="px-6 py-4 text-center text-gray-500 italic">
-                                                No hay asignaturas registradas{filterArea ? " para esta área" : ""}.
+                    {/* Tabla */}
+                    <div className="overflow-x-auto min-h-[250px]">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
+                                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Abreviatura</th>
+                                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Área</th>
+                                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Peso (%)</th>
+                                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {loadingData && asignaturas.length === 0 ? (
+                                    <tr><td colSpan="6" className="py-10 text-center"><LoadingSpinner /></td></tr>
+                                ) : asignaturas.length > 0 ? (
+                                    asignaturas.map((asignatura, i) => (
+                                        <tr key={asignatura.id} className={i % 2 === 0 ? "bg-white hover:bg-[#e6f7ff]" : "bg-[#f8f8f8] hover:bg-[#e6f7ff]"}>
+                                            <td className="px-3 py-3 text-sm text-gray-700">{asignatura.codigo}</td>
+                                            <td className="px-3 py-3 text-sm font-medium text-gray-900">{asignatura.nombre}</td>
+                                            <td className="px-3 py-3 text-sm text-gray-700">{asignatura.abreviatura}</td>
+                                            <td className="px-3 py-3 text-sm text-gray-700">{getAreaNombre(asignatura.areaId)}</td>
+                                            <td className="px-3 py-3 text-sm text-gray-700 font-bold">{asignatura.porcentual}%</td>
+                                            <td className="px-3 py-3 text-right space-x-2">
+                                                <button onClick={() => handleEdit(asignatura)} className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50">
+                                                    <FontAwesomeIcon icon={faEdit} />
+                                                </button>
+                                                <button onClick={() => handleDelete(asignatura)} className="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-50">
+                                                    <FontAwesomeIcon icon={faTrash} />
+                                                </button>
                                             </td>
                                         </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="6" className="px-6 py-12 text-center text-gray-500 italic">
+                                            {activeSearch
+                                                ? `No se encontraron resultados para "${activeSearch}".`
+                                                : "No hay asignaturas registradas."}
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Paginación */}
+                    <div className="bg-white px-4 py-3 border-t border-gray-200 flex items-center justify-between sm:px-6 mt-4">
+                        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <p className="text-sm text-gray-700">
+                                Página <span className="font-medium">{pagination.page}</span> de <span className="font-medium">{pagination.totalPages || 1}</span>
+                            </p>
+                            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                                <button
+                                    onClick={() => handlePageChange(pagination.page - 1)}
+                                    disabled={pagination.page === 1}
+                                    className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${pagination.page === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'}`}
+                                >
+                                    <FontAwesomeIcon icon={faChevronLeft} className="h-4 w-4" />
+                                </button>
+                                <button
+                                    onClick={() => handlePageChange(pagination.page + 1)}
+                                    disabled={pagination.page >= pagination.totalPages}
+                                    className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${pagination.page >= pagination.totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'}`}
+                                >
+                                    <FontAwesomeIcon icon={faChevronRight} className="h-4 w-4" />
+                                </button>
+                            </nav>
                         </div>
-                    )}
+                    </div>
+
                 </div>
             </div>
         </div>

@@ -10,6 +10,7 @@ import ProtectedRoute from './ProtectedRoute.jsx';
 // Componentes Existentes
 import Colegios from '../components/colegios/Colegios.jsx';
 import Sedes from '../components/sedes/Sedes.jsx';
+import Grupos from '../components/grupos/Grupos.jsx';
 import Areas from '../components/areas/Areas.jsx';
 import Asignaturas from '../components/asignaturas/Asignaturas.jsx';
 import Coordinadores from '../components/coordinadores/Coordinadores.jsx';
@@ -52,7 +53,7 @@ const AppRoutes = () => {
                     <Route path="asignaturas" element={<ProtectedRoute requiredRole="admin"><Asignaturas /></ProtectedRoute>} />
 
                     {/* Nuevas rutas agregadas del Sidebar */}
-                    <Route path="grupos" element={<ProtectedRoute requiredRole="admin"><PaginaEnConstruccion titulo="Grupos" /></ProtectedRoute>} />
+                    <Route path="grupos" element={<ProtectedRoute requiredRole="admin"><Grupos /></ProtectedRoute>} />
                     <Route path="carga-academica" element={<ProtectedRoute requiredRole="admin"><PaginaEnConstruccion titulo="Carga Académica" /></ProtectedRoute>} />
                     <Route path="docentes" element={<ProtectedRoute requiredRole="admin"><PaginaEnConstruccion titulo="Docentes" /></ProtectedRoute>} />
 

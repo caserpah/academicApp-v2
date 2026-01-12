@@ -1,8 +1,10 @@
+
+
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom"; // Importamos Link para la navegación
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faFilePen, faEdit, faAngleLeft, faAngleRight, faUsers,faSearch
+    faFilePen, faEdit, faChevronLeft, faChevronRight, faUsers, faSearch
 } from "@fortawesome/free-solid-svg-icons";
 
 // Hooks y Servicios
@@ -34,6 +36,7 @@ const Matriculas = () => {
     // Estados de filtros y tabla
     const [busqueda, setBusqueda] = useState("");
     const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
 
     // Estados de listas auxiliares
     const [listasAuxiliares, setListasAuxiliares] = useState({ sedes: [], grupos: [] });
@@ -320,14 +323,34 @@ const Matriculas = () => {
                     )}
 
                     {/* Paginación */}
-                    <div className="pt-4 flex justify-center space-x-3 border-t border-[#eee] mt-6">
-                        <button onClick={() => setPage(p => p - 1)} disabled={page === 1} className="text-blue-600 disabled:text-gray-400">
-                            <FontAwesomeIcon icon={faAngleLeft} className="mr-1" /> Anterior
-                        </button>
-                        <span className="text-gray-600">Página {page}</span>
-                        <button onClick={() => setPage(p => p + 1)} disabled={matriculas.length < 10} className="text-blue-600 disabled:text-gray-400">
-                            Siguiente <FontAwesomeIcon icon={faAngleRight} className="ml-1" />
-                        </button>
+                    <div className="bg-white px-4 py-3 border-t border-gray-200 flex items-center justify-between sm:px-6">
+                        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p className="text-sm text-gray-700">
+                                    Página <span className="font-medium">{page}</span> de <span className="font-medium">{paginacion.totalPages || 1}</span>
+                                </p>
+                            </div>
+                            <div>
+                                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                    <button
+                                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                                        disabled={page === 1}
+                                        className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${page === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'}`}
+                                    >
+                                        <span className="sr-only">Anterior</span>
+                                        <FontAwesomeIcon icon={faChevronLeft} className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => setPage(p => p + 1)}
+                                        disabled={page >= (paginacion.totalPages || 1)}
+                                        className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${page >= (paginacion.totalPages || 1) ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'}`}
+                                    >
+                                        <span className="sr-only">Siguiente</span>
+                                        <FontAwesomeIcon icon={faChevronRight} className="h-4 w-4" />
+                                    </button>
+                                </nav>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

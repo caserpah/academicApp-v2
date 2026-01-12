@@ -14,7 +14,7 @@ export const asignaturaRepository = {
     async findAll(params = {}) {
         const {
             page = 1,
-            limit = 20,
+            limit = 10,
             vigenciaId,
             areaId,
             search,
@@ -25,18 +25,19 @@ export const asignaturaRepository = {
             includeArea = true,
         } = params;
 
-        const offset = (page - 1) * limit;
+        // Convertimos explícitamente a enteros para evitar el error de sintaxis SQL
+        const pageNum = Number(page) || 1;
+        const limitNum = Number(limit) || 10;
+        const offset = (pageNum - 1) * limitNum;
 
         const where = {};
 
-        if (vigenciaId) {
-            where.vigenciaId = vigenciaId;
-        }
+        if (vigenciaId) where.vigenciaId = vigenciaId;
 
-        if (areaId) {
-            where.areaId = areaId;
-        }
+        // Filtro exacto por Área
+        if (areaId) where.areaId = areaId;
 
+        // Búsqueda por texto (Debounce)
         if (search && search.trim() !== "") {
             const term = `%${search.trim().toUpperCase()}%`;
             where[Op.or] = [
@@ -46,12 +47,7 @@ export const asignaturaRepository = {
             ];
         }
 
-        const validOrderFields = [
-            "id", "codigo", "nombre", "abreviatura",
-            "promociona", "porcentual",
-            "fechaCreacion", "fechaActualizacion"
-        ];
-
+        const validOrderFields = ["id", "codigo", "nombre", "abreviatura", "promociona", "porcentual"];
         const safeOrderBy = validOrderFields.includes(orderBy) ? orderBy : "nombre";
         const safeOrder = order?.toUpperCase() === "DESC" ? "DESC" : "ASC";
 
@@ -75,8 +71,8 @@ export const asignaturaRepository = {
 
         const { rows, count } = await Asignatura.findAndCountAll({
             where,
-            limit,
-            offset,
+            limit: limitNum,
+            offset: offset,
             order: [[safeOrderBy, safeOrder]],
             attributes,
             include,
@@ -84,9 +80,12 @@ export const asignaturaRepository = {
 
         return {
             items: rows,
-            page,
-            limit,
-            total: count
+            pagination: {
+                total: count,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil(count / limitNum)
+            }
         };
     },
 

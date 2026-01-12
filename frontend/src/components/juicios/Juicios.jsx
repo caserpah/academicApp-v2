@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faEdit, faTrash, faScaleBalanced, faToggleOn, faToggleOff,
-    faSearch, faChevronLeft, faChevronRight, faSpinner
+    faSearch, faChevronLeft, faChevronRight, faSpinner, faEraser
 } from "@fortawesome/free-solid-svg-icons";
 
 import {
@@ -34,6 +34,13 @@ const Juicios = () => {
     const [dimensiones, setDimensiones] = useState([]);
     const [desempenos, setDesempenos] = useState([]);
     const [rangos, setRangos] = useState([]);
+
+    // Filtros Estructurados
+    const [filters, setFilters] = useState({
+        gradoId: '',
+        asignaturaId: '',
+        dimensionId: ''
+    });
 
     // Búsqueda y Paginación
     const [searchTerm, setSearchTerm] = useState("");      // Lo que escribe el usuario
@@ -98,7 +105,8 @@ const Juicios = () => {
                 vigenciaId: vigencia.id,
                 page: pagination.page,
                 limit: pagination.limit,
-                search: activeSearch
+                search: activeSearch,
+                ...filters // Esparcimos gradoId, asignaturaId, dimensionId
             };
 
             const response = await fetchJuiciosPaginated(params);
@@ -116,15 +124,27 @@ const Juicios = () => {
         } finally {
             setLoadingData(false);
         }
-    }, [vigencia, pagination.page, pagination.limit, activeSearch]);
+    }, [vigencia, pagination.page, pagination.limit, activeSearch, filters]);
 
     // Recargar cuando cambie la página, vigencia o la búsqueda activa (activeSearch)
     useEffect(() => {
         loadJuicios();
     }, [loadJuicios]);
 
-    // --- HANDLERS ---
+    // --- HANDLERS FILTROS ---
+    const handleFilterChange = (e) => {
+        const { name, value } = e.target;
+        setFilters(prev => ({ ...prev, [name]: value }));
+        setPagination(prev => ({ ...prev, page: 1 })); // Resetear página al filtrar
+    };
 
+    const clearFilters = () => {
+        setFilters({ gradoId: '', asignaturaId: '', dimensionId: '' });
+        setSearchTerm("");
+        setPagination(prev => ({ ...prev, page: 1 }));
+    };
+
+    // --- HANDLERS FORMULARIO ---
     const handleSearchInput = (e) => {
         setSearchTerm(e.target.value);
     };
@@ -189,7 +209,7 @@ const Juicios = () => {
                 setLoading(true);
                 await eliminarJuicio(juicio.id);
                 loadJuicios();
-                showSuccess("Juicio eliminado.");
+                showSuccess("Juicio eliminado exitosamente.");
                 if (formData.id === juicio.id) resetForm();
             } catch (err) {
                 showError(err.message);
@@ -216,7 +236,7 @@ const Juicios = () => {
         setMode("agregar");
     };
 
-    // --- RENDER ---
+    // --- RENDERIZADO ---
     return (
         <div className="min-h-full bg-[#f7f9fc] p-4 md:p-8 font-inter rounded-xl">
             <div className="max-w-7xl mx-auto space-y-8">
@@ -245,16 +265,16 @@ const Juicios = () => {
                     />
                 </div>
 
-                {/* TARJETA DE LA TABLA */}
+                {/* --- SECCIÓN DE FILTROS Y TABLA --- */}
                 <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-lg p-6">
 
-                    {/* Header de la Tabla + Buscador Integrado (Estilo Matrículas) */}
+                    {/* Header: Título y Buscador Global */}
                     <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                         <h2 className="text-xl font-semibold text-gray-700">
                             Juicios registrados ({pagination.total})
                         </h2>
 
-                        {/* Buscador Simple (Sin botón explícito, funciona al escribir) */}
+                        {/* Buscador de Texto */}
                         <div className="relative w-full md:w-72">
                             <input
                                 type="text"
@@ -273,6 +293,63 @@ const Juicios = () => {
                                     <FontAwesomeIcon icon={faSpinner} spin className="text-blue-500" />
                                 </div>
                             )}
+                        </div>
+                    </div>
+
+                    {/* --- BARRA DE FILTROS DESPLEGABLES --- */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                        {/* Filtro Grado */}
+                        <div className="flex flex-col">
+                            <label className="text-xs font-bold text-gray-500 mb-1 ml-1">Grado</label>
+                            <select
+                                name="gradoId"
+                                value={filters.gradoId}
+                                onChange={handleFilterChange}
+                                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                            >
+                                <option value="">Todos los Grados</option>
+                                {grados.map(g => <option key={g.id} value={g.id}>{g.nombre.replace(/_/g, " ")}</option>)}
+                            </select>
+                        </div>
+
+                        {/* Filtro Asignatura */}
+                        <div className="flex flex-col">
+                            <label className="text-xs font-bold text-gray-500 mb-1 ml-1">Asignatura</label>
+                            <select
+                                name="asignaturaId"
+                                value={filters.asignaturaId}
+                                onChange={handleFilterChange}
+                                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                            >
+                                <option value="">Todas las Asignaturas</option>
+                                {asignaturas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+                            </select>
+                        </div>
+
+                        {/* Filtro Dimensión */}
+                        <div className="flex flex-col">
+                            <label className="text-xs font-bold text-gray-500 mb-1 ml-1">Dimensión</label>
+                            <select
+                                name="dimensionId"
+                                value={filters.dimensionId}
+                                onChange={handleFilterChange}
+                                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                            >
+                                <option value="">Todas las Dimensiones</option>
+                                {dimensiones.map(d => <option key={d.id} value={d.id}>{d.nombre.replace(/_/g, " ")}</option>)}
+                            </select>
+                        </div>
+
+                        {/* Botón Limpiar */}
+                        <div className="flex flex-col justify-end">
+                            <button
+                                onClick={clearFilters}
+                                className="bg-white border border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-blue-600 px-4 py-2 rounded-md text-sm transition flex items-center justify-center gap-2"
+                                title="Limpiar todos los filtros"
+                            >
+                                <FontAwesomeIcon icon={faEraser} />
+                                Limpiar Filtros
+                            </button>
                         </div>
                     </div>
 
@@ -358,32 +435,36 @@ const Juicios = () => {
                         </table>
                     </div>
 
-                    {/* PAGINACIÓN Minimalista */}
-                    {juicios.length > 0 && (
-                        <div className="flex justify-center items-center mt-6 pt-4 border-t border-gray-100 space-x-6">
-                            <button
-                                onClick={() => handlePageChange(pagination.page - 1)}
-                                disabled={pagination.page === 1}
-                                className="flex items-center text-sm font-medium text-gray-500 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                            >
-                                <FontAwesomeIcon icon={faChevronLeft} className="mr-2 text-xs" />
-                                Anterior
-                            </button>
-
-                            <span className="text-sm font-medium text-gray-700">
-                                Página {pagination.page}
-                            </span>
-
-                            <button
-                                onClick={() => handlePageChange(pagination.page + 1)}
-                                disabled={pagination.page === pagination.totalPages}
-                                className="flex items-center text-sm font-medium text-gray-500 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                            >
-                                Siguiente
-                                <FontAwesomeIcon icon={faChevronRight} className="ml-2 text-xs" />
-                            </button>
+                    {/* PAGINACIÓN */}
+                    <div className="bg-white px-4 py-3 border-t border-gray-200 flex items-center justify-between sm:px-6">
+                        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p className="text-sm text-gray-700">
+                                    Página <span className="font-medium">{pagination.page}</span> de <span className="font-medium">{pagination.totalPages}</span>
+                                </p>
+                            </div>
+                            <div>
+                                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                    <button
+                                        onClick={() => handlePageChange(pagination.page - 1)}
+                                        disabled={pagination.page === 1}
+                                        className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${pagination.page === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'}`}
+                                    >
+                                        <span className="sr-only">Anterior</span>
+                                        <FontAwesomeIcon icon={faChevronLeft} className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => handlePageChange(pagination.page + 1)}
+                                        disabled={pagination.page === pagination.totalPages}
+                                        className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${pagination.page === pagination.totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'}`}
+                                    >
+                                        <span className="sr-only">Siguiente</span>
+                                        <FontAwesomeIcon icon={faChevronRight} className="h-4 w-4" />
+                                    </button>
+                                </nav>
+                            </div>
                         </div>
-                    )}
+                    </div>
                 </div>
             </div>
         </div>

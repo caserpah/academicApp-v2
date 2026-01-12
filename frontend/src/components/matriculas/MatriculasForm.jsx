@@ -36,6 +36,9 @@ const MatriculasForm = ({
             .replace("MANANA", "MAÑANA"); // Corrige la ñ
     };
 
+    // ==========================
+    // Renderizado del formulario
+    // ==========================
     return (
         <>
             <form onSubmit={handleSubmit} className="space-y-4">
