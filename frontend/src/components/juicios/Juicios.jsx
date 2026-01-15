@@ -176,7 +176,7 @@ const Juicios = () => {
             } else {
                 const { id, ...dataToUpdate } = dataToSubmit;
                 await actualizarJuicio(id, dataToUpdate);
-                showSuccess(`Juicio actualizado correctamente.`);
+                showSuccess(`Juicio actualizado exitosamente.`);
             }
             loadJuicios();
             resetForm();

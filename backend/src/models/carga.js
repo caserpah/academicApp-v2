@@ -1,10 +1,12 @@
+
+
+
 import { DataTypes } from "sequelize";
 import { sequelize } from "../database/db.connect.js";
 
 /**
  * Modelo: Carga
- * Representa la asignación académica de docentes, grupos y asignaturas
- * en una sede durante una vigencia.
+ * Representa la asignación académica de docentes, grupos y asignaturas en una vigencia.
  */
 export const Carga = sequelize.define("carga", {
     id: {
@@ -28,16 +30,6 @@ export const Carga = sequelize.define("carga", {
     horas: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        validate: {
-            min: {
-                args: [1],
-                msg: "Las horas asignadas deben ser mínimo 1."
-            },
-            max: {
-                args: [40],
-                msg: "Las horas asignadas no pueden superar 40."
-            }
-        }
     },
     sedeId: {
         type: DataTypes.INTEGER,

@@ -1,59 +1,54 @@
 import { body, param } from "express-validator";
 import { Coordinador } from "../models/coordinador.js";
 import {
-    validarCampoOpcional,
-    verificarExistenciaPorId,
+    validarCampoUnico,
     validarCampoRequerido,
     validarCampoOpcionalRequerido,
-    validarCampoContactoOpcional,
-    validarCampoUnico
+    validarCampoContactoOpcional
 } from "../utils/dbUtils.js";
 
 export const validarCrearCoordinador = [
-    validarCampoRequerido("documento", "Ingrese el número de documento del coordinador.")
-        .isLength({ max: 15 }).withMessage("El documento no debe exceder los 15 dígitos.")
+    validarCampoRequerido("documento", "Ingrese el número de documento del Coordinador.")
+        .isLength({ min: 4, max: 15 }).withMessage("El documento debe tener entre 4 y 15 dígitos.")
         .isNumeric().withMessage("El documento solo debe contener números.")
         .bail()
-        .custom(validarCampoUnico(Coordinador, "documento", "un coordinador", false, null, "número de documento")),
-
-    validarCampoRequerido("nombre", "Ingrese el nombre completo del coordinador.")
-        .isLength({ min: 3, max: 80 })
-        .withMessage("El nombre del coordinador debe tener entre 3 y 80 caracteres."),
+        .custom(validarCampoUnico(Coordinador, "documento", "un Coordinador", false, null, "número de documento")),
+    validarCampoRequerido("nombre", "Ingrese el nombre completo del Coordinador.")
+        .isLength({ min: 3})
+        .withMessage("El nombre del Coordinador debe tener mínimo 3 caracteres."),
 
     body("email")
         .optional({ checkFalsy: true })
         .isEmail().withMessage("Ingrese un correo electrónico válido.")
-        .withMessage("Ingrese un correo electrónico válido para el coordinador.")
-        .isLength({ max: 80 }).withMessage("El correo no debe exceder los 80 caracteres."),
+        .withMessage("Ingrese un correo electrónico válido para el Coordinador."),
 
     validarCampoContactoOpcional("telefono"),
 
-    validarCampoOpcional("direccion"),
+    // Las asignaciones se validan en el servicio por su complejidad lógica
+    body("asignaciones").optional().isArray().withMessage("El formato de asignaciones es inválido.")
 ];
 
 export const validarActualizarCoordinador = [
     param("id")
-        .isInt({ min: 1 })
-        .withMessage("El coordinador seleccionado no es válido.")
-        .bail()
-        .custom(verificarExistenciaPorId(Coordinador, "id", "el coordinador", "ID")),
+        .isInt()
+        .withMessage("El Coordinador seleccionado no es válido."),
 
     validarCampoOpcionalRequerido("documento", "Ingrese el número de documento si desea actualizarlo.")
-        .isLength({ max: 15 }).withMessage("El documento no debe exceder los 15 dígitos.")
+        .isLength({ min: 4, max: 15 }).withMessage("El documento debe tener entre 4 y 15 dígitos.")
         .isNumeric().withMessage("El documento solo debe contener números.")
         .bail()
-        .custom(validarCampoUnico(Coordinador, "documento", "un coordinador", true, null, "número de documento")),
+        .custom(validarCampoUnico(Coordinador, "documento", "un Coordinador", true, null, "número de documento")),
 
-    validarCampoOpcionalRequerido("nombre", "Ingrese el nombre del coordinador si desea actualizarlo.")
-        .isLength({ min: 3, max: 80 })
-        .withMessage("El nombre del coordinador debe tener entre 3 y 80 caracteres."),
+    validarCampoOpcionalRequerido("nombre", "Ingrese el nombre del coordinador.")
+        .isLength({ min: 3})
+        .withMessage("El nombre del Coordinador debe tener mínimo 3 caracteres."),
 
     body("email")
         .optional({ checkFalsy: true })
-        .isEmail().withMessage("Ingrese un correo electrónico válido para el coordinador.")
-        .isLength({ max: 80 }).withMessage("El correo no debe exceder los 80 caracteres."),
+        .isEmail().withMessage("Ingrese una dirección de correo electrónico válida."),
 
     validarCampoContactoOpcional("telefono"),
 
-    validarCampoOpcional("direccion"),
-];
+    // Las asignaciones se validan en el servicio por su complejidad lógica
+    body("asignaciones").optional().isArray().withMessage("El formato de asignaciones es inválido."),
+]

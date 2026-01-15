@@ -28,7 +28,7 @@ router.get("/:id", protect, docenteController.get);
 router.post(
     "/",
     protect,
-    restrictTo(["admin"]),
+    restrictTo(["admin", "secretaria"]),
     ValidarCrearDocente,
     validationErrorHandler,
     docenteController.create
@@ -39,7 +39,7 @@ router.post(
 router.put(
     "/:id",
     protect,
-    restrictTo(["admin"]),
+    restrictTo(["admin", "secretaria"]),
     ValidarActualizarDocente,
     validationErrorHandler,
     docenteController.update
@@ -50,7 +50,7 @@ router.put(
 router.delete(
     "/:id",
     protect,
-    restrictTo(["admin"]),
+    restrictTo(["admin", "secretaria"]),
     docenteController.remove
 );
 

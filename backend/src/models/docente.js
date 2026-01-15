@@ -34,19 +34,15 @@ export const Docente = sequelize.define("docente", {
 
     fechaNacimiento: {
         type: DataTypes.DATEONLY,
-        allowNull: false,
         validate: {
             isDate: { msg: "Debe ingresar una fecha válida (YYYY-MM-DD)." },
-            isBefore: {
-                args: [new Date().toISOString().split("T")[0]],
-                msg: "La fecha de nacimiento no puede ser futura.",
-            },
         },
     },
 
     email: {
         type: DataTypes.STRING(80),
-        allowNull: true
+        allowNull: true,
+        unique: true,
     },
 
     telefono: {
@@ -55,14 +51,20 @@ export const Docente = sequelize.define("docente", {
     },
 
     nivelEducativo: {
-        type: DataTypes.ENUM("BP", "NS", "TP", "OP", "PP", "PS", "OT"),
+        type: DataTypes.ENUM("NS", "TC", "LC", "PF", "MA", "DO", "OT"),
         allowNull: false,
         validate: {
             isIn: {
-                args: [["BP", "NS", "TP", "OP", "PP", "PS", "OT"]],
+                args: [["NS", "TC", "LC", "PF", "MA", "DO", "OT"]],
                 msg: "Nivel educativo inválido.",
             },
         },
+        comment: "NS: Normalista Superior, TC: Técnico o Tecnólogo en Educación, LC: Licenciatura, PF: Profesional, MA: Maestría, DO: Doctorado, OT: Otro"
+    },
+
+    profesion: {
+        type: DataTypes.STRING(100),
+        allowNull: true
     },
 
     nivelEnsenanza: {
@@ -74,6 +76,7 @@ export const Docente = sequelize.define("docente", {
                 msg: "Nivel de enseñanza inválido.",
             },
         },
+        comment: "PE: Preescolar, BP: Básica Primaria, BS: Básica Secundaria, MA: Media Académica, OT: Otro"
     },
 
     decretoLey: {
@@ -112,6 +115,7 @@ export const Docente = sequelize.define("docente", {
                 msg: "Tipo de vinculación inválido.",
             },
         },
+        comment: "PD: Propiedad, PP: Periodo de Prueba, PV: Provisionalidad, TR: Temporalidad, OT: Otro"
     },
 
     fechaIngreso: {
@@ -146,15 +150,10 @@ export const Docente = sequelize.define("docente", {
         defaultValue: true,
     },
 
-    areaId: {
-        type: DataTypes.INTEGER,
+    areaEnsenanza: {
+        type: DataTypes.STRING(100),
         allowNull: true,
-        references: {
-            model: "areas",
-            key: "id",
-        },
-        onUpdate: "CASCADE",
-        onDelete: "SET NULL",
+        defaultValue: "Sin Especificar"
     },
 }, {
     tableName: "docentes",
@@ -166,7 +165,6 @@ export const Docente = sequelize.define("docente", {
         { fields: ["nivelEducativo"], name: "idx_nivelEducativo" },
         { fields: ["nivelEnsenanza"], name: "idx_nivelEnsenanza" },
         { fields: ["vinculacion"], name: "idx_vinculacion" },
-        { fields: ["activo"], name: "idx_activo_docente" },
-        { fields: ["areaId"], name: "idx_areaId_docente" },
+        { fields: ["activo"], name: "idx_activo_docente" }
     ],
 });

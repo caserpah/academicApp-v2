@@ -5,7 +5,7 @@ export const docenteController = {
 
     /**
      * GET /docentes
-     * Listar con filtros, paginación y ordenamiento
+     * Listar con paginación y ordenamiento
      */
     async list(req, res, next) {
         try {

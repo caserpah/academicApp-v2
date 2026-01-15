@@ -14,59 +14,58 @@ import {
 
 import { validationErrorHandler } from "./validationErrorHandler.js";
 
-/** Regex para campos comunes */
-const regexNombre = /^[A-Za-zÁÉÍÓÚÑáéíóúñüÜ\s]+$/;
-const regexDocumento = /^[0-9]{4,20}$/;
-const regexTelefono = /^[0-9]{7,12}$/;
+// Valores permitidos para los ENUMs (según tu modelo)
+const ENUMS = {
+    nivelEducativo: ["NS", "TC", "LC", "PF", "MA", "DO", "OT"],
+    nivelEnsenanza: ["PE", "BP", "BS", "MA", "OT"],
+    vinculacion: ["PD", "PP", "PV", "TR", "OT"]
+};
 
-/** ENUMS permitidos */
-const ENUM_NIVEL_EDUCATIVO = ["BP", "NS", "TP", "OP", "PP", "PS", "OT"];
-const ENUM_NIVEL_ENSENANZA = ["PE", "BP", "BS", "MA", "OT"];
-const ENUM_VINCULACION = ["PD", "PP", "PV", "TR", "OT"];
+/** Regex para campos comunes */
+const regexDocumento = /^[0-9]{4,20}$/;
+const regexTelefono = /^[0-9]{10,12}$/;
 
 export const ValidarCrearDocente = [
 
     /** Documento */
     validarCampoRequerido("documento", "Ingrese el número de documento del docente.")
         .matches(regexDocumento)
-        .withMessage("El documento debe contener solo números.")
+        .withMessage("El documento debe contener mínimo 4 dígitos.")
         .bail()
-        .custom(
-            validarCampoUnico(Docente, "documento", "un docente", false, null, "número de documento")
-        ),
+        .custom(validarCampoUnico(Docente, "documento", "un docente", false, null, "número de documento")),
 
     /** Nombre */
     validarCampoRequerido("nombre", "Ingrese el nombre del docente.")
-        .matches(regexNombre)
-        .withMessage("El nombre solo puede contener letras y espacios."),
+        .isLength({ min: 3 }).withMessage("El nombre debe tener al menos 3 caracteres."),
 
     /** Apellidos */
     validarCampoRequerido("apellidos", "Ingrese los apellidos del docente.")
-        .matches(regexNombre)
-        .withMessage("Los apellidos solo pueden contener letras y espacios."),
+        .isLength({ min: 3 }).withMessage("Los apellidos deben tener al menos 3 caracteres."),
 
     /** Fecha nacimiento */
     validarFechaNoFutura("fechaNacimiento", "de nacimiento"),
 
     /** Email */
-    validarCampoOpcional("email")
-        .optional()
+    validarCampoRequerido("email", "Ingrese el correo electrónico")
         .isEmail().withMessage("Ingrese un correo electrónico válido."),
 
     /** Teléfono */
     validarCampoOpcional("telefono")
-        .optional()
         .matches(regexTelefono)
-        .withMessage("El teléfono debe contener solo números."),
+        .withMessage("El teléfono debe contener entre 10 y 12 dígitos."),
 
     /** Nivel educativo */
     validarCampoRequerido("nivelEducativo", "Seleccione el nivel educativo.")
-        .isIn(ENUM_NIVEL_EDUCATIVO)
+        .isIn(ENUMS.nivelEducativo)
         .withMessage("Nivel educativo inválido."),
+
+    /** Profesión */
+    body("profesion").optional({ checkFalsy: true })
+        .isLength({ min: 5 }).withMessage("El nombre de la profesión debe contener mínimo 5 caracteres."),
 
     /** Nivel enseñanza */
     validarCampoRequerido("nivelEnsenanza", "Seleccione el nivel de enseñanza.")
-        .isIn(ENUM_NIVEL_ENSENANZA)
+        .isIn(ENUMS.nivelEnsenanza)
         .withMessage("Nivel de enseñanza inválido."),
 
     /** Fecha de nombramiento */
@@ -74,7 +73,7 @@ export const ValidarCrearDocente = [
 
     /** Tipo vinculación */
     validarCampoRequerido("vinculacion", "Seleccione el tipo de vinculación.")
-        .isIn(ENUM_VINCULACION)
+        .isIn(ENUMS.vinculacion)
         .withMessage("Tipo de vinculación inválido."),
 
     /** Fechas laborales */
@@ -86,16 +85,13 @@ export const ValidarCrearDocente = [
 
     /** Dirección */
     validarCampoOpcional("direccion")
-        .optional()
         .isLength({ min: 5 })
         .withMessage("La dirección debe tener al menos 5 caracteres."),
 
     /** Área */
-    validarCampoRequerido("areaId", "Seleccione el área del docente.")
-        .isInt({ min: 1 })
-        .withMessage("El área seleccionada no es válida.")
-        .bail()
-        .custom(verificarExistenciaPorId(Area, "id", "el área seleccionada")),
+    validarCampoOpcional("areaEnsenanza", "Seleccione el área de enseñanza del docente.")
+        .isLength({ min: 5 })
+        .withMessage("El nombre del área de enseñanza debe tener al menos 5 caracteres."),
 
     validationErrorHandler,
 ];
@@ -111,53 +107,44 @@ export const ValidarActualizarDocente = [
     /** Documento editable pero único */
     validarCampoOpcionalRequerido("documento", "Ingrese el número de documento del docente.")
         .matches(regexDocumento)
-        .withMessage("El documento debe contener solo números.")
+        .withMessage("El documento debe contener mínimo 4 dígitos.")
         .bail()
         .custom(validarCampoUnico(Docente, "documento", "un docente", true, null, "número de documento")),
 
     /** Nombre */
     validarCampoOpcionalRequerido("nombre", "Ingrese el nombre del docente.")
-        .matches(regexNombre)
-        .withMessage("El nombre solo puede contener letras y espacios."),
+        .isLength({ min: 3 })
+        .withMessage("El nombre debe tener al menos 3 caracteres."),
 
     /** Apellidos */
     validarCampoOpcionalRequerido("apellidos", "Ingrese los apellidos del docente.")
-        .matches(regexNombre)
-        .withMessage("Los apellidos solo pueden contener letras y espacios."),
+        .isLength({ min: 3 })
+        .withMessage("Los apellidos deben tener al menos 3 caracteres."),
 
     /** Fecha de nacimiento */
-    validarCampoOpcionalRequerido("fechaNacimiento", "Debe ingresar la fecha de nacimiento.")
-        .isISO8601()
-        .withMessage("La fecha de nacimiento debe ser válida (AAAA-MM-DD).")
-        .bail()
-        .custom((value) => {
-            if (!value) return true;
-            const fecha = new Date(value);
-            if (fecha > new Date()) {
-                throw new Error("La fecha de nacimiento no puede ser futura.");
-            }
-            return true;
-        }),
+    validarFechaNoFutura("fechaNacimiento", "de nacimiento"),
 
     /** Email opcional */
-    validarCampoOpcional("email")
-        .optional()
+    validarCampoOpcionalRequerido("email", "Ingrese el correo electrónico")
         .isEmail().withMessage("Ingrese un correo electrónico válido."),
 
     /** Teléfono opcional */
     validarCampoOpcional("telefono")
-        .optional()
         .matches(regexTelefono)
-        .withMessage("El teléfono debe contener solo números."),
+        .withMessage("El teléfono debe contener entre 10 y 12 dígitos."),
 
     /** Nivel educativo */
     validarCampoOpcionalRequerido("nivelEducativo", "Seleccione el nivel educativo.")
-        .isIn(ENUM_NIVEL_EDUCATIVO)
+        .isIn(ENUMS.nivelEducativo)
         .withMessage("Nivel educativo inválido."),
+
+    /** Profesión */
+    body("profesion").optional({ checkFalsy: true })
+        .isLength({ min: 5 }).withMessage("El nombre de la profesión debe contener mínimo 5 caracteres."),
 
     /** Nivel enseñanza */
     validarCampoOpcionalRequerido("nivelEnsenanza", "Seleccione el nivel de enseñanza.")
-        .isIn(ENUM_NIVEL_ENSENANZA)
+        .isIn(ENUMS.nivelEnsenanza)
         .withMessage("Nivel de enseñanza inválido."),
 
     /** Fecha de nombramiento */
@@ -165,7 +152,7 @@ export const ValidarActualizarDocente = [
 
     /** Vinculación */
     validarCampoOpcionalRequerido("vinculacion", "Seleccione el tipo de vinculación.")
-        .isIn(ENUM_VINCULACION)
+        .isIn(ENUMS.vinculacion)
         .withMessage("Tipo de vinculación inválido."),
 
     /** Fechas ingreso / retiro */
@@ -175,16 +162,13 @@ export const ValidarActualizarDocente = [
 
     /** Dirección */
     validarCampoOpcional("direccion")
-        .optional()
         .isLength({ min: 5 })
         .withMessage("La dirección debe tener al menos 5 caracteres."),
 
     /** Área */
-    validarCampoOpcionalRequerido("areaId", "Seleccione el área del docente.")
-        .isInt({ min: 1 })
-        .withMessage("El área seleccionada no es válida.")
-        .bail()
-        .custom(verificarExistenciaPorId(Area, "id", "el área seleccionada")),
+    validarCampoOpcional("areaEnsenanza", "Seleccione el área de enseñanza del docente.")
+        .isLength({ min: 5 })
+        .withMessage("El nombre del área de enseñanza debe tener al menos 5 caracteres."),
 
     validationErrorHandler,
 ];

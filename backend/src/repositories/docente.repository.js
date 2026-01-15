@@ -1,135 +1,80 @@
 import { Op } from "sequelize";
 import { Docente } from "../models/docente.js";
-import { Area } from "../models/area.js";
 
 export const docenteRepository = {
 
     /**
      * Listado con filtros + paginación + ordenamiento
      */
-    async findAll({
-        documento,
-        nombre,
-        apellidos,
-        nivelEducativo,
-        nivelEnsenanza,
-        vinculacion,
-        areaId,
-        activo,
-        page,
-        limit,
-        orderBy,
-        order
-    }) {
-
+    async findAll({ page = 1, limit = 20, busqueda } = {}) {
         const where = {};
 
-        /** Filtros */
+        // Búsqueda flexible por nombre, apellido o documento
+        if (busqueda) {
+            const term = `%${busqueda}%`;
+            const busquedaLower = busqueda.toLowerCase();
 
-        if (documento) {
-            where.documento = { [Op.like]: `%${documento}%` };
-        }
+            const orConditions = [
+                { nombre: { [Op.like]: term } },
+                { apellidos: { [Op.like]: term } },
+                { documento: { [Op.like]: term } },
+                { profesion: { [Op.like]: term } },
+                { vinculacion: { [Op.like]: term } },
+                { areaEnsenanza: { [Op.like]: term } }
+            ];
 
-        if (nombre) {
-            where.nombre = { [Op.like]: `%${nombre}%` };
-        }
+            if ("activo".includes(busquedaLower)) orConditions.push({ activo: true });
+            if ("inactivo".includes(busquedaLower)) orConditions.push({ activo: false });
 
-        if (apellidos) {
-            where.apellidos = { [Op.like]: `%${apellidos}%` };
-        }
-
-        if (nivelEducativo) {
-            where.nivelEducativo = nivelEducativo;
-        }
-
-        if (nivelEnsenanza) {
-            where.nivelEnsenanza = nivelEnsenanza;
-        }
-
-        if (vinculacion) {
-            where.vinculacion = vinculacion;
-        }
-
-        if (areaId) {
-            where.areaId = areaId;
-        }
-
-        if (activo !== undefined) {
-            // permitir activo=true, activo=false
-            where.activo = activo;
+            where[Op.or] = orConditions;
         }
 
         /** Paginación */
-        const offset = (page - 1) * limit;
+        const offset = (Number(page) - 1) * Number(limit);
 
         /** Consulta */
         const { rows, count } = await Docente.findAndCountAll({
             where,
-            limit,
             offset,
-            order: [[orderBy, order]],
-            include: [
-                {
-                    model: Area,
-                    as: "area",
-                    attributes: ["id", "nombre", "codigo"]
-                }
-            ]
+            limit: Number(limit),
+            order: [["apellidos", "ASC"], ["nombre", "ASC"]],
         });
 
         return {
             items: rows,
-            pagination: {
-                total: count,
-                page,
-                limit,
-                totalPages: Math.ceil(count / limit)
-            }
+            total: count,
+            page: Number(page),
+            limit: Number(limit),
         };
     },
 
     /**
      * Buscar por ID
      */
-    findById(id) {
-        return Docente.findOne({
-            where: { id },
-            include: [
-                {
-                    model: Area,
-                    as: "area",
-                    attributes: ["id", "nombre", "codigo"]
-                }
-            ]
-        });
+    async findById(id) {
+        return Docente.findByPk(id);
     },
 
     /**
      * Crear un docente
      */
-    create(data) {
-        return Docente.create(data);
+    async create(payload, transaction) {
+        return Docente.create(payload, { transaction });
     },
 
     /**
      * Actualizar docente por ID
      */
-    async updateById(id, data) {
+    async updateById(id, payload, transaction) {
         const registro = await Docente.findByPk(id);
         if (!registro) return null;
-
-        await registro.update(data);
-        return registro;
+        return registro.update(payload, { transaction });
     },
 
     /**
      * Eliminar docente por ID
      */
-    async deleteById(id) {
-        const registro = await Docente.findByPk(id);
-        if (!registro) return false;
-
-        await registro.destroy();
-        return true;
-    },
+    async deleteById(id, transaction) {
+        return Docente.destroy({ where: { id }, transaction });
+    }
 };

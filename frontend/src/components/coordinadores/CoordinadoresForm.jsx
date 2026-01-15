@@ -1,185 +1,243 @@
-import React from "react";
+import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSave, faTimes } from "@fortawesome/free-solid-svg-icons";
+import { faSave, faTimes, faPlus, faTrash } from "@fortawesome/free-solid-svg-icons";
 
-/**
- * Formulario reutilizable para la creación y edición de Coordinadores.
- */
+// Definición estática de las jornadas
+const JORNADAS_ENUMS = ["MAÑANA", "TARDE", "NOCHE", "COMPLETA"];
+
 const CoordinadoresForm = ({
     formData,
     mode,
     loading,
+    sedes,
+    vigencias,
     handleChange,
     handleSubmit,
     resetForm,
+    handleAsignacionChange // Función que actualiza el estado 'asignaciones' en el padre
 }) => {
-    const inputBaseClasses =
-        "mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150";
-    const readOnlyClasses = "bg-gray-100 cursor-not-allowed text-gray-700";
-    const getInputClasses = (readOnly = false) =>
-        readOnly ? `${inputBaseClasses} ${readOnlyClasses}` : inputBaseClasses;
+    const inputClasses = "w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition";
 
-    // ==========================
-    // Restricciones de entrada
-    // ==========================
+    // Estado local para los inputs de la nueva asignación
+    const [nuevaAsig, setNuevaAsig] = useState({
+        sedeId: "",
+        vigenciaId: "",
+        tipo: "ACADEMICO",
+        jornada: ""
+    });
 
-    // Permitir solo números en documento y contacto
-    const handleNumericInput = (e, maxLength = 20) => {
-        const { name, value } = e.target;
-        const onlyNumbers = value.replace(/\D/g, "").slice(0, maxLength);
-        handleChange({ target: { name, value: onlyNumbers } });
+    // Agregar una asignación a la lista
+    const agregarAsignacion = () => {
+        // Validaciones simples antes de agregar
+        if (!nuevaAsig.sedeId || !nuevaAsig.vigenciaId) return;
+        if (nuevaAsig.tipo === "CONVIVENCIA" && !nuevaAsig.jornada) return;
+
+        // Crear objeto de asignación (usamos tempId para key en React)
+        const asignacionParaAgregar = {
+            ...nuevaAsig,
+            tempId: Date.now()
+        };
+
+        const listaActualizada = [...(formData.asignaciones || []), asignacionParaAgregar];
+        handleAsignacionChange(listaActualizada);
+
+        // Limpiar inputs temporales
+        setNuevaAsig({ ...nuevaAsig, sedeId: "", jornada: "" });
     };
 
-    // Convertir nombres a mayúsculas
-    const handleNombreInput = (e, maxLength = 100) => {
-        const { name, value } = e.target;
-        const upperCaseValue = value.toUpperCase().slice(0, maxLength);
-        handleChange({ target: { name, value: upperCaseValue } });
+    // Eliminar una asignación de la lista
+    const eliminarAsignacion = (index) => {
+        const listaActualizada = formData.asignaciones.filter((_, i) => i !== index);
+        handleAsignacionChange(listaActualizada);
     };
 
-    // Validar email en tiempo real
-    const handleEmailInput = (e) => {
-        const { name, value } = e.target;
-        const emailValue = value.toLowerCase().slice(0, 100);
-        handleChange({ target: { name, value: emailValue } });
+    // Helpers para mostrar nombres en lugar de IDs en la tabla
+    const getSedeName = (id) => {
+        // Convertimos a Number por si viene como string
+        const sede = sedes.find(s => s.id === Number(id));
+        return sede ? sede.nombre : "Sede desconocida";
     };
 
-    // ==========================
-    // Campos del formulario
-    // ==========================
+    const getVigenciaName = (id) => {
+        if (!id) return "-";
+        const vigencia = vigencias.find(v => v.id === Number(id));
+        return vigencia ? vigencia.anio : id;
+    };
+
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+
+            {/* Datos Personales */}
             <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
                 <div className="border-b pb-2 mb-4 border-[#d8d5d5]">
                     <h2 className="text-lg font-semibold text-gray-700">
-                        {mode === "agregar" ? "Registrar Nuevo Coordinador" : "Editar Coordinador"}
+                        {mode === 'agregar' ? 'Registrar Nuevo Coordinador' : 'Editar Coordinador'}
                     </h2>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* ID (solo lectura) */}
-                    <div className="col-span-1">
-                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                            ID
-                        </label>
-                        <input
-                            type="text"
-                            name="id"
-                            value={formData.id || "Nuevo"}
-                            disabled
-                            className={getInputClasses(true)}
-                        />
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Número de Documento <span className="text-red-500">*</span></label>
+                        <input type="text" name="documento" value={formData.documento} placeholder="Máx. 15 dígitos" onChange={handleChange} className={inputClasses} maxLength={15} />
                     </div>
-
-                    {/* Número de Documento */}
-                    <div className="col-span-1">
-                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                            Número de Documento{" "}
-                            <span className="text-[#e74c3c] font-semibold">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            name="numeroDocumento"
-                            value={formData.numeroDocumento}
-                            onChange={(e) => handleNumericInput(e, 20)}
-                            placeholder="Máx. 20 dígitos"
-                            maxLength={20}
-                            className={getInputClasses()}
-                        />
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Nombre <span className="text-red-500">*</span></label>
+                        <input type="text" name="nombre" value={formData.nombre} placeholder="Nombre completo del Coordinador" onChange={handleChange} className={inputClasses} />
                     </div>
-
-                    {/* Nombres */}
-                    <div className="col-span-1">
-                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                            Nombres Completos{" "}
-                            <span className="text-[#e74c3c] font-semibold">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            name="nombres"
-                            value={formData.nombres}
-                            onChange={(e) => handleNombreInput(e, 100)}
-                            placeholder="Nombres y apellidos"
-                            maxLength={100}
-                            className={getInputClasses()}
-                        />
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Correo Electrónico</label>
+                        <input type="email" name="email" value={formData.email || ""} placeholder="coordinador@colegio.edu.co" onChange={handleChange} className={inputClasses} />
                     </div>
-
-                    {/* Email */}
-                    <div className="col-span-1">
-                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                            Correo Electrónico{" "}
-                            <span className="text-[#e74c3c] font-semibold">*</span>
-                        </label>
-                        <input
-                            type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleEmailInput}
-                            placeholder="ejemplo@colegio.edu.co"
-                            maxLength={100}
-                            className={getInputClasses()}
-                        />
-                        {formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && (
-                            <p className="text-xs text-red-500 mt-1">Formato de email inválido</p>
-                        )}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Contacto (10-12 dígitos, opcional)</label>
+                        <input type="text" name="telefono" value={formData.telefono || ""} placeholder="Teléfono de contacto" onChange={handleChange} className={inputClasses} maxLength={12} />
                     </div>
-
-                    {/* Contacto */}
-                    <div className="col-span-1">
-                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                            Contacto (10-12 dígitos, opcional)
-                        </label>
-                        <input
-                            type="text"
-                            name="contacto"
-                            value={formData.contacto}
-                            onChange={(e) => handleNumericInput(e, 12)}
-                            placeholder="Teléfono de contacto"
-                            maxLength={12}
-                            inputMode="numeric"
-                            className={getInputClasses()}
-                        />
+                    <div className="md:col-span-1">
+                        <label className="block text-sm font-medium text-gray-700">Dirección</label>
+                        <input type="text" name="direccion" value={formData.direccion || ""} placeholder="Ej: Calle 10 # 5-20" onChange={handleChange} className={inputClasses} />
                     </div>
+                </div>
+            </div>
 
-                    {/* Dirección */}
-                    <div className="col-span-1">
-                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                            Dirección
-                        </label>
-                        <input
-                            type="text"
-                            name="direccion"
-                            value={formData.direccion}
-                            onChange={handleChange}
-                            placeholder="Ej: Calle 10 # 5-20"
-                            maxLength={200}
-                            className={getInputClasses()}
-                        />
+            {/* Asignación de Sedes */}
+            <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">Asignar Coordinación de Sede</h3>
+
+                {/* Controles para agregar nueva asignación */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end bg-gray-50 p-4 rounded-lg mb-4">
+                    <div className="md:col-span-3">
+                        <label className="text-xs font-bold text-gray-500 uppercase">Sede</label>
+                        <select
+                            value={nuevaAsig.sedeId}
+                            onChange={e => setNuevaAsig({ ...nuevaAsig, sedeId: e.target.value })}
+                            className={inputClasses}
+                        >
+                            <option value="">-- Seleccione Sede --</option>
+                            {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                        </select>
+                    </div>
+                    <div className="md:col-span-2">
+                        <label className="text-xs font-bold text-gray-500 uppercase">Vigencia</label>
+                        <select
+                            value={nuevaAsig.vigenciaId}
+                            onChange={e => setNuevaAsig({ ...nuevaAsig, vigenciaId: e.target.value })}
+                            className={inputClasses}
+                        >
+                            <option value="">Año...</option>
+                            {/* Mostramos 'anio' en el select también */}
+                            {vigencias.map(v => <option key={v.id} value={v.id}>{v.anio}</option>)}
+                        </select>
+                    </div>
+                    <div className="md:col-span-2">
+                        <label className="text-xs font-bold text-gray-500 uppercase">Rol</label>
+                        <select
+                            value={nuevaAsig.tipo}
+                            onChange={e => setNuevaAsig({ ...nuevaAsig, tipo: e.target.value })}
+                            className={inputClasses}
+                        >
+                            <option value="ACADEMICO">Académico</option>
+                            <option value="CONVIVENCIA">Convivencia</option>
+                        </select>
+                    </div>
+                    <div className="md:col-span-3">
+                        <label className="text-xs font-bold text-gray-500 uppercase">Jornada</label>
+                        <select
+                            value={nuevaAsig.jornada}
+                            onChange={e => setNuevaAsig({ ...nuevaAsig, jornada: e.target.value })}
+                            className={inputClasses}
+                            disabled={nuevaAsig.tipo === 'ACADEMICO'}
+                        >
+                            <option value="">{nuevaAsig.tipo === 'ACADEMICO' ? 'N/A' : 'Seleccione...'}</option>
+                            {JORNADAS_ENUMS.map(j => <option key={j} value={j}>{j}</option>)}
+                        </select>
+                    </div>
+                    <div className="md:col-span-2">
+                        <button
+                            type="button"
+                            onClick={agregarAsignacion}
+                            className="w-full bg-green-600 text-white py-2 rounded shadow hover:bg-green-700 transition flex justify-center items-center gap-2"
+                        >
+                            <FontAwesomeIcon icon={faPlus} /> Asignar
+                        </button>
                     </div>
                 </div>
 
-                {/* Botones del formulario */}
-                <div className="pt-4 flex justify-center space-x-3 border-t border-[#eee] mt-6">
-                    <button
-                        type="submit"
-                        className="bg-blue-600 text-white px-5 py-2 rounded-lg shadow-md hover:bg-blue-700 transition duration-150 flex items-center"
-                        disabled={loading}
-                    >
-                        <FontAwesomeIcon icon={faSave} className="w-4 h-4 mr-2" />
-                        {mode === "agregar" ? "Guardar" : "Guardar Cambios"}
-                    </button>
+                {/* Tabla de asignaciones agregadas */}
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 text-sm">
+                        <thead className="bg-gray-100 text-gray-600 uppercase font-bold text-xs">
+                            <tr>
+                                <th className="px-3 py-2 text-left">Sede</th>
+                                <th className="px-3 py-2 text-left">Vigencia</th>
+                                <th className="px-3 py-2 text-left">Rol</th>
+                                <th className="px-3 py-2 text-left">Jornada</th>
+                                <th className="px-3 py-2 text-right">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                            {formData.asignaciones && formData.asignaciones.length > 0 ? (
+                                formData.asignaciones.map((asig, idx) => (
+                                    <tr key={asig.tempId || idx} className="hover:bg-gray-50">
+                                        <td className="px-3 py-2 text-gray-800">{getSedeName(asig.sedeId)}</td>
 
-                    <button
-                        type="button"
-                        onClick={resetForm}
-                        className="bg-red-500 text-white px-5 py-2 rounded-lg shadow-md hover:bg-red-600 transition duration-150 flex items-center hover:scale-[1.01]"
-                        disabled={loading}
-                    >
-                        <FontAwesomeIcon icon={faTimes} className="mr-2" />
-                        Cancelar
-                    </button>
+                                        {/* Columna VIGENCIA: Usamos el helper corregido */}
+                                        <td className="px-3 py-2 font-medium text-gray-700">
+                                            {getVigenciaName(asig.vigenciaId)}
+                                        </td>
+
+                                        {/* Columna ROL: Lógica de color */}
+                                        <td className="px-3 py-2">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold 
+                                                ${asig.tipo === 'ACADEMICO' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                {/* Fallback si tipo es undefined */}
+                                                {asig.tipo || "Sin asignar"}
+                                            </span>
+                                        </td>
+
+                                        <td className="px-3 py-2 text-gray-600">
+                                            {asig.tipo === 'CONVIVENCIA' ? asig.jornada : '-'}
+                                        </td>
+                                        <td className="px-3 py-2 text-right">
+                                            <button
+                                                type="button"
+                                                onClick={() => eliminarAsignacion(idx)}
+                                                className="text-red-500 hover:text-red-700 transition"
+                                            >
+                                                <FontAwesomeIcon icon={faTrash} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="5" className="px-3 py-4 text-center text-gray-500 italic">
+                                        No hay sedes asignadas. Añada una arriba.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
+            </div>
+
+            {/* Botones de Acción (Sin cambios) */}
+            <div className="flex justify-center space-x-4 pt-4 border-t border-gray-200">
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-700 transition flex items-center"
+                >
+                    <FontAwesomeIcon icon={faSave} className="mr-2" />
+                    {mode === 'agregar' ? 'Guardar' : 'Guardar Cambios'}
+                </button>
+                <button
+                    type="button"
+                    onClick={resetForm}
+                    disabled={loading}
+                    className="bg-red-500 text-white px-6 py-2 rounded-lg shadow hover:bg-red-600 transition flex items-center"
+                >
+                    <FontAwesomeIcon icon={faTimes} className="mr-2" /> Cancelar
+                </button>
             </div>
         </form>
     );

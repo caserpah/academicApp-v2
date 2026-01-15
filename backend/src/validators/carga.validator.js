@@ -1,9 +1,10 @@
-import { param } from "express-validator";
-import { Carga } from "../models/carga.js";
+import { body, param } from "express-validator";
+import { Sede } from "../models/sede.js";
 import { Docente } from "../models/docente.js";
 import { Grupo } from "../models/grupo.js";
-import { Sede } from "../models/sede.js";
 import { Asignatura } from "../models/asignatura.js";
+import { Vigencia } from "../models/vigencia.js";
+import { Carga } from "../models/carga.js";
 import {
     validarCampoRequerido,
     validarCampoOpcionalRequerido,
@@ -11,15 +12,7 @@ import {
 } from "../utils/dbUtils.js";
 import { validationErrorHandler } from "./validationErrorHandler.js";
 
-// Horas permitidas: 1 a 40
-const HORAS_MIN = 1;
-const HORAS_MAX = 40;
-
 export const validarCrearCarga = [
-    validarCampoRequerido("horas", "Ingrese la cantidad de horas asignadas.")
-        .isInt({ min: HORAS_MIN, max: HORAS_MAX })
-        .withMessage(`Las horas deben estar entre ${HORAS_MIN} y ${HORAS_MAX}.`),
-
     validarCampoRequerido("sedeId", "Seleccione la sede.")
         .isInt({ min: 1 })
         .withMessage("La sede seleccionada no es válida.")
@@ -44,6 +37,11 @@ export const validarCrearCarga = [
         .bail()
         .custom(verificarExistenciaPorId(Asignatura, "id", "la asignatura seleccionada")),
 
+    body("vigenciaId").optional().isInt().custom(verificarExistenciaPorId(Vigencia, "id", "el año lectivo o vigencia")),
+
+    validarCampoRequerido("horas", "Ingrese la intensidad horaria.")
+        .isInt({ min: 0 }).withMessage("Las horas deben ser un número mayor cero."),
+
     validationErrorHandler,
 ];
 
@@ -53,10 +51,6 @@ export const validarActualizarCarga = [
         .withMessage("La carga seleccionada no es válida.")
         .bail()
         .custom(verificarExistenciaPorId(Carga, "id", "la carga")),
-
-    validarCampoOpcionalRequerido("horas", "Ingrese la cantidad de horas asignadas.")
-        .isInt({ min: HORAS_MIN, max: HORAS_MAX })
-        .withMessage(`Las horas deben estar entre ${HORAS_MIN} y ${HORAS_MAX}.`),
 
     validarCampoOpcionalRequerido("sedeId", "Seleccione la sede.")
         .isInt({ min: 1 })
@@ -81,6 +75,9 @@ export const validarActualizarCarga = [
         .withMessage("La asignatura seleccionada no es válida.")
         .bail()
         .custom(verificarExistenciaPorId(Asignatura, "id", "la asignatura seleccionada")),
+
+    validarCampoOpcionalRequerido("horas", "Ingrese la intensidad horaria.")
+        .isInt({ min: 0 }).withMessage("Las horas deben ser un número mayor cero."),
 
     validationErrorHandler,
 ];

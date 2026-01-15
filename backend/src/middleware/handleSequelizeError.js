@@ -1,3 +1,5 @@
+
+
 import {
     UniqueConstraintError,
     ForeignKeyConstraintError,
@@ -16,11 +18,12 @@ export const handleSequelizeError = (error) => {
     if (error instanceof UniqueConstraintError) {
 
         const indexName = Object.keys(error.fields || {})[0] || null;
+        console.log("⚠️ EL NOMBRE DEL ÍNDICE QUE FALLA ES:", indexName);
 
-        // Caso 1: coordinador_sedes (coordinador + sede + jornada + vigencia)
-        if (indexName === "uq_sede_jornada_vigencia") {
+        // Caso 1: coordinador_sedes (coordinador + sede + vigencia)
+        if (indexName === "uq_sede_vigencia") {
             const err = new Error(
-                "Este coordinador ya está asignado a esta sede en la jornada seleccionada para el año lectivo."
+                "Este coordinador ya está asignado a esta sede para el año lectivo."
             );
             err.status = 409;
             return err;
@@ -70,12 +73,14 @@ export const handleSequelizeError = (error) => {
             return err;
         }
 
-        /* Caso 6: indicador + periodo + vigenciaId
-        if (indexName === "idx_indicador_periodo_vigencia") {
-            const err = new Error("Ya existe un indicador registrado para este periodo en el año lectivo.");
+        // Caso 7: El índice que está fallando es "coordinadorId"
+        if (indexName === "coordinadorId") {
+            const err = new Error(
+                "El Coordinador ya cuenta con una coordinación asignada para la sede y el año lectivo seleccionados."
+            );
             err.status = 409;
             return err;
-        }*/
+        }
 
         // Caso 7: Especial para Juicios
         if (indexName === "idx_juicio_unico") {

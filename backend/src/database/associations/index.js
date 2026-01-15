@@ -32,15 +32,15 @@ export const definirAsociaciones = () => {
     /** 👩‍💼 Coordinador ↔ Sede (N:M) */
     Coordinador.belongsToMany(Sede, {
         through: CoordinadorSedes,
-        foreignKey: "coordinadorId",
-        otherKey: "sedeId",
         as: "sedes",
+        foreignKey: "coordinadorId",
+        otherKey: "sedeId"
     });
     Sede.belongsToMany(Coordinador, {
         through: CoordinadorSedes,
+        as: "coordinadores",
         foreignKey: "sedeId",
         otherKey: "coordinadorId",
-        as: "coordinadores",
     });
 
     /** Relaciones directas del modelo intermedio coordinador_sedes */
@@ -75,9 +75,9 @@ export const definirAsociaciones = () => {
     Area.hasMany(Asignatura, { foreignKey: "areaId", as: "asignaturas" });
     Asignatura.belongsTo(Area, { foreignKey: "areaId", as: "area" });
 
-    /** 🧑‍🏫 Área ↔ Docente (1:N) */
-    Area.hasMany(Docente, { foreignKey: "areaId", as: "docentes" });
-    Docente.belongsTo(Area, { foreignKey: "areaId", as: "area" });
+    // /** 🧑‍🏫 Área ↔ Docente (1:N) */
+    // Area.hasMany(Docente, { foreignKey: "areaId", as: "docentes" });
+    // Docente.belongsTo(Area, { foreignKey: "areaId", as: "area" });
 
     /** 📘 Asignatura → Juicios */
     Asignatura.hasMany(Juicio, { foreignKey: "asignaturaId", as: "juicios" });

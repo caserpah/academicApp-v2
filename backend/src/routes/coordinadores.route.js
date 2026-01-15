@@ -20,12 +20,9 @@ router.get("/", protect, coordinadorController.list);
 router.get("/:id", protect, coordinadorController.get);
 
 // Crear coordinador (solo admin)
-router.post(
-    "/",
-    protect,
-    restrictTo(["admin"]),
-    validarCrearCoordinador,
-    validationErrorHandler,
+router.post("/",
+    protect, restrictTo(["admin"]),
+    validarCrearCoordinador, validationErrorHandler,
     coordinadorController.create
 );
 

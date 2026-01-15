@@ -1,9 +1,11 @@
+import { Op } from "sequelize";
 import { Carga } from "../models/carga.js";
+import { Sede } from "../models/sede.js";
 import { Docente } from "../models/docente.js";
 import { Grupo } from "../models/grupo.js";
-import { Grado } from "../models/grado.js";
-import { Sede } from "../models/sede.js";
 import { Asignatura } from "../models/asignatura.js";
+import { Vigencia } from "../models/vigencia.js";
+import { Grado } from "../models/grado.js";
 
 export const cargaRepository = {
 
@@ -11,120 +13,119 @@ export const cargaRepository = {
      * Listado con filtros, paginación y ordenamiento.
      */
     async findAll({
+        page = 1,
+        limit = 20,
+        busqueda,
         sedeId,
+        vigenciaId,
         docenteId,
         grupoId,
-        asignaturaId,
-        vigenciaId,
-        page,
-        limit,
-        orderBy,
-        order
-    }) {
-        const where = { vigenciaId };
+        gradoId,
+        jornada
+    } = {}) {
 
+        // Filtros Directos
+        const where = {};
+        if (sedeId) where.sedeId = sedeId;
+        if (vigenciaId) where.vigenciaId = vigenciaId;
         if (docenteId) where.docenteId = docenteId;
         if (grupoId) where.grupoId = grupoId;
-        if (asignaturaId) where.asignaturaId = asignaturaId;
-        if (sedeId) where.sedeId = sedeId;
 
-        const offset = (page - 1) * limit;
+        // Búsqueda de Texto (Debounce)
+        if (busqueda) {
+            where[Op.or] = [
+                { codigo: { [Op.like]: `%${busqueda}%` } },
+                { '$docente.nombre$': { [Op.like]: `%${busqueda}%` } },
+                { '$docente.apellidos$': { [Op.like]: `%${busqueda}%` } },
+                { '$asignatura.nombre$': { [Op.like]: `%${busqueda}%` } },
+                { '$grupo.nombre$': { [Op.like]: `%${busqueda}%` } }
+            ];
+        }
+
+        // Configuración del Include de Grupo (Para filtros anidados)
+        const grupoInclude = {
+            model: Grupo,
+            as: "grupo",
+            attributes: ["id", "nombre", "jornada"],
+            include: [{ model: Grado, as: "grado", attributes: ["id", "nombre"] }]
+        };
+
+        // Lógica de filtrado anidado:
+        // Si se envían gradoId o jornada, debo filtrar AL GRUPO, no a la carga directamente.
+        if (gradoId || jornada) {
+            grupoInclude.where = {};
+            if (gradoId) grupoInclude.where.gradoId = gradoId;
+            if (jornada) grupoInclude.where.jornada = jornada;
+        }
+
+        const offset = (Number(page) - 1) * Number(limit);
 
         const { rows, count } = await Carga.findAndCountAll({
             where,
-            limit,
             offset,
-            order: [[orderBy, order]],
+            limit: Number(limit),
+            subQuery: false, // OBLIGATORIO: Permite filtrar por las tablas incluidas (Grupo)
+            order: [
+                [{ model: Grupo, as: 'grupo' }, { model: Grado, as: 'grado' }, 'id', 'ASC'],
+                [{ model: Grupo, as: 'grupo' }, 'nombre', 'ASC'],
+                [{ model: Asignatura, as: 'asignatura' }, 'nombre', 'ASC']
+            ],
             include: [
+                {
+                    model: Sede,
+                    as: "sede",
+                    attributes: ["id", "nombre"]
+                },
                 {
                     model: Docente,
                     as: "docente",
                     attributes: ["id", "nombre", "apellidos", "documento"]
                 },
-                {
-                    model: Grupo,
-                    as: "grupo",
-                    attributes: ["id", "nombre", "jornada"],
-                    include: [
-                        {
-                            model: Grado,
-                            as: "grado",
-                            attributes: ["id", "nombre", "codigo"]
-                        }
-                    ]
-                },
-                {
-                    model: Sede,
-                    as: "sede",
-                    attributes: ["id", "codigo", "nombre"]
-                },
+                grupoInclude, // Usamos el objeto configurado arriba
                 {
                     model: Asignatura,
                     as: "asignatura",
-                    attributes: ["id", "codigo", "nombre", "abreviatura"]
+                    attributes: ["id", "nombre", "codigo"]
+                },
+                {
+                    model: Vigencia,
+                    as: "vigencia",
+                    attributes: ["id", "anio", "nombre"]
                 }
             ]
         });
 
         return {
             items: rows,
-            pagination: {
-                total: count,
-                page,
-                limit,
-                totalPages: Math.ceil(count / limit)
-            }
+            total: count,
+            page: Number(page),
+            limit: Number(limit),
         };
     },
 
-    findById(id, vigenciaId) {
-        return Carga.findOne({
-            where: { id, vigenciaId },
+    findById(id) {
+        return Carga.findByPk(id, {
             include: [
-                {
-                    model: Docente,
-                    as: "docente",
-                    attributes: ["id", "nombre", "apellidos", "documento"]
-                },
-                {
-                    model: Grupo,
-                    as: "grupo",
-                    attributes: ["id", "nombre", "jornada"],
-                    include: [
-                        {
-                            model: Grado,
-                            as: "grado",
-                            attributes: ["id", "nombre", "codigo"]
-                        }
-                    ]
-                },
-                {
-                    model: Sede,
-                    as: "sede",
-                    attributes: ["id", "codigo", "nombre"]
-                },
-                {
-                    model: Asignatura,
-                    as: "asignatura",
-                    attributes: ["id", "codigo", "nombre", "abreviatura"]
-                }
+                { model: Sede, as: "sede", attributes: ["id", "nombre"] },
+                { model: Docente, as: "docente" },
+                { model: Grupo, as: "grupo", include: [{ model: Grado, as: "grado" }] },
+                { model: Asignatura, as: "asignatura" },
+                { model: Vigencia, as: "vigencia" }
             ]
         });
     },
 
-    create(data) {
-        return Carga.create(data);
+    async create(payload, transaction) {
+        return Carga.create(payload, { transaction });
     },
 
-    async updateById(id, vigenciaId, data) {
-        const registro = await Carga.findOne({ where: { id, vigenciaId } });
+    async updateById(id, payload, transaction) {
+        const registro = await Carga.findByPk(id);
         if (!registro) return null;
-
-        await registro.update(data);
-        return registro;
+        return registro.update(payload, { transaction });
     },
 
-    async deleteById(id, vigenciaId) {
-        return Carga.destroy({ where: { id, vigenciaId } });
+    async deleteById(id, transaction) {
+        return Carga.destroy({ where: { id }, transaction });
     }
 };
