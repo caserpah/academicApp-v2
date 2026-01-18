@@ -55,11 +55,11 @@ export const Docente = sequelize.define("docente", {
         allowNull: false,
         validate: {
             isIn: {
-                args: [["NS", "TC", "LC", "PF", "MA", "DO", "OT"]],
+                args: [["NS", "TC", "LC", "PF", "ES", "MA", "DO", "OT"]],
                 msg: "Nivel educativo inválido.",
             },
         },
-        comment: "NS: Normalista Superior, TC: Técnico o Tecnólogo en Educación, LC: Licenciatura, PF: Profesional, MA: Maestría, DO: Doctorado, OT: Otro"
+        comment: "NS: Normalista Superior, TC: Técnico o Tecnólogo en Educación, LC: Licenciatura, PF: Profesional, ES: Especialista, MA: Maestría, DO: Doctorado, OT: Otro"
     },
 
     profesion: {
@@ -96,14 +96,7 @@ export const Docente = sequelize.define("docente", {
 
     fechaNombrado: {
         type: DataTypes.DATEONLY,
-        allowNull: true,
-        validate: {
-            isDate: { msg: "Debe ingresar una fecha válida (YYYY-MM-DD)." },
-            isBefore: {
-                args: [new Date().toISOString().split("T")[0]],
-                msg: "La fecha de nombramiento no puede ser futura.",
-            },
-        },
+        allowNull: true
     },
 
     vinculacion: {
@@ -120,23 +113,12 @@ export const Docente = sequelize.define("docente", {
 
     fechaIngreso: {
         type: DataTypes.DATEONLY,
-        allowNull: true,
-        validate: {
-            isDate: { msg: "Debe ingresar una fecha válida (YYYY-MM-DD)." }
-        }
+        allowNull: true
     },
 
     fechaRetiro: {
         type: DataTypes.DATEONLY,
-        allowNull: true,
-        validate: {
-            isDate: { msg: "Debe ingresar una fecha válida (YYYY-MM-DD)." },
-            isAfterDateIngreso(value) {
-                if (value && this.fechaIngreso && value < this.fechaIngreso) {
-                    throw new Error("La fecha de retiro no puede ser menor que la fecha de ingreso.");
-                }
-            }
-        }
+        allowNull: true
     },
 
     direccion: {

@@ -79,7 +79,7 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
             <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-full max-h-[90vh] flex flex-col">
 
                 {/* Encabezado */}
-                <div className="flex justify-between items-center p-5 border-b bg-gray-50 rounded-t-lg">
+                <div className="flex justify-between items-center p-5 border-b border-gray-300 bg-gray-50 rounded-t-lg">
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                         <FontAwesomeIcon icon={faUserCheck} className="text-gray-800" />
                         {registro ? "Editar Acudiente" : "Registrar Nuevo Acudiente"}

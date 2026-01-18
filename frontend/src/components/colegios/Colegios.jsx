@@ -137,7 +137,7 @@ const Colegios = () => {
             </div>
 
             <div className="bg-white shadow-xl rounded-xl p-8">
-                <h2 className="text-1xl font-semibold text-gray-800 mb-6 border-b pb-3 flex items-center">
+                <h2 className="text-1xl font-semibold text-gray-800 mb-6 border-b border-gray-400 pb-3 flex items-center">
                     <FontAwesomeIcon icon="fa-info-circle" className="w-6 h-6 mr-3 text-[#2c3e50]" />
                     {isEditing
                         ? `Editar Datos de la IE. ${formData.nombre || "la Institución"}`

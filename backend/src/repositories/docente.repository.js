@@ -20,7 +20,8 @@ export const docenteRepository = {
                 { documento: { [Op.like]: term } },
                 { profesion: { [Op.like]: term } },
                 { vinculacion: { [Op.like]: term } },
-                { areaEnsenanza: { [Op.like]: term } }
+                { areaEnsenanza: { [Op.like]: term } },
+                { decretoLey: { [Op.like]: term } }
             ];
 
             if ("activo".includes(busquedaLower)) orConditions.push({ activo: true });

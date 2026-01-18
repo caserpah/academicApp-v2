@@ -46,7 +46,7 @@ export const cargaRepository = {
         const grupoInclude = {
             model: Grupo,
             as: "grupo",
-            attributes: ["id", "nombre", "jornada"],
+            attributes: ["id", "nombre", "jornada", "gradoId"],
             include: [{ model: Grado, as: "grado", attributes: ["id", "nombre"] }]
         };
 
@@ -90,7 +90,7 @@ export const cargaRepository = {
                 {
                     model: Vigencia,
                     as: "vigencia",
-                    attributes: ["id", "anio", "nombre"]
+                    attributes: ["id", "anio"]
                 }
             ]
         });

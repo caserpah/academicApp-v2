@@ -2,6 +2,24 @@ import { docenteRepository } from "../repositories/docente.repository.js";
 import { handleSequelizeError } from "../middleware/handleSequelizeError.js";
 import { sequelize } from "../database/db.connect.js";
 
+// --- FUNCIÓN AUXILIAR PARA LIMPIAR FECHAS ---
+const formatearDatos = (data) => {
+    // Creamos una copia para no mutar el original
+    const payload = { ...data };
+
+    // Lista de campos tipo FECHA que son opcionales
+    const camposFecha = ["fechaNombrado", "fechaIngreso", "fechaRetiro"];
+
+    camposFecha.forEach(campo => {
+        // Si viene vacío o es un string vacío, lo forzamos a NULL
+        if (!payload[campo] || payload[campo] === "") {
+            payload[campo] = null;
+        }
+    });
+
+    return payload;
+};
+
 export const docenteService = {
 
     /**
@@ -31,9 +49,10 @@ export const docenteService = {
     async create(data) {
         const t = await sequelize.transaction();
         try {
-            // Se crea el docente. Las validaciones de unicidad (documento/email)
-            // las maneja el Validator antes de llegar aquí o el handleSequelizeError si fallan.
-            const nuevo = await docenteRepository.create(data, t);
+            // Limpiamos las fechas vacías antes de guardar
+            const datosLimpios = formatearDatos(data);
+
+            const nuevo = await docenteRepository.create(datosLimpios, t);
 
             await t.commit();
 
@@ -52,7 +71,10 @@ export const docenteService = {
     async update(id, data) {
         const t = await sequelize.transaction();
         try {
-            const actualizado = await docenteRepository.updateById(id, data, t);
+            // Limpiamos las fechas vacías antes de actualizar
+            const datosLimpios = formatearDatos(data);
+
+            const actualizado = await docenteRepository.updateById(id, datosLimpios, t);
 
             if (!actualizado) {
                 throw new Error("No se encontró el docente solicitado.");

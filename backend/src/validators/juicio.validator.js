@@ -68,7 +68,7 @@ export const ValidarCrearJuicio = [
             const permitidos = config.periodosPermitidos || [];
             // Si no hay configuración de periodos, asumimos que todos están permitidos o lanzamos error.
             if (permitidos.length > 0 && !permitidos.includes(Number(value))) {
-                throw new Error(`Periodos permitidos: ${permitidos.join(", ")}.`);
+                throw new Error(`Para este grado lo periodos permitidos son: ${permitidos.join(" - ")}.`);
             }
             return true;
         }),
@@ -91,7 +91,7 @@ export const ValidarCrearJuicio = [
             // Asignatura COMPORTAMIENTO
             if (esAsignaturaComportamiento(asignatura)) {
                 if (idDimension !== 999) {
-                    throw new Error("El Comportamiento debe ir asociada a SIN DIMENSION.");
+                    throw new Error("El Comportamiento debe ir asociado a SIN DIMENSION.");
                 }
                 return true;
             }
@@ -213,7 +213,7 @@ export const validarActualizarJuicio = [
             // La asignatura es COMPORTAMIENTO
             if (esAsignaturaComportamiento(asignatura)) {
                 if (idDimension !== 999) {
-                    throw new Error("El Comportamiento debe ir asociada a SIN DIMENSION.");
+                    throw new Error("El Comportamiento debe ir asociado a SIN DIMENSION.");
                 }
                 return true;
             }

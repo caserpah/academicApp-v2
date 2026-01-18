@@ -8,6 +8,7 @@ const NIVEL_EDUCATIVO_OPTIONS = [
     { value: "TC", label: "Técnico o Tecnólogo en Educación" },
     { value: "LC", label: "Licenciatura" },
     { value: "PF", label: "Profesional (No Licenciado)" },
+    { value: "ES", label: "Especialización" },
     { value: "MA", label: "Maestría" },
     { value: "DO", label: "Doctorado" },
     { value: "OT", label: "Otro" }
@@ -65,139 +66,139 @@ const DocentesForm = ({
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* SECCIÓN 1: DATOS PERSONALES */}
+            <div className="mb-6">
+                <h4 className="text-sm font-bold text-blue-800 border-b border-blue-100 mb-3 pb-1">Datos Personales y de Contacto</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
-                {/* 1. Identificación */}
-                <div>
-                    <label className={labelClasses}>Documento <span className="text-red-500">*</span></label>
-                    <input
-                        type="text" name="documento"
-                        placeholder="Máx. 20 Dígitos"
-                        value={formData.documento} onChange={handleChange}
-                        className={inputClasses} maxLength={20}
-                    />
-                </div>
-
-                {/* 2. Nombres */}
-                <div>
-                    <label className={labelClasses}>Nombres <span className="text-red-500">*</span></label>
-                    <input
-                        type="text" name="nombre"
-                        value={formData.nombre} onChange={handleChange}
-                        className={inputClasses}
-                    />
-                </div>
-
-                {/* 3. Apellidos */}
-                <div>
-                    <label className={labelClasses}>Apellidos <span className="text-red-500">*</span></label>
-                    <input
-                        type="text" name="apellidos"
-                        value={formData.apellidos} onChange={handleChange}
-                        className={inputClasses}
-                    />
-                </div>
-
-                {/* 4. Fecha Nacimiento */}
-                <div>
-                    <label className={labelClasses}>Fecha Nacimiento </label>
-                    <input
-                        type="date" name="fechaNacimiento"
-                        value={formData.fechaNacimiento} onChange={handleChange}
-                        className={inputClasses}
-                    />
-                </div>
-
-                {/* 5. Email */}
-                <div>
-                    <label className={labelClasses}>Correo Electrónico</label>
-                    <input
-                        type="email" name="email"
-                        placeholder="docente@colegio.edu.co"
-                        value={formData.email || ""} onChange={handleChange}
-                        className={inputClasses}
-                    />
-                </div>
-
-                {/* 6. Teléfono */}
-                <div>
-                    <label className={labelClasses}>Contacto (10-12 dígitos, opcional)</label>
-                    <input
-                        type="text" name="telefono"
-                        placeholder="Teléfono de contacto"
-                        value={formData.telefono || ""} onChange={handleChange}
-                        className={inputClasses} maxLength={12}
-                    />
-                </div>
-
-                {/* 7. Área Base */}
-                <div>
                     <div>
-                        <label className={labelClasses}>Área de Enseñanza</label>
-                        <input
-                            type="text" name="areaEnsenanza"
-                            value={formData.areaEnsenanza || ""} onChange={handleChange}
-                            placeholder="Ej: Matemáticas"
-                            className={inputClasses} maxLength={100}
-                        />
+                        <label className={labelClasses}>Documento <span className="text-red-500">*</span></label>
+                        <input type="text" name="documento" value={formData.documento} onChange={handleChange} className={inputClasses} maxLength={20} />
                     </div>
-                </div>
 
-                {/* 8. Profesión (Nuevo campo) */}
-                <div className="md:col-span-2">
-                    <label className={labelClasses}>Título Profesional / Profesión</label>
-                    <input
-                        type="text" name="profesion"
-                        value={formData.profesion || ""} onChange={handleChange}
-                        placeholder="Ej: Licenciado en Matemáticas y Física"
-                        className={inputClasses} maxLength={100}
-                    />
+                    <div>
+                        <label className={labelClasses}>Nombres <span className="text-red-500">*</span></label>
+                        <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} className={inputClasses} />
+                    </div>
+
+                    <div>
+                        <label className={labelClasses}>Apellidos <span className="text-red-500">*</span></label>
+                        <input type="text" name="apellidos" value={formData.apellidos} onChange={handleChange} className={inputClasses} />
+                    </div>
+
+                    <div>
+                        <label className={labelClasses}>Fecha Nacimiento <span className="text-red-500">*</span></label>
+                        <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className={inputClasses} />
+                    </div>
+
+                    <div>
+                        <label className={labelClasses}>Email</label>
+                        <input type="email" name="email" value={formData.email} onChange={handleChange} className={inputClasses} />
+                    </div>
+
+                    <div>
+                        <label className={labelClasses}>Teléfono</label>
+                        <input type="text" name="telefono" value={formData.telefono} onChange={handleChange} className={inputClasses} maxLength={12} />
+                    </div>
+
+                    <div className="lg:col-span-2">
+                        <label className={labelClasses}>Dirección de Residencia</label>
+                        <input type="text" name="direccion" value={formData.direccion} onChange={handleChange} className={inputClasses} maxLength={150} placeholder="Ej: Calle 10 # 5-20" />
+                    </div>
                 </div>
             </div>
 
-            {/* SECCIÓN ACADÉMICA / VINCULACIÓN */}
-            <div className="mt-4 pt-4 border-t border-gray-100">
-                <h4 className="text-sm font-bold text-gray-500 uppercase mb-3">Información de Vinculación</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* SECCIÓN 2: PERFIL PROFESIONAL */}
+            <div className="mb-6">
+                <h4 className="text-sm font-bold text-blue-800 border-b border-blue-100 mb-3 pb-1">Perfil Profesional</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
                     <div>
                         <label className={labelClasses}>Nivel Educativo <span className="text-red-500">*</span></label>
                         <select name="nivelEducativo" value={formData.nivelEducativo} onChange={handleChange} className={inputClasses}>
-                            <option value="">-- Seleccione --</option>
+                            <option value="">Seleccione...</option>
                             {NIVEL_EDUCATIVO_OPTIONS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
+                        </select>
+                    </div>
+
+                    <div className="lg:col-span-2">
+                        <label className={labelClasses}>Título / Profesión</label>
+                        <input type="text" name="profesion" value={formData.profesion} onChange={handleChange} className={inputClasses} placeholder="Ej: Licenciado en Matemáticas" maxLength={100} />
+                    </div>
+
+                    <div>
+                        <label className={labelClasses}>Área de Enseñanza</label>
+                        <input type="text" name="areaEnsenanza" value={formData.areaEnsenanza} onChange={handleChange} className={inputClasses} placeholder="Ej: Matemáticas" maxLength={100} />
+                    </div>
+                </div>
+            </div>
+
+            {/* SECCIÓN 3: INFORMACIÓN ADMINISTRATIVA Y VINCULACIÓN */}
+            <div className="mb-6">
+                <h4 className="text-sm font-bold text-blue-800 border-b border-blue-100 mb-3 pb-1">Información Administrativa y Nombramiento</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+                    <div>
+                        <label className={labelClasses}>Tipo Vinculación <span className="text-red-500">*</span></label>
+                        <select name="vinculacion" value={formData.vinculacion} onChange={handleChange} className={inputClasses}>
+                            <option value="">Seleccione...</option>
+                            {VINCULACION_OPTIONS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
                         </select>
                     </div>
 
                     <div>
                         <label className={labelClasses}>Nivel Enseñanza <span className="text-red-500">*</span></label>
                         <select name="nivelEnsenanza" value={formData.nivelEnsenanza} onChange={handleChange} className={inputClasses}>
-                            <option value="">-- Seleccione --</option>
+                            <option value="">Seleccione...</option>
                             {NIVEL_ENSENANZA_OPTIONS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
                         </select>
                     </div>
 
                     <div>
-                        <label className={labelClasses}>Tipo Vinculación <span className="text-red-500">*</span></label>
-                        <select name="vinculacion" value={formData.vinculacion} onChange={handleChange} className={inputClasses}>
-                            <option value="">-- Seleccione --</option>
-                            {VINCULACION_OPTIONS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
-                        </select>
+                        <label className={labelClasses}>Decreto Ley</label>
+                        <input type="text" name="decretoLey" value={formData.decretoLey} onChange={handleChange} className={inputClasses} placeholder="Ej: 1278" maxLength={10} />
+                    </div>
+
+                    <div>
+                        <label className={labelClasses}>Escalafón</label>
+                        <input type="text" name="escalafon" value={formData.escalafon} onChange={handleChange} className={inputClasses} placeholder="Ej: 2A" maxLength={10} />
+                    </div>
+
+                    <div>
+                        <label className={labelClasses}>Decreto de Nombramiento</label>
+                        <input type="text" name="decretoNombrado" value={formData.decretoNombrado} onChange={handleChange} className={inputClasses} maxLength={10} />
+                    </div>
+
+                    <div>
+                        <label className={labelClasses}>Fecha Nombramiento</label>
+                        <input type="date" name="fechaNombrado" value={formData.fechaNombrado} onChange={handleChange} className={inputClasses} />
+                    </div>
+
+                    <div>
+                        <label className={labelClasses}>Fecha Ingreso</label>
+                        <input type="date" name="fechaIngreso" value={formData.fechaIngreso} onChange={handleChange} className={inputClasses} />
+                    </div>
+
+                    <div>
+                        <label className={labelClasses}>Fecha Retiro</label>
+                        <input type="date" name="fechaRetiro" value={formData.fechaRetiro} onChange={handleChange} className={inputClasses} />
                     </div>
                 </div>
             </div>
 
-            {/* Botones */}
-            <div className="flex justify-center space-x-4 pt-4 border-t  border-[#eee] mt-6">
+            {/* BOTONES DE ACCIÓN */}
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-300">
                 <button
                     type="submit" disabled={loading}
-                    className="bg-blue-600 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-700 transition flex items-center"
+                    className="bg-blue-600 text-white px-5 py-2 rounded-lg shadow-md hover:bg-blue-700 transition duration-150 flex items-center"
                 >
                     <FontAwesomeIcon icon={faSave} className="mr-2" />
                     {mode === 'agregar' ? 'Guardar' : 'Guardar Cambios'}
                 </button>
+
                 <button
                     type="button" onClick={resetForm} disabled={loading}
-                    className="bg-red-500 text-white px-6 py-2 rounded-lg shadow hover:bg-red-600 transition flex items-center"
+                    className="bg-red-500 text-white px-5 py-2 rounded-lg shadow-md hover:bg-red-600 transition duration-150 flex items-center hover:scale-[1.01]"
                 >
                     <FontAwesomeIcon icon={faTimes} className="mr-2" /> Cancelar
                 </button>

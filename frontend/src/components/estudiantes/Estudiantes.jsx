@@ -116,7 +116,7 @@ const Estudiantes = () => {
                 </div>
                 <button
                     onClick={() => handleAbrirModal()}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg shadow flex items-center text-sm font-medium gap-2 transition-colors"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition flex items-center shadow-sm text-sm font-medium"
                 >
                     <FontAwesomeIcon icon={faPlus} />
                     <span>Registrar Nuevo Estudiante</span>
@@ -254,10 +254,15 @@ const Estudiantes = () => {
 
             {/* MODAL INTEGRADO */}
             {mostrarModal && (
+
+                // Overlay del Modal
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+
+                    {/* Contenedor del Modal */}
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-full max-h-[90vh] flex flex-col">
+
                         {/* Cabecera del Modal */}
-                        <div className="flex justify-between items-center p-5 border-b bg-gray-50 rounded-t-lg">
+                        <div className="flex justify-between items-center p-5 border-b border-gray-300 bg-gray-50 rounded-t-lg">
                             <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                                 <FontAwesomeIcon icon={faUsers} className="text-gray-800" />
                                 {estudianteEditar ? "Editar Estudiante" : "Registrar Nuevo Estudiante"}

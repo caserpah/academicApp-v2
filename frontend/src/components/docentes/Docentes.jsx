@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faChalkboardTeacher,
+    faPersonChalkboard,
     faEdit,
     faTrash,
     faSearch,
@@ -24,12 +24,31 @@ const Docentes = () => {
         fechaNacimiento: "",
         email: "",
         telefono: "",
+        direccion: "",
         profesion: "",
+        areaEnsenanza: "",
+
+        // Datos Administrativos NUEVOS
+        decretoLey: "",
+        escalafon: "",
+        decretoNombrado: "",
+        fechaNombrado: "",
+        fechaIngreso: "",
+        fechaRetiro: "",
+
         nivelEducativo: "",
         nivelEnsenanza: "",
         vinculacion: "",
-        areaEnsenanza: "",
         activo: true
+    };
+
+    // Diccionario para traducir los códigos de vinculación
+    const TIPO_VINCULACION = {
+        "PD": "Propiedad",
+        "PP": "Periodo de Prueba",
+        "PV": "Provisionalidad",
+        "TR": "Temporalidad",
+        "OT": "Otro"
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -103,7 +122,7 @@ const Docentes = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        const requiredFields = ["documento", "nombre", "apellidos", "nivelEducativo", "nivelEnsenanza", "vinculacion"];
+        const requiredFields = ["documento", "nombre", "apellidos", "email", "nivelEducativo", "nivelEnsenanza", "vinculacion"];
 
         // Validación de campos
         for (const field of requiredFields) {
@@ -140,10 +159,20 @@ const Docentes = () => {
     const handleEdit = (docente) => {
         setFormData({
             ...docente,
+            // Mapeo seguro para evitar nulls en inputs
             areaEnsenanza: docente.areaEnsenanza || "",
             email: docente.email || "",
             telefono: docente.telefono || "",
+            direccion: docente.direccion || "",
             profesion: docente.profesion || "",
+
+            // Mapeo de campos administrativos
+            decretoLey: docente.decretoLey || "",
+            escalafon: docente.escalafon || "",
+            decretoNombrado: docente.decretoNombrado || "",
+            fechaNombrado: docente.fechaNombrado || "",
+            fechaIngreso: docente.fechaIngreso || "",
+            fechaRetiro: docente.fechaRetiro || "",
         });
         setMode("editar");
         formRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -182,7 +211,7 @@ const Docentes = () => {
 
                 {/* Título Principal */}
                 <div className="flex items-center border-b pb-4">
-                    <FontAwesomeIcon icon={faChalkboardTeacher} className="text-2xl text-[#2c3e50] mr-3" />
+                    <FontAwesomeIcon icon={faPersonChalkboard} className="text-2xl text-[#2c3e50] mr-3" />
                     <h1 className="text-2xl font-semibold text-gray-800">Gestión de Docentes</h1>
                 </div>
 
@@ -263,7 +292,21 @@ const Docentes = () => {
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-600">{d.vinculacion}</td>
+                                                <td className="px-4 py-3">
+                                                    <div className="text-sm font-medium text-gray-700">
+                                                        {/* Traducimos el código, si no existe mostramos el código original */}
+                                                        {TIPO_VINCULACION[d.vinculacion] || d.vinculacion}
+                                                    </div>
+
+                                                    {/* Si tiene decreto, lo mostramos debajo como una etiqueta pequeña */}
+                                                    {d.decretoLey && (
+                                                        <div className="mt-1">
+                                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                                                                Dec. {d.decretoLey}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </td>
                                                 <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
                                                     <button onClick={() => handleEdit(d)} className="text-blue-600 hover:text-blue-800 p-1 transition-colors" title="Editar">
                                                         <FontAwesomeIcon icon={faEdit} />

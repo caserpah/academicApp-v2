@@ -119,7 +119,7 @@ const Acudientes = () => {
                 </div>
                 <button
                     onClick={() => openModal()}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg shadow flex items-center text-sm font-medium gap-2 transition-colors"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition flex items-center shadow-sm text-sm font-medium"
                 >
                     <FontAwesomeIcon icon={faPlus} /> Registrar Nuevo Acudiente
                 </button>

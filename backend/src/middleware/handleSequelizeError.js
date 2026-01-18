@@ -97,7 +97,7 @@ export const handleSequelizeError = (error) => {
         }
         // Caso 9: Especial para Cargas
         if (indexName === "idx_carga_sede_grupo_asignatura_vigencia") {
-            const err = new Error("No es posible guardar la carga académica. El docente ya tiene registrada una carga con la misma asignatura en el mismo grupo de la misma sede para este año lectivo.");
+            const err = new Error("No es posible guardar la carga académica. Ya existe una carga académica con esta asignatura en el mismo grupo de la misma sede para este año lectivo.");
             err.status = 409;
             return err;
         }

@@ -1,7 +1,5 @@
 import { body, param } from "express-validator";
 import { Docente } from "../models/docente.js";
-import { Area } from "../models/area.js";
-
 import {
     validarCampoRequerido,
     validarCampoOpcionalRequerido,
@@ -16,7 +14,7 @@ import { validationErrorHandler } from "./validationErrorHandler.js";
 
 // Valores permitidos para los ENUMs (según tu modelo)
 const ENUMS = {
-    nivelEducativo: ["NS", "TC", "LC", "PF", "MA", "DO", "OT"],
+    nivelEducativo: ["NS", "TC", "LC", "PF", "ES", "MA", "DO", "OT"],
     nivelEnsenanza: ["PE", "BP", "BS", "MA", "OT"],
     vinculacion: ["PD", "PP", "PV", "TR", "OT"]
 };
@@ -34,11 +32,10 @@ export const ValidarCrearDocente = [
         .bail()
         .custom(validarCampoUnico(Docente, "documento", "un docente", false, null, "número de documento")),
 
-    /** Nombre */
+    /** Nombre y Apellidos */
     validarCampoRequerido("nombre", "Ingrese el nombre del docente.")
         .isLength({ min: 3 }).withMessage("El nombre debe tener al menos 3 caracteres."),
 
-    /** Apellidos */
     validarCampoRequerido("apellidos", "Ingrese los apellidos del docente.")
         .isLength({ min: 3 }).withMessage("Los apellidos deben tener al menos 3 caracteres."),
 
@@ -47,51 +44,52 @@ export const ValidarCrearDocente = [
 
     /** Email */
     validarCampoRequerido("email", "Ingrese el correo electrónico")
-        .isEmail().withMessage("Ingrese un correo electrónico válido."),
+        .isEmail().withMessage("Ingrese un correo electrónico válido.")
+        .bail()
+        .custom(validarCampoUnico(Docente, "email", "un docente", false, null, "correo electrónico")),
 
     /** Teléfono */
     validarCampoOpcional("telefono")
         .matches(regexTelefono)
         .withMessage("El teléfono debe contener entre 10 y 12 dígitos."),
 
-    /** Nivel educativo */
+    /** Perfil Profesional */
     validarCampoRequerido("nivelEducativo", "Seleccione el nivel educativo.")
-        .isIn(ENUMS.nivelEducativo)
-        .withMessage("Nivel educativo inválido."),
+        .isIn(ENUMS.nivelEducativo).withMessage("Nivel educativo inválido."),
 
-    /** Profesión */
+    validarCampoRequerido("nivelEnsenanza", "Seleccione el nivel de enseñanza.")
+        .isIn(ENUMS.nivelEnsenanza).withMessage("Nivel de enseñanza inválido."),
+
     body("profesion").optional({ checkFalsy: true })
         .isLength({ min: 5 }).withMessage("El nombre de la profesión debe contener mínimo 5 caracteres."),
 
-    /** Nivel enseñanza */
-    validarCampoRequerido("nivelEnsenanza", "Seleccione el nivel de enseñanza.")
-        .isIn(ENUMS.nivelEnsenanza)
-        .withMessage("Nivel de enseñanza inválido."),
-
-    /** Fecha de nombramiento */
-    validarFechaNoFutura("fechaNombrado", "de nombramiento", true),
-
-    /** Tipo vinculación */
-    validarCampoRequerido("vinculacion", "Seleccione el tipo de vinculación.")
-        .isIn(ENUMS.vinculacion)
-        .withMessage("Tipo de vinculación inválido."),
-
-    /** Fechas laborales */
-    validarFechaNoFutura("fechaIngreso", "de ingreso", true),
-    validarFechaNoFutura("fechaRetiro", "de retiro", true),
-
-    // Validación cruzada de fechas
-    body().custom(validarOrdenFechas),
+    validarCampoOpcional("areaEnsenanza", "Seleccione el área de enseñanza del docente.")
+        .isLength({ min: 5 }).withMessage("El nombre del área de enseñanza debe tener al menos 5 caracteres."),
 
     /** Dirección */
     validarCampoOpcional("direccion")
-        .isLength({ min: 5 })
-        .withMessage("La dirección debe tener al menos 5 caracteres."),
+        .isLength({ min: 5 }).withMessage("La dirección debe tener al menos 5 caracteres."),
 
-    /** Área */
-    validarCampoOpcional("areaEnsenanza", "Seleccione el área de enseñanza del docente.")
-        .isLength({ min: 5 })
-        .withMessage("El nombre del área de enseñanza debe tener al menos 5 caracteres."),
+    /** --- CAMPOS ADMINISTRATIVOS (Agregados) --- */
+    validarCampoOpcional("decretoLey")
+        .isLength({ max: 10 }).withMessage("El Decreto Ley no puede exceder 10 caracteres."),
+
+    validarCampoOpcional("escalafon")
+        .isLength({ max: 10 }).withMessage("El Escalafón no puede exceder 10 caracteres."),
+
+    validarCampoOpcional("decretoNombrado")
+        .isLength({ max: 10 }).withMessage("El Decreto de Nombramiento no puede exceder 10 caracteres."),
+
+    /** Vinculación y Fechas */
+    validarCampoRequerido("vinculacion", "Seleccione el tipo de vinculación.")
+        .isIn(ENUMS.vinculacion).withMessage("Tipo de vinculación inválido."),
+
+    validarFechaNoFutura("fechaNombrado", "de nombramiento", true),
+    validarFechaNoFutura("fechaIngreso", "de ingreso", true),
+    validarFechaNoFutura("fechaRetiro", "de retiro", true),
+
+    // Validación cruzada: Retiro no puede ser antes de Ingreso
+    validarOrdenFechas("fechaIngreso", "fechaRetiro", "La fecha de retiro no puede ser anterior a la fecha de ingreso."),
 
     validationErrorHandler,
 ];
@@ -99,76 +97,75 @@ export const ValidarCrearDocente = [
 export const ValidarActualizarDocente = [
 
     param("id")
-        .isInt({ min: 1 })
-        .withMessage("El docente seleccionado no es válido.")
+        .isInt({ min: 1 }).withMessage("El docente seleccionado no es válido.")
         .bail()
         .custom(verificarExistenciaPorId(Docente, "id", "el docente")),
 
-    /** Documento editable pero único */
-    validarCampoOpcionalRequerido("documento", "Ingrese el número de documento del docente.")
-        .matches(regexDocumento)
-        .withMessage("El documento debe contener mínimo 4 dígitos.")
-        .bail()
+    /** Documento y Email (Validación de unicidad excluyendo el propio ID) */
+    validarCampoOpcionalRequerido("documento", "Ingrese el número de documento.")
+        .matches(regexDocumento).withMessage("El documento debe contener mínimo 4 dígitos.")
         .custom(validarCampoUnico(Docente, "documento", "un docente", true, null, "número de documento")),
+
+    validarCampoOpcionalRequerido("email", "Ingrese el correo electrónico.")
+        .isEmail().withMessage("correo electrónico inválido.")
+        .custom(validarCampoUnico(Docente, "email", "un docente", true, null, "correo electrónico")),
 
     /** Nombre */
     validarCampoOpcionalRequerido("nombre", "Ingrese el nombre del docente.")
-        .isLength({ min: 3 })
-        .withMessage("El nombre debe tener al menos 3 caracteres."),
+        .isLength({ min: 3 }).withMessage("El nombre debe tener al menos 3 caracteres."),
 
     /** Apellidos */
     validarCampoOpcionalRequerido("apellidos", "Ingrese los apellidos del docente.")
-        .isLength({ min: 3 })
-        .withMessage("Los apellidos deben tener al menos 3 caracteres."),
+        .isLength({ min: 3 }).withMessage("Los apellidos deben tener al menos 3 caracteres."),
 
     /** Fecha de nacimiento */
     validarFechaNoFutura("fechaNacimiento", "de nacimiento"),
 
-    /** Email opcional */
-    validarCampoOpcionalRequerido("email", "Ingrese el correo electrónico")
-        .isEmail().withMessage("Ingrese un correo electrónico válido."),
-
     /** Teléfono opcional */
     validarCampoOpcional("telefono")
-        .matches(regexTelefono)
-        .withMessage("El teléfono debe contener entre 10 y 12 dígitos."),
+        .matches(regexTelefono).withMessage("El teléfono debe contener entre 10 y 12 dígitos."),
 
-    /** Nivel educativo */
-    validarCampoOpcionalRequerido("nivelEducativo", "Seleccione el nivel educativo.")
-        .isIn(ENUMS.nivelEducativo)
-        .withMessage("Nivel educativo inválido."),
+    /** Dirección */
+    validarCampoOpcional("direccion")
+        .isLength({ min: 5 }).withMessage("La dirección debe tener al menos 5 caracteres."),
 
     /** Profesión */
     body("profesion").optional({ checkFalsy: true })
         .isLength({ min: 5 }).withMessage("El nombre de la profesión debe contener mínimo 5 caracteres."),
 
+    /** Área */
+    validarCampoOpcional("areaEnsenanza", "Seleccione el área de enseñanza del docente.")
+        .isLength({ min: 5 }).withMessage("El nombre del área de enseñanza debe tener al menos 5 caracteres."),
+
+    /** Administrativos en edición */
+    body("decretoLey").optional({ checkFalsy: true })
+    .isLength({ max: 10 }).withMessage("El Decreto Ley no puede exceder 10 caracteres."),
+
+    body("escalafon").optional({ checkFalsy: true })
+    .isLength({ max: 10 }).withMessage("El Escalafón no puede exceder 10 caracteres."),
+
+    body("decretoNombrado").optional({ checkFalsy: true })
+    .isLength({ max: 10 }).withMessage("El Decreto de Nombramiento no puede exceder 10 caracteres."),
+
+    /** Nivel educativo */
+    validarCampoOpcionalRequerido("nivelEducativo", "Seleccione el nivel educativo.")
+        .isIn(ENUMS.nivelEducativo).withMessage("Nivel educativo inválido."),
+
     /** Nivel enseñanza */
     validarCampoOpcionalRequerido("nivelEnsenanza", "Seleccione el nivel de enseñanza.")
-        .isIn(ENUMS.nivelEnsenanza)
-        .withMessage("Nivel de enseñanza inválido."),
+        .isIn(ENUMS.nivelEnsenanza).withMessage("Nivel de enseñanza inválido."),
+
+    /** Vinculación */
+    validarCampoOpcionalRequerido("vinculacion", "Seleccione el tipo de vinculación.")
+        .isIn(ENUMS.vinculacion).withMessage("Tipo de vinculación inválido."),
 
     /** Fecha de nombramiento */
     validarFechaNoFutura("fechaNombrado", "de nombramiento", true),
 
-    /** Vinculación */
-    validarCampoOpcionalRequerido("vinculacion", "Seleccione el tipo de vinculación.")
-        .isIn(ENUMS.vinculacion)
-        .withMessage("Tipo de vinculación inválido."),
-
     /** Fechas ingreso / retiro */
     validarFechaNoFutura("fechaIngreso", "de ingreso", true),
     validarFechaNoFutura("fechaRetiro", "de retiro", true),
-    body().custom(validarOrdenFechas),
-
-    /** Dirección */
-    validarCampoOpcional("direccion")
-        .isLength({ min: 5 })
-        .withMessage("La dirección debe tener al menos 5 caracteres."),
-
-    /** Área */
-    validarCampoOpcional("areaEnsenanza", "Seleccione el área de enseñanza del docente.")
-        .isLength({ min: 5 })
-        .withMessage("El nombre del área de enseñanza debe tener al menos 5 caracteres."),
+    validarOrdenFechas("fechaIngreso", "fechaRetiro", "La fecha de retiro no puede ser anterior a la fecha de ingreso."),
 
     validationErrorHandler,
 ];

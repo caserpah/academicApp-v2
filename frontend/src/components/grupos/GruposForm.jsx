@@ -33,22 +33,6 @@ const GruposForm = ({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
-                    {/* Nombre */}
-                    <div className="col-span-1">
-                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                            Nombre del Grupo <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            name="nombre"
-                            value={formData.nombre}
-                            onChange={handleNombreInput}
-                            placeholder="Ej: A, B, C, ..., 1, 2, 3"
-                            className={inputBaseClasses}
-                        />
-                        <p className="text-xs text-gray-400 mt-1">Máx. 10 caracteres.</p>
-                    </div>
-
                     {/* Sede */}
                     <div className="col-span-1">
                         <label className="block text-sm font-medium text-[#4a5568] mb-1">
@@ -72,7 +56,7 @@ const GruposForm = ({
                     {/* Grado */}
                     <div className="col-span-1">
                         <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                            Grado Académico <span className="text-red-500">*</span>
+                            Grado <span className="text-red-500">*</span>
                         </label>
                         <select
                             name="gradoId"
@@ -89,6 +73,22 @@ const GruposForm = ({
                         </select>
                     </div>
 
+                    {/* Nombre */}
+                    <div className="col-span-1">
+                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
+                            Grupo <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            name="nombre"
+                            value={formData.nombre}
+                            onChange={handleNombreInput}
+                            placeholder="Ej: A, B, C, ..., 1, 2, 3"
+                            className={inputBaseClasses}
+                        />
+                        <p className="text-xs text-gray-400 mt-1">Máx. 10 caracteres.</p>
+                    </div>
+
                     {/* Jornada */}
                     <div className="col-span-1">
                         <label className="block text-sm font-medium text-[#4a5568] mb-1">
@@ -100,7 +100,7 @@ const GruposForm = ({
                             onChange={handleChange}
                             className={inputBaseClasses}
                         >
-                            <option value="">-- Seleccione --</option>
+                            <option value="">-- Seleccione Jornada --</option>
                             <option value="MANANA">Mañana</option>
                             <option value="TARDE">Tarde</option>
                             <option value="NOCHE">Noche</option>

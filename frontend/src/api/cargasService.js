@@ -10,7 +10,7 @@ export const fetchCargas = async (params = {}) => {
     try {
         // Limpiamos parámetros vacíos/nulos para no ensuciar la URL
         const cleanParams = Object.fromEntries(
-            Object.entries(params).filter(([_, v]) => v != null && v !== "")
+            Object.entries(params).filter(([, v]) => v != null && v !== "")
         );
 
         const queryParams = new URLSearchParams(cleanParams).toString();
@@ -32,15 +32,15 @@ export const fetchCargasCatalogs = async () => {
         // Hacemos peticiones en paralelo
         const [sedesRes, gradosRes, asignaturasRes, docentesRes] = await Promise.all([
             apiClient.get('/api/sedes'),
-            apiClient.get('/api/grados'),
-            apiClient.get('/api/asignaturas'),
-            apiClient.get('/api/docentes?activo=true') // Solo docentes activos
+            apiClient.get('/api/grados?limit=100'),
+            apiClient.get('/api/asignaturas?limit=200'),
+            apiClient.get('/api/docentes?activo=true&limit=200') // Solo docentes activos
         ]);
 
         return {
-            sedes: sedesRes.data.data || [],
+            sedes: sedesRes.data.data.items || sedesRes.data.data || [],
             grados: gradosRes.data.data || [],
-            asignaturas: asignaturasRes.data.data || [],
+            asignaturas: asignaturasRes.data.data.items || sedesRes.data.data || [],
             docentes: docentesRes.data.data.items || []
         };
     } catch (error) {
