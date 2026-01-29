@@ -29,7 +29,7 @@ export const Juicio = sequelize.define("juicio", {
     },
     gradoId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
         references: { model: "grados", key: "id" },
         onUpdate: "CASCADE",
         onDelete: "RESTRICT"
@@ -50,7 +50,7 @@ export const Juicio = sequelize.define("juicio", {
     },
     asignaturaId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
         references: { model: "asignaturas", key: "id" },
         onUpdate: "CASCADE",
         onDelete: "RESTRICT"

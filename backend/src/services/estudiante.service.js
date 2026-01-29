@@ -88,7 +88,10 @@ export const estudianteService = {
                 victimas,
                 discapacidad,
                 capacidades,
-                etnia
+                etnia,
+                lugarExpedicion,
+                lugarNacimiento,
+                municipioResidencia
             } = data;
 
             const nuevo = await estudianteRepository.create({
@@ -112,6 +115,9 @@ export const estudianteService = {
                 discapacidad,
                 capacidades,
                 etnia,
+                lugarExpedicion,
+                lugarNacimiento,
+                municipioResidencia
             });
 
             return nuevo;
@@ -145,7 +151,8 @@ export const estudianteService = {
                 "direccion", "barrio", "contacto",
                 "estrato", "sisben", "subsidiado",
                 "eps", "victimas", "discapacidad",
-                "capacidades", "etnia"
+                "capacidades", "etnia", "lugarExpedicion",
+                "lugarNacimiento", "municipioResidencia"
             ];
 
             for (const campo of campos) {

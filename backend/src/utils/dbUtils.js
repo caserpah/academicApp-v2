@@ -33,9 +33,9 @@ export const validarCampoUnico = (
         const registro = await Modelo.findOne({ where: whereClause });
         if (registro) {
             const etiqueta = etiquetaCampo || campo;
+            // Si existe mensajePersonalizado lo usa, de lo contrario usa el genérico
             throw new Error(
-                mensajePersonalizado ||
-                `Ya existe ${nombreEntidad} con ${etiqueta} ${value}.`
+                mensajePersonalizado || `Ya existe ${nombreEntidad} con ${etiqueta} ${value}.`
             );
         }
 
@@ -61,7 +61,7 @@ export const formatearErrorForaneo = (
         let message;
 
         if (relacionAsociada) {
-            message = `No puedes eliminar ${nombreEntidad} porque tiene ${relacionAsociada}.`;
+            message = `No puedes eliminar ${nombreEntidad} porque tiene ${relacionAsociada} relacionados.`;
         } else {
             message = `No puedes eliminar ${nombreEntidad} porque está relacionado con otros registros del sistema.`;
         }

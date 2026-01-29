@@ -13,6 +13,7 @@ const menuStructure = [
             { path: "/colegios", label: "Colegios", icon: "school", requiredRole: 'admin' },
             { path: "/sedes", label: "Sedes", icon: "building", requiredRole: 'admin' },
             { path: "/coordinadores", label: "Coordinadores", icon: "user-tie", requiredRole: 'admin' },
+            { path: "/vigencias", label: "Configurar Año Lectivo", icon: "calendar-alt", requiredRole: 'admin' },
         ]
     },
     {

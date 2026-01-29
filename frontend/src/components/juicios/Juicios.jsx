@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faEdit, faTrash, faScaleBalanced, faToggleOn, faToggleOff,
-    faSearch, faChevronLeft, faChevronRight, faSpinner, faEraser
+    faEdit, faTrash, faScaleBalanced, faChevronLeft,
+    faSearch, faChevronRight, faSpinner, faEraser
 } from "@fortawesome/free-solid-svg-icons";
 
 import {
@@ -157,7 +157,7 @@ const Juicios = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const requiredFields = ['texto', 'periodo', 'gradoId', 'dimensionId', 'desempenoId', 'asignaturaId', 'vigenciaId'];
+        const requiredFields = ['texto', 'periodo', 'dimensionId', 'desempenoId', 'vigenciaId'];
         for (const field of requiredFields) {
             if (!formData[field]) return showWarning("Todos los campos obligatorios (<span class='text-[#e74c3c]'>*</span>) deben completarse.");
         }
@@ -166,7 +166,10 @@ const Juicios = () => {
             setLoading(true);
             const dataToSubmit = { ...formData };
             Object.keys(dataToSubmit).forEach(k => {
-                if (typeof dataToSubmit[k] === 'string' && dataToSubmit[k].trim() === '') dataToSubmit[k] = null;
+                // Convierte "" a null para que el backend lo acepte
+                if (typeof dataToSubmit[k] === 'string' && dataToSubmit[k].trim() === '') {
+                    dataToSubmit[k] = null;
+                }
             });
 
             if (mode === "agregar") {
@@ -219,18 +222,6 @@ const Juicios = () => {
         }
     };
 
-    const handleToggleActivo = async (juicio) => {
-        try {
-            const nuevoEstado = !juicio.activo;
-            setJuicios(prev => prev.map(j => j.id === juicio.id ? { ...j, activo: nuevoEstado } : j));
-            await actualizarJuicio(juicio.id, { activo: nuevoEstado });
-            showSuccess(`Juicio ${nuevoEstado ? 'activado' : 'desactivado'}.`);
-        } catch (err) {
-            loadJuicios();
-            showError(err.message);
-        }
-    };
-
     const resetForm = () => {
         setFormData({ ...initialFormState, vigenciaId: vigencia ? vigencia.id : '' });
         setMode("agregar");
@@ -238,11 +229,11 @@ const Juicios = () => {
 
     // --- RENDERIZADO ---
     return (
-        <div className="min-h-full bg-[#f7f9fc] p-4 md:p-8 font-inter rounded-xl">
+        <div className="min-h-full bg-[#f7f7fc] p-4 md:p-8 font-inter rounded-xl">
             <div className="max-w-7xl mx-auto space-y-8">
 
-                {/* Header Principal */}
-                <h1 className="text-2xl font-semibold text-gray-800 mb-6 border-b pb-2">
+                {/* Título Principal */}
+                <h1 className="text-2xl font-semibold text-gray-800 mb-6 border-b pb-4">
                     <FontAwesomeIcon icon={faScaleBalanced} className="w-6 h-6 mr-3 text-[#2c3e50]" />
                     Gestión de Juicios
                 </h1>
@@ -328,14 +319,14 @@ const Juicios = () => {
 
                         {/* Filtro Dimensión */}
                         <div className="flex flex-col">
-                            <label className="text-xs font-bold text-gray-500 mb-1 ml-1">Dimensión</label>
+                            <label className="text-xs font-bold text-gray-500 mb-1 ml-1">Competencia</label>
                             <select
                                 name="dimensionId"
                                 value={filters.dimensionId}
                                 onChange={handleFilterChange}
                                 className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
                             >
-                                <option value="">Todas las Dimensiones</option>
+                                <option value="">Todas las Competencias</option>
                                 {dimensiones.map(d => <option key={d.id} value={d.id}>{d.nombre.replace(/_/g, " ")}</option>)}
                             </select>
                         </div>
@@ -361,7 +352,7 @@ const Juicios = () => {
                                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Período</th>
                                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grado</th>
                                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asignatura</th>
-                                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dimensión</th>
+                                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Competencia</th>
                                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Desempeño</th>
                                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rangos Nota</th>
                                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
@@ -405,13 +396,15 @@ const Juicios = () => {
                                                     </span>
                                                 </td>
                                                 <td className="px-3 py-3 text-sm text-gray-600 font-mono text-center">{textoRango}</td>
-                                                <td className="px-3 py-3">
-                                                    <button onClick={() => handleToggleActivo(juicio)} className="focus:outline-none">
-                                                        {juicio.activo ?
-                                                            <FontAwesomeIcon icon={faToggleOn} className="text-green-500 text-lg hover:text-green-600" title="Activo" /> :
-                                                            <FontAwesomeIcon icon={faToggleOff} className="text-red-400 text-lg hover:text-red-500" title="Inactivo" />
-                                                        }
-                                                    </button>
+                                                <td className="px-3 py-3 text-center">
+                                                    <span
+                                                        className={`px-2 py-1 text-[10px] rounded-full font-bold uppercase tracking-wide border ${juicio.activo
+                                                                ? "bg-green-50 text-green-700 border-green-200" // Estilo ACTIVO
+                                                                : "bg-red-50 text-red-700 border-red-200"       // Estilo INACTIVO
+                                                            }`}
+                                                    >
+                                                        {juicio.activo ? "ACTIVO" : "INACTIVO"}
+                                                    </span>
                                                 </td>
                                                 <td className="px-3 py-3 text-right space-x-2">
                                                     <button onClick={() => handleEdit(juicio)} className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50 transition" title="Editar">

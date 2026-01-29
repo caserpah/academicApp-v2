@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { crearEstudiante, actualizarEstudiante, obtenerEstudiante } from "../../api/estudiantesService.js";
 import { showSuccess, showError, showWarning } from "../../utils/notifications.js";
 import AcudientesTab from "./AcudientesTab.jsx";
+import CreatableSelect from "react-select/creatable"
+import { municipiosColombia } from "../../data/municipiosColombia.js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSave, faTimes } from "@fortawesome/free-solid-svg-icons";
 
@@ -77,13 +79,16 @@ const TAB_MAP = {
 const INITIAL_STATE = {
     tipoDocumento: "",
     documento: "",
+    lugarExpedicion: "",
     primerNombre: "",
     segundoNombre: "",
     primerApellido: "",
     segundoApellido: "",
     fechaNacimiento: "",
+    lugarNacimiento: "",
     sexo: "",
     rh: "",
+    municipioResidencia: "",
     direccion: "",
     barrio: "",
     contacto: "",
@@ -177,6 +182,39 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
             cargarDetallesCompletos();
         }
     }, [estudianteEditar]);
+
+    // HELPER 1: Convertir texto plano a objeto {label, value} para el Select
+    const getValueForSelect = (value) => {
+        if (!value) return null;
+        return { label: value, value: value };
+    };
+
+    // HELPER 2: Manejador especial para React-Select
+    const handleSelectChange = (newValue, actionMeta) => {
+        const fieldName = actionMeta.name;
+        const valueToSave = newValue ? newValue.value : '';
+
+        setFormData(prev => ({
+            ...prev,
+            [fieldName]: valueToSave
+        }));
+    };
+
+    // ESTILOS para que combine con Tailwind
+    const customStyles = {
+        control: (base, state) => ({
+            ...base,
+            borderColor: state.isFocused ? '#3b82f6' : '#d1d5db',
+            borderRadius: '0.375rem',
+            minHeight: '42px',
+            boxShadow: state.isFocused ? '0 0 0 1px #3b82f6' : null,
+            '&:hover': { borderColor: '#3b82f6' }
+        }),
+        menu: (base) => ({ ...base, zIndex: 9999 }),
+        placeholder: (base) => ({ ...base, color: '#9ca3af' }),
+
+        menuPortal: (base) => ({ ...base, zIndex: 9999 })
+    };
 
     // Manejo de cambios en inputs
     const handleChange = (e) => {
@@ -327,59 +365,185 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
 
                 {/* TAB 1: INFORMACIÓN PERSONAL */}
                 {activeTab === 1 && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <SelectGroup label="Tipo Documento" name="tipoDocumento" value={formData.tipoDocumento} required onChange={handleChange} options={TIPOS_DOC} />
-                        <InputGroup label="Número Documento" name="documento" value={formData.documento} required onChange={handleChange} />
+                    <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
 
-                        <InputGroup label="Primer Nombre" name="primerNombre" value={formData.primerNombre} required onChange={handleChange} />
-                        <InputGroup label="Segundo Nombre" name="segundoNombre" value={formData.segundoNombre} onChange={handleChange} />
+                        {/* FILA 1: Tipo, Documento, Lugar Expedición (3 Columnas) */}
+                        <SelectGroup
+                            label="Tipo Documento"
+                            name="tipoDocumento"
+                            value={formData.tipoDocumento}
+                            onChange={handleChange}
+                            options={TIPOS_DOC}
+                            width="md:col-span-2"
+                        />
+                        <InputGroup
+                            label="Número Documento"
+                            name="documento"
+                            value={formData.documento}
+                            onChange={handleChange}
+                            width="md:col-span-2"
+                        />
 
-                        <InputGroup label="Primer Apellido" name="primerApellido" value={formData.primerApellido} required onChange={handleChange} />
-                        <InputGroup label="Segundo Apellido" name="segundoApellido" value={formData.segundoApellido} onChange={handleChange} />
-
-                        {/* Fecha de Nacimiento y Edad */}
-                        <div className="col-span-1 flex gap-3">
-                            {/* Campo Fecha (Ocupa el espacio disponible) */}
-                            <div className="flex-1">
-                                <InputGroup
-                                    label="Fecha Nacimiento"
-                                    name="fechaNacimiento"
-                                    value={formData.fechaNacimiento}
-                                    onChange={handleChange}
-                                    type="date"
-                                    width="w-full" // Forzamos ancho completo dentro del flex
-                                    required
-                                />
-                            </div>
-
-                            {/* Campo Edad (Solo lectura, ancho fijo) */}
-                            <div className="w-24">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Edad
-                                </label>
-                                <input
-                                    type="text"
-                                    value={calcularEdad(formData.fechaNacimiento)}
-                                    readOnly
-                                    className="w-full border border-gray-300 bg-gray-100 text-gray-600 rounded-md px-3 py-2 outline-none cursor-not-allowed"
-                                />
-                            </div>
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Lugar de Expedición</label>
+                            <CreatableSelect
+                                name="lugarExpedicion"
+                                className="w-full rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                options={municipiosColombia}
+                                value={getValueForSelect(formData.lugarExpedicion)}
+                                onChange={handleSelectChange}
+                                isClearable
+                                placeholder="Buscar municipio..."
+                                formatCreateLabel={(inputValue) => `Usar "${inputValue}" (Otro)`}
+                                noOptionsMessage={() => "Escribe para buscar..."}
+                                styles={customStyles}
+                            />
                         </div>
-                        <SelectGroup label="Sexo" name="sexo" value={formData.sexo} required onChange={handleChange} options={SEXOS} mapOption />
+
+                        {/* FILA 2: Nombres (2 Columnas) */}
+                        <InputGroup
+                            label="Primer Nombre"
+                            name="primerNombre"
+                            value={formData.primerNombre}
+                            onChange={handleChange}
+                            width="md:col-span-3"
+                        />
+                        <InputGroup
+                            label="Segundo Nombre"
+                            name="segundoNombre"
+                            value={formData.segundoNombre}
+                            onChange={handleChange}
+                            width="md:col-span-3"
+                        />
+
+                        {/* FILA 3: Apellidos (2 Columnas) */}
+                        <InputGroup
+                            label="Primer Apellido"
+                            name="primerApellido"
+                            value={formData.primerApellido}
+                            onChange={handleChange}
+                            width="md:col-span-3"
+                        />
+                        <InputGroup
+                            label="Segundo Apellido"
+                            name="segundoApellido"
+                            value={formData.segundoApellido}
+                            onChange={handleChange}
+                            width="md:col-span-3"
+                        />
+
+                        {/* FILA 4: Lugar Nacimiento y Fecha (2 Columnas) */}
+                        <div className="md:col-span-3">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Lugar de Nacimiento</label>
+                            <CreatableSelect
+                                name="lugarNacimiento"
+                                className="w-full rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                options={municipiosColombia}
+                                value={getValueForSelect(formData.lugarNacimiento)}
+                                onChange={handleSelectChange}
+                                isClearable
+                                placeholder="Buscar municipio..."
+                                formatCreateLabel={(inputValue) => `Usar "${inputValue}"`}
+                                styles={customStyles}
+                            />
+                        </div>
+
+                        <InputGroup
+                            label="Fecha Nacimiento"
+                            name="fechaNacimiento"
+                            value={formData.fechaNacimiento}
+                            onChange={handleChange}
+                            type="date"
+                            width="md:col-span-3"
+                        />
+
+                        {/* FILA 5: Edad y Sexo (2 Columnas) */}
+                        <div className="md:col-span-3">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Edad
+                            </label>
+                            <input
+                                type="text"
+                                value={calcularEdad(formData.fechaNacimiento)}
+                                readOnly
+                                className="w-full border border-gray-300 bg-gray-100 text-gray-600 rounded-md px-3 py-2 outline-none cursor-not-allowed"
+                            />
+                        </div>
+
+                        <SelectGroup
+                            label="Sexo"
+                            name="sexo"
+                            value={formData.sexo}
+                            onChange={handleChange}
+                            options={SEXOS}
+                            mapOption
+                            width="md:col-span-3"
+                        />
                     </div>
                 )}
 
                 {/* TAB 2: UBICACIÓN Y CONTACTO */}
                 {activeTab === 2 && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <InputGroup label="Dirección Residencia" name="direccion" value={formData.direccion} onChange={handleChange} width="md:col-span-2" />
-                        <InputGroup label="Barrio" name="barrio" value={formData.barrio} onChange={handleChange} />
-                        <InputGroup label="Teléfono / Celular" name="contacto" value={formData.contacto} onChange={handleChange} />
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <InputGroup label="Estrato" name="estrato" value={formData.estrato} onChange={handleChange} type="number" />
-                            <InputGroup label="SISBEN" name="sisben" value={formData.sisben} onChange={handleChange} />
+                        {/* 1. Municipio de Residencia */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Municipio de Residencia
+                            </label>
+                            <CreatableSelect
+                                name="municipioResidencia"
+                                options={municipiosColombia}
+                                value={getValueForSelect(formData.municipioResidencia)}
+                                onChange={handleSelectChange}
+                                isClearable
+                                placeholder="Buscar municipio..."
+                                formatCreateLabel={(inputValue) => `Usar "${inputValue}"`}
+                                styles={customStyles}
+                                menuPortalTarget={document.body}
+                            />
                         </div>
+
+                        {/* 2. Dirección */}
+                        <InputGroup
+                            label="Dirección Residencia"
+                            name="direccion"
+                            value={formData.direccion}
+                            onChange={handleChange}
+                        />
+
+                        {/* 3. Barrio */}
+                        <InputGroup
+                            label="Barrio"
+                            name="barrio"
+                            value={formData.barrio}
+                            onChange={handleChange}
+                        />
+
+                        {/* 4. Teléfono */}
+                        <InputGroup
+                            label="Teléfono / Celular"
+                            name="contacto"
+                            value={formData.contacto}
+                            onChange={handleChange}
+                        />
+
+                        {/* 5. Estrato */}
+                        <InputGroup
+                            label="Estrato"
+                            name="estrato"
+                            value={formData.estrato}
+                            onChange={handleChange}
+                            type="number"
+                        />
+
+                        {/* 6. SISBEN */}
+                        <InputGroup
+                            label="Clasificación SISBEN"
+                            name="sisben"
+                            value={formData.sisben}
+                            onChange={handleChange}
+                        />
                     </div>
                 )}
 
@@ -397,7 +561,6 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
                                     type="checkbox"
                                     checked={formData.subsidiado}
                                     onChange={handleChange}
-                                    required
                                     className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                 />
                                 <label htmlFor="subsidiado" className="ml-2 block text-sm text-gray-900">
@@ -408,10 +571,10 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
 
                         <h3 className="text-gray-800 font-semibold border-b border-gray-300 pb-4">Caracterización</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <SelectGroup label="Población Víctima" name="victimas" value={formData.victimas} required onChange={handleChange} options={VICTIMAS} mapOption />
-                            <SelectGroup label="Discapacidad" name="discapacidad" value={formData.discapacidad} required onChange={handleChange} options={DISCAPACIDADES} mapOption />
-                            <SelectGroup label="Capacidades Excepcionales" name="capacidades" value={formData.capacidades} required onChange={handleChange} options={CAPACIDADES} mapOption />
-                            <SelectGroup label="Etnia" name="etnia" value={formData.etnia} required onChange={handleChange} options={ETNIAS} mapOption />
+                            <SelectGroup label="Población Víctima" name="victimas" value={formData.victimas} onChange={handleChange} options={VICTIMAS} mapOption />
+                            <SelectGroup label="Discapacidad" name="discapacidad" value={formData.discapacidad} onChange={handleChange} options={DISCAPACIDADES} mapOption />
+                            <SelectGroup label="Capacidades Excepcionales" name="capacidades" value={formData.capacidades} onChange={handleChange} options={CAPACIDADES} mapOption />
+                            <SelectGroup label="Etnia" name="etnia" value={formData.etnia} onChange={handleChange} options={ETNIAS} mapOption />
                         </div>
                     </div>
                 )}

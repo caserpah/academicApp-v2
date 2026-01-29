@@ -4,6 +4,7 @@ const GRUPOS_ENDPOINT = "/api/grupos";
 const GRADOS_ENDPOINT = "/api/grados";
 const SEDES_ENDPOINT = "/api/sedes";
 const DOCENTES_ENDPOINT = "/api/docentes";
+const VIGENCIAS_ENDPOINT = '/api/vigencias';
 
 /**
  * Obtener grupos por sede y vigencia activa
@@ -46,11 +47,12 @@ export const fetchInitialData = async (filtros = {}) => {
             Object.entries(filtros).filter(([_, v]) => v != null && v !== "")
         );
 
-        const [gruposRes, gradosRes, sedesRes, docentesRes] = await Promise.all([
+        const [gruposRes, gradosRes, sedesRes, docentesRes, vigenciaRes] = await Promise.all([
             apiClient.get(GRUPOS_ENDPOINT, { params }),
             apiClient.get(GRADOS_ENDPOINT, { params: { limit: 100 } }),
             apiClient.get(SEDES_ENDPOINT, { params: { limit: 100 } }),
             apiClient.get(DOCENTES_ENDPOINT, { params: { limit: 100 } }),
+            apiClient.get(VIGENCIAS_ENDPOINT),
         ]);
 
         return {
@@ -60,7 +62,8 @@ export const fetchInitialData = async (filtros = {}) => {
                 grados: gradosRes.data.data || [],
                 sedes: sedesRes.data.data?.items || [],
                 docentes: docentesRes.data.data?.items || [],
-            }
+            },
+            vigencia: vigenciaRes.data.data?.items.find(v => v.activa) || null
         };
     } catch (error) {
         console.error("Error en fetchInitialData (Grupos):", error);

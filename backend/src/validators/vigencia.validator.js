@@ -7,6 +7,8 @@ import {
     verificarExistenciaPorId,
 } from "../utils/dbUtils.js";
 
+import { validationErrorHandler } from "./validationErrorHandler.js";
+
 /* ============================================================
     Helpers internos (DRY)
    ============================================================ */
@@ -83,7 +85,7 @@ const validarFechaDentroDelAnio = (tipoFecha) => {
 export const validarCrearVigencia = [
     validarCampoRequerido("anio", "Ingrese el año lectivo.")
         .isInt({ min: 2025 }).withMessage("El año lectivo debe ser posterior a 2025.")
-        .custom(validarCampoUnico(Vigencia, "anio", "un año lectivo", false, null, "el año lectivo")), ,
+        .custom(validarCampoUnico(Vigencia, "anio", "un año lectivo", false, "El año lectivo ya se encuentra registrado. Por favor, intente con uno diferente.")),
 
     validarCampoRequerido("fechaInicio", "Ingrese la fecha en que inicia el año lectivo.")
         .isISO8601()
@@ -99,6 +101,8 @@ export const validarCrearVigencia = [
         .optional()
         .isBoolean()
         .withMessage("El valor del campo 'activo' debe ser verdadero o falso."),
+
+    validationErrorHandler,
 ];
 
 export const validarActualizarVigencia = [
@@ -110,7 +114,7 @@ export const validarActualizarVigencia = [
 
     validarCampoOpcionalRequerido("anio", "Ingrese el año lectivo.")
         .isInt({ min: 2025 }).withMessage("El año lectivo debe ser posterior a 2025.")
-        .custom(validarCampoUnico(Vigencia, "anio", "un año lectivo", true, null, "el año lectivo")), ,
+        .custom(validarCampoUnico(Vigencia, "anio", "un año lectivo", true, "El año lectivo ya se encuentra registrado. Por favor, intente con uno diferente.")), ,
 
     validarCampoOpcionalRequerido("anio", "Ingrese el año lectivo.")
         .isInt({ min: 2025 }).withMessage("El año lectivo debe ser posterior a 2025."),
@@ -131,4 +135,6 @@ export const validarActualizarVigencia = [
         .optional()
         .isBoolean()
         .withMessage("El valor del campo 'activo' debe ser verdadero o falso."),
+
+    validationErrorHandler,
 ];

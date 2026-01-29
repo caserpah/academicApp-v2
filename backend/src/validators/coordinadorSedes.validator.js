@@ -6,6 +6,7 @@ import {
     validarCampoRequerido,
     verificarExistenciaPorId,
 } from "../utils/dbUtils.js";
+import { validationErrorHandler } from "./validationErrorHandler.js";
 
 const JORNADAS = ["MANANA", "TARDE", "NOCHE", "COMPLETA"];
 
@@ -23,6 +24,8 @@ export const validarCrearCoordinadorSede = [
     validarCampoRequerido("jornada", "Seleccione la jornada.")
         .isIn(JORNADAS)
         .withMessage("La jornada seleccionada no es válida."),
+
+    validationErrorHandler,
 ];
 
 export const validarActualizarCoordinadorSede = [
@@ -36,4 +39,6 @@ export const validarActualizarCoordinadorSede = [
         .optional()
         .isIn(JORNADAS)
         .withMessage("La jornada seleccionada no es válida."),
+
+    validationErrorHandler,
 ];

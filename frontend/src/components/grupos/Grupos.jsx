@@ -32,7 +32,7 @@ const Grupos = () => {
         nombre: "",
         gradoId: "",
         jornada: "",
-        cupos: 35,
+        cupos: 45,
         sobrecupoPermitido: false,
         sedeId: "",
         directorId: ""
@@ -40,6 +40,7 @@ const Grupos = () => {
 
     const [formData, setFormData] = useState(initialFormState);
     const [grupos, setGrupos] = useState([]);
+    const [vigenciaActual, setVigenciaActual] = useState(null);
 
     // Catálogos
     const [catalogos, setCatalogos] = useState({
@@ -110,6 +111,10 @@ const Grupos = () => {
             // Cargar catálogos solo si están vacíos (primera carga)
             if (catalogos.sedes.length === 0 && data.catalogos) {
                 setCatalogos(data.catalogos);
+            }
+            // Cargar vigencia actual
+            if (data.vigencia) {
+                setVigenciaActual(data.vigencia);
             }
 
         } catch (err) {
@@ -242,6 +247,7 @@ const Grupos = () => {
                         handleSubmit={handleSubmit}
                         resetForm={resetForm}
                         catalogos={catalogos}
+                        vigencia={vigenciaActual}
                     />
                 </div>
 

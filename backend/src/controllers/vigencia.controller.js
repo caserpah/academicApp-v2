@@ -1,3 +1,4 @@
+
 import { vigenciaService } from "../services/vigencia.service.js";
 import { sendSuccess } from "../middleware/responseHandler.js";
 

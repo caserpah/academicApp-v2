@@ -1,19 +1,10 @@
 import React, { useMemo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSave, faTimes, faToggleOn, faToggleOff } from "@fortawesome/free-solid-svg-icons";
+import { faSave, faTimes, faInfoCircle } from "@fortawesome/free-solid-svg-icons";
 
 /**
  * Formulario reutilizable para la creación y edición de Juicios.
- *
- * Props esperadas:
- * - formData: objeto con los valores actuales del formulario.
- * - handleChange: función para manejar cambios en los campos.
- * - handleSubmit: función para enviar el formulario.
- * - resetForm: función para reiniciar el formulario.
- * - loading: estado booleano para bloquear botones mientras carga.
- * - mode: "agregar" | "editar" (define texto y comportamiento).
- * - asignaturas: array de asignaturas disponibles.
- * - vigencia: objeto de la vigencia activa (solo lectura).
+ * Soporta Juicios Específicos y Globales (Transversales).
  */
 const JuiciosForm = ({
     formData,
@@ -33,8 +24,30 @@ const JuiciosForm = ({
     const readOnlyClasses = "bg-gray-100 cursor-not-allowed text-gray-700 font-bold text-center";
 
     /**
-     * Lógica Inteligente de Rangos
+     * Lógica de negocios y filtro
      */
+
+    // Filtrar Dimensiones según la Asignatura seleccionada
+    const filteredDimensiones = useMemo(() => {
+        // Caso A: Si NO hay asignatura seleccionada (Juicio Global), mostramos todas
+        // (El usuario elegirá Social, Laboral, Acumulativa, etc.)
+        if (!formData.asignaturaId) {
+            return dimensiones;
+        }
+
+        // Buscamos la asignatura seleccionada
+        const selectedAsig = asignaturas.find(a => String(a.id) === String(formData.asignaturaId));
+        const nombreAsig = selectedAsig ? selectedAsig.nombre.trim().toUpperCase() : "";
+
+        // Caso B: Si es COMPORTAMIENTO -> Solo permitir ID 999
+        if (nombreAsig === "COMPORTAMIENTO") {
+            return dimensiones.filter(d => Number(d.id) === 999);
+        }
+
+        // Caso C: Cualquier otra asignatura -> Excluir ID 999
+        return dimensiones.filter(d => Number(d.id) !== 999);
+
+    }, [formData.asignaturaId, dimensiones, asignaturas]);
 
     // Encontrar el desempeño seleccionado para saber su código (ej: UN)
     const selectedDesempeno = desempenos.find(d => d.id == formData.desempenoId);
@@ -60,13 +73,41 @@ const JuiciosForm = ({
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-                <div className="border-b pb-2 mb-4 border-[#d8d5d5]">
-                    <h2 className="text-lg font-semibold text-gray-700">
-                        {mode === "agregar" ? "Registrar Nuevo Juicio" : "Editar Juicio"}
-                    </h2>
+
+                {/* --- CABECERA CON SWITCH DE ESTADO --- */}
+                <div className="flex flex-col md:flex-row justify-between items-center border-b border-gray-200 pb-2 mb-6 gap-4">
+
+                    {/* Lado Izquierdo: Título */}
+                    <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-semibold text-gray-700">
+                            {mode === "agregar" ? "Registrar Nuevo Juicio" : "Editar Juicio"}
+                        </h3>
+                    </div>
+
+                    {/* Lado Derecho: Switch de Estado (Estilo Referencia) */}
+                    <div className="flex items-center">
+                        <label className="mr-2 text-sm font-medium text-gray-600">Estado:</label>
+
+                        {/* Botón tipo Toggle */}
+                        <button
+                            type="button"
+                            onClick={handleToggleActivo}
+                            disabled={loading}
+                            className={`${formData.activo ? 'bg-green-500' : 'bg-gray-300'}
+                            relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none`}
+                        >
+                            <span className="sr-only">Activar juicio</span>
+                            <span className={`${formData.activo ? 'translate-x-6' : 'translate-x-1'}
+                                inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                            />
+                        </button>
+
+                        <span className="ml-2 text-xs font-semibold">{formData.activo ? 'ACTIVO' : 'INACTIVO'}</span>
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* --- CUERPO DEL FORMULARIO --- */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
 
                     {/* ID (solo lectura) */}
                     {mode === 'editar' && (
@@ -83,12 +124,12 @@ const JuiciosForm = ({
 
                     {/* Vigencia */}
                     <div className="col-span-1">
-                        <label className="block text-sm font-medium text-[#4a5568] mb-1">Vigencia</label>
+                        <label className="block text-sm font-medium text-[#4a5568] mb-1">Año Lectivo</label>
                         <input
                             type="text"
                             value={vigencia ? vigencia.anio : "..."}
                             disabled
-                            className={`${inputBaseClasses} bg-gray-100 font-bold`}
+                            className={`${inputBaseClasses} bg-gray-100 text-gray-500 font-semibold`}
                         />
                     </div>
 
@@ -111,47 +152,60 @@ const JuiciosForm = ({
                     {/* Grado (Select Dinámico) */}
                     <div className="col-span-1">
                         <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                            Grado <span className="text-[#e74c3c] font-semibold">*</span>
+                            Grado <span className="text-gray-400 font-normal text-xs">(Opcional para juicios globales)</span>
                         </label>
                         <select
                             name="gradoId"
                             value={formData.gradoId || ""}
                             onChange={handleChange}
                             className={inputBaseClasses}
+                        // className={`${inputBaseClasses} ${!formData.gradoId ? "bg-blue-50 border-blue-300" : ""}`}
                         >
-                            <option value="">-- Seleccione Grado --</option>
+                            <option value="">-- GLOBAL (Todos los grados) --</option>
                             {grados.map(g => (
                                 <option key={g.id} value={g.id}>
-                                    {g.nombre.replace(/_/g, " ")}
+                                    {g.nombre ? g.nombre.replace(/_/g, " ") : "Sin Nombre"}
                                 </option>
                             ))}
                         </select>
+                        {!formData.gradoId && (
+                            <p className="text-[12px] text-blue-600 mt-1 flex items-center">
+                                <FontAwesomeIcon icon={faInfoCircle} className="mr-1" />
+                                Aplica de 1° a Ciclo VI (Excluye Preescolar)
+                            </p>
+                        )}
                     </div>
 
                     {/* Asignatura */}
                     <div className="col-span-1 md:col-span-2">
                         <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                            Asignatura <span className="text-[#e74c3c] font-semibold">*</span>
+                            Asignatura <span className="text-gray-400 font-normal text-xs">(Opcional para juicios globales)</span>
                         </label>
                         <select
                             name="asignaturaId"
                             value={formData.asignaturaId || ""}
                             onChange={handleChange}
                             className={inputBaseClasses}
+                        // className={`${inputBaseClasses} ${!formData.asignaturaId ? "bg-blue-50 border-blue-300" : ""}`}
                         >
-                            <option value="">-- Seleccione Asignatura --</option>
+                            <option value="">-- GLOBAL (Todas las asignaturas) --</option>
                             {asignaturas.map((asignatura) => (
                                 <option key={asignatura.id} value={asignatura.id}>
                                     {asignatura.nombre} - {asignatura.codigo}
                                 </option>
                             ))}
                         </select>
+                        {!formData.asignaturaId && (
+                            <p className="text-[12px] text-blue-600 mt-1">
+                                * Para competencias transversales (Social, Laboral, Acumulativa).
+                            </p>
+                        )}
                     </div>
 
-                    {/* Dimensión (Select Dinámico) */}
+                    {/* Competencia (Select Dinámico) */}
                     <div className="col-span-1">
                         <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                            Dimensión <span className="text-[#e74c3c] font-semibold">*</span>
+                            Competencia <span className="text-[#e74c3c] font-semibold">*</span>
                         </label>
                         <select
                             name="dimensionId"
@@ -160,9 +214,9 @@ const JuiciosForm = ({
                             className={inputBaseClasses}
                         >
                             <option value="">-- Seleccione --</option>
-                            {dimensiones.map(d => (
+                            {filteredDimensiones.map(d => (
                                 <option key={d.id} value={d.id}>
-                                    {d.nombre.replace(/_/g, " ")}
+                                    {d.nombre ? d.nombre.replace(/_/g, " ") : d.nombre}
                                 </option>
                             ))}
                         </select>
@@ -197,8 +251,6 @@ const JuiciosForm = ({
                                     disabled
                                     className={`${inputBaseClasses} ${readOnlyClasses}`}
                                 />
-                                {/* Enviamos valor oculto para que viaje en el form si es necesario, aunque en BD no se guarde en tabla juicios */}
-                                <input type="hidden" name="minNota" value={rangoActual ? rangoActual.minNota : ""} />
                             </div>
 
                             <div className="col-span-1">
@@ -209,13 +261,12 @@ const JuiciosForm = ({
                                     disabled
                                     className={`${inputBaseClasses} ${readOnlyClasses}`}
                                 />
-                                <input type="hidden" name="maxNota" value={rangoActual ? rangoActual.maxNota : ""} />
                             </div>
                         </>
                     )}
 
                     {/* Estado Activo/Inactivo */}
-                    <div className="col-span-1 flex items-end">
+                    {/* <div className="col-span-1 flex items-end">
                         <button
                             type="button"
                             onClick={handleToggleActivo}
@@ -237,14 +288,19 @@ const JuiciosForm = ({
                                 </>
                             )}
                         </button>
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* Texto del Juicio */}
                 <div className="mt-6">
-                    <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                        Texto del Juicio <span className="text-[#e74c3c] font-semibold">*</span>
-                    </label>
+                    <div className="flex justify-between items-center mb-1">
+                        <label className="block text-sm font-medium text-[#4a5568]">
+                            Texto del Juicio <span className="text-[#e74c3c] font-semibold">*</span>
+                        </label>
+                        <span className={`text-[12px] ${formData.texto?.length > 255 ? 'text-red-500' : 'text-gray-400'}`}>
+                            {formData.texto?.length || 0} caracteres
+                        </span>
+                    </div>
                     <textarea
                         name="texto"
                         value={formData.texto || ""}
@@ -253,6 +309,7 @@ const JuiciosForm = ({
                         placeholder="Ingrese el texto descriptivo del juicio..."
                         className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 transition duration-150 resize-none"
                     />
+                    <span className="text-[12px] text-gray-400">Mínimo 10 caracteres.</span>
                 </div>
 
                 {/* Botones del formulario */}
@@ -277,7 +334,7 @@ const JuiciosForm = ({
                     </button>
                 </div>
             </div>
-        </form>
+        </form >
     );
 };
 

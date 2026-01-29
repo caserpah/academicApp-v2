@@ -52,6 +52,8 @@ const DocentesForm = ({
                 {/* Switch de ACTIVO (Solo visible al editar o crear si se desea) */}
                 <div className="flex items-center">
                     <label className="mr-2 text-sm font-medium text-gray-600">Estado:</label>
+
+                    {/* Botón tipo Toggle */}
                     <button
                         type="button"
                         onClick={() => handleChange({ target: { name: 'activo', value: !formData.activo } })}
@@ -187,7 +189,7 @@ const DocentesForm = ({
             </div>
 
             {/* BOTONES DE ACCIÓN */}
-            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-300">
+            <div className="pt-4 flex justify-center space-x-3 border-t border-[#eee] mt-6">
                 <button
                     type="submit" disabled={loading}
                     className="bg-blue-600 text-white px-5 py-2 rounded-lg shadow-md hover:bg-blue-700 transition duration-150 flex items-center"

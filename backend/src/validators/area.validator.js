@@ -6,6 +6,7 @@ import {
     validarCampoUnico,
     verificarExistenciaPorId,
 } from "../utils/dbUtils.js";
+import { validationErrorHandler } from "./validationErrorHandler.js";
 
 // Validar crear área
 export const validarCrearArea = [
@@ -29,6 +30,8 @@ export const validarCrearArea = [
         .optional()
         .isBoolean()
         .withMessage("El valor del campo 'promociona' debe ser verdadero o falso."),
+
+    validationErrorHandler,
 ];
 
 // Validar actualizar área
@@ -59,4 +62,6 @@ export const validarActualizarArea = [
         .optional()
         .isBoolean()
         .withMessage("El valor del campo 'promociona' debe ser verdadero o falso."),
+
+    validationErrorHandler,
 ]

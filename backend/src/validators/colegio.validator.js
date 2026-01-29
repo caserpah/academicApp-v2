@@ -8,6 +8,7 @@ import {
     validarCampoOpcionalRequerido,
     validarFechaNoFutura,
 } from "../utils/dbUtils.js";
+import { validationErrorHandler } from "./validationErrorHandler.js";
 
 /**
  * Validadores para el modelo Colegio
@@ -68,6 +69,8 @@ export const validarCrearColegio = [
     validarCampoRequerido("ccDirector", "Ingrese el documento del director.")
         .isLength({ min: 5, max: 15 }).withMessage("El documento debe tener entre 5 y 15 dígitos.")
         .isNumeric().withMessage("El documento del director solo debe contener números."),
+
+    validationErrorHandler,
 ];
 
 // Validar actualizar colegio
@@ -131,4 +134,6 @@ export const validarActualizarColegio = [
     validarCampoOpcionalRequerido("ccDirector", "Ingrese el documento del director si desea actualizarlo.")
         .isLength({ min: 5, max: 15 }).withMessage("El documento debe tener entre 5 y 15 dígitos.")
         .isNumeric().withMessage("El documento del director solo debe contener números."),
+
+    validationErrorHandler,
 ];

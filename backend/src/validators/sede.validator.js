@@ -7,6 +7,7 @@ import {
     validarCampoRequerido,
     validarCampoOpcionalRequerido,
 } from "../utils/dbUtils.js";
+import { validationErrorHandler } from "./validationErrorHandler.js";
 
 // Validar crear sede
 export const validarCrearSede = [
@@ -24,6 +25,8 @@ export const validarCrearSede = [
         .isLength({ max: 80 }).withMessage("La dirección no debe exceder los 80 caracteres."),
 
     validarCampoContactoOpcional("contacto"),
+
+    validationErrorHandler,
 ];
 
 // Validar actualizar sede
@@ -48,4 +51,6 @@ export const validarActualizarSede = [
         .isLength({ max: 80 }).withMessage("La dirección no debe exceder los 80 caracteres."),
 
     validarCampoContactoOpcional("contacto"),
+
+    validationErrorHandler,
 ];

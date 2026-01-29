@@ -6,6 +6,7 @@ import {
 } from "../utils/dbUtils.js";
 import { Desempeno } from "../models/desempeno.js";
 import { DesempenoRango } from "../models/desempeno_rango.js";
+import { validationErrorHandler } from "./validationErrorHandler.js";
 
 export const validarCrearRango = [
     validarCampoRequerido("desempenoId", "Seleccione el desempeño.")
@@ -30,6 +31,8 @@ export const validarCrearRango = [
             }
             return true;
         }),
+
+        validationErrorHandler,
 ];
 
 export const validarActualizarRango = [
@@ -62,4 +65,6 @@ export const validarActualizarRango = [
             }
             return true;
         }),
+
+        validationErrorHandler,
 ];

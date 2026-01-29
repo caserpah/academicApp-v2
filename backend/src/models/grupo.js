@@ -34,7 +34,7 @@ export const Grupo = sequelize.define("grupo", {
     cupos: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        defaultValue: 35
+        defaultValue: 45
     },
 
     sobrecupoPermitido: {

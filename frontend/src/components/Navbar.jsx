@@ -12,6 +12,7 @@ const Navbar = ({ toggleSidebar }) => {
         '/colegios': 'Institucional / Colegios',
         '/sedes': 'Institucional / Sedes',
         '/coordinadores': 'Institucional / Coordinadores',
+        '/vigencias': 'Institucional / Años Lectivos',
         '/areas': 'Académico / Áreas',
         '/asignaturas': 'Académico / Asignaturas',
         '/grupos': 'Académico / Grupos',

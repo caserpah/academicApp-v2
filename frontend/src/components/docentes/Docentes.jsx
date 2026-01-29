@@ -272,7 +272,7 @@ const Docentes = () => {
                                         docentes.map((d) => (
                                             <tr key={d.id} className={`hover:bg-blue-50 transition-colors ${!d.activo ? 'bg-gray-50' : ''}`}>
                                                 <td className="px-4 py-3 whitespace-nowrap">
-                                                    <span className={`px-2 py-1 text-[10px] rounded-full font-bold uppercase tracking-wide border 
+                                                    <span className={`px-2 py-1 text-[10px] rounded-full font-bold uppercase tracking-wide border
                                                         ${d.activo ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
                                                         {d.activo ? 'Activo' : 'Inactivo'}
                                                     </span>

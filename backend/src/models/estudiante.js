@@ -24,6 +24,10 @@ export const Estudiante = sequelize.define("estudiante", {
         type: DataTypes.STRING(20),
         allowNull: false
     },
+    lugarExpedicion: {
+        type: DataTypes.STRING,
+        allowNull: true // Opcional
+    },
 
     /** Nombres y apellidos (normalizados a mayúscula) */
     primerNombre: {
@@ -60,6 +64,10 @@ export const Estudiante = sequelize.define("estudiante", {
         type: DataTypes.DATEONLY,
         allowNull: false
     },
+    lugarNacimiento: {
+        type: DataTypes.STRING,
+        allowNull: true // Opcional
+    },
 
     /** Sexo (ENUM simplificado) */
     sexo: {
@@ -75,6 +83,10 @@ export const Estudiante = sequelize.define("estudiante", {
     },
 
     /** Ubicación (normalizada a mayúscula) */
+    municipioResidencia: {
+        type: DataTypes.STRING,
+        allowNull: true // Opcional
+    },
     direccion: {
         type: DataTypes.STRING(80),
         allowNull: true,

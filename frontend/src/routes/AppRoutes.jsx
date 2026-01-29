@@ -22,6 +22,7 @@ import Acudientes from '../components/acudientes/Acudientes.jsx';
 import AsignarAcudientes from '../components/estudiantes/AcudientesTab.jsx';
 import Matriculas from "../components/matriculas/Matriculas.jsx";
 import PromocionMasiva from "../components/matriculas/PromocionMasiva.jsx";
+import Vigencias from '../components/vigencias/Vigencias.jsx';
 
 // --- COMPONENTE TEMPORAL PARA RUTAS FALTANTES ---
 // Utilizar mientras se está en desarrollo de componentes reales
@@ -49,6 +50,7 @@ const AppRoutes = () => {
                     <Route path="colegios" element={<ProtectedRoute requiredRole={["admin", "secretaria"]}><Colegios /></ProtectedRoute>} />
                     <Route path="sedes" element={<ProtectedRoute requiredRole={["admin", "secretaria"]}><Sedes /></ProtectedRoute>} />
                     <Route path="coordinadores" element={<ProtectedRoute requiredRole={["admin", "secretaria"]}><Coordinadores /></ProtectedRoute>} />
+                    <Route path="vigencias" element={<ProtectedRoute requiredRole={["admin", "secretaria"]}><Vigencias /></ProtectedRoute>} />
 
                     {/* === GESTIÓN ACADÉMICA === */}
                     <Route path="areas" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador"]}><Areas /></ProtectedRoute>} />

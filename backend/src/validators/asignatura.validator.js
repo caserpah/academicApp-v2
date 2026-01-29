@@ -7,6 +7,7 @@ import {
     validarCampoUnico,
     verificarExistenciaPorId
 } from "../utils/dbUtils.js";
+import { validationErrorHandler } from "./validationErrorHandler.js";
 
 // Validar crear asignatura
 export const validarCrearAsignatura = [
@@ -35,6 +36,8 @@ export const validarCrearAsignatura = [
         .withMessage("El área seleccionada no es válida.")
         .bail()
         .custom(verificarExistenciaPorId(Area, "id", "el área seleccionada")),
+
+    validationErrorHandler,
 ];
 
 // Validar actualizar asignatura
@@ -69,4 +72,6 @@ export const validarActualizarAsignatura = [
         .withMessage("El área seleccionada no es válida.")
         .bail()
         .custom(verificarExistenciaPorId(Area, "id", "el área seleccionada")),
+
+    validationErrorHandler,
 ]

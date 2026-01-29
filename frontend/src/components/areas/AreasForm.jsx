@@ -55,8 +55,17 @@ const AreasForm = ({
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-                <div className="border-b pb-2 mb-4 border-[#d8d5d5]">
-                    <h3 className="text-lg font-semibold text-gray-700">{mode === "agregar" ? "Registrar Nueva Área" : "Editar Área"}</h3>
+
+                {/* Cabecera del Formulario */}
+                <div className="border-b pb-2 mb-4 border-[#d8d5d5] flex justify-between items-center">
+                    <h3 className="text-lg font-semibold text-gray-700">
+                        {mode === "agregar" ? "Registrar Nueva Área" : "Editar Área"}
+                    </h3>
+
+                    {/* Texto informativo del Año Lectivo */}
+                    <div className="text-sm font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-100 shadow-sm">
+                        Año Lectivo: <span className="text-blue-900">{vigencia ? vigencia.anio : "---"}</span>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

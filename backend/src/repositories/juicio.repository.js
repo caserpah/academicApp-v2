@@ -5,6 +5,12 @@ import { Grado } from "../models/grado.js";
 import { Dimension } from "../models/dimension.js";
 import { Desempeno } from "../models/desempeno.js";
 
+// Helper para identificar si un grado es Preescolar (Excepción de la regla)
+const esGradoPreescolar = (nombreGrado) => {
+    const normalizado = nombreGrado ? nombreGrado.trim().toUpperCase() : "";
+    return ["PRE_JARDIN", "PRE JARDIN", "JARDIN", "TRANSICION", "TRANSICIÓN"].includes(normalizado);
+};
+
 export const juicioRepository = {
 
     /**
@@ -17,7 +23,7 @@ export const juicioRepository = {
         desempenoId,
         asignaturaId,
         periodo,
-        incluyeInactivos,
+        activo,
         search,
         page,
         limit,
@@ -27,31 +33,47 @@ export const juicioRepository = {
         // Filtro base: siempre por vigencia
         const where = { vigenciaId };
 
+        // Filtro explícito de estado
+        if (activo !== undefined && activo !== null && activo !== "") {
+            where.activo = (String(activo) === "true");
+        }
+
         // Filtros opcionales específicos
-        if (!incluyeInactivos) where.activo = true;
         if (gradoId) where.gradoId = gradoId;
         if (dimensionId) where.dimensionId = dimensionId;
         if (desempenoId) where.desempenoId = desempenoId;
         if (asignaturaId) where.asignaturaId = asignaturaId;
         if (periodo) where.periodo = periodo;
 
-        // BÚSQUEDA GLOBAL MULTI-CAMPO
-        // Busca coincidencias en Texto OR Grado OR Asignatura OR Dimensión
+        // Si hay término de búsqueda, aplicamos búsqueda global multi-campo
         if (search) {
-            const searchTerm = `%${search}%`;
+            const term = search.trim();
+            const termUpper = term.toUpperCase();
+            const likeTerm = `%${term}%`;
 
-            // Usamos Op.and para combinar con los filtros anteriores,
-            // y Op.or para buscar en cualquiera de las columnas deseadas.
+            // Definimos las columnas donde buscamos texto normalmente
+            const orConditions = [
+                { texto: { [Op.like]: likeTerm } },
+                { '$grado.nombre$': { [Op.like]: likeTerm } },
+                { '$asignatura.nombre$': { [Op.like]: likeTerm } },
+                { '$dimension.nombre$': { [Op.like]: likeTerm } },
+                { '$desempeno.nombre$': { [Op.like]: likeTerm } }
+            ];
+
+            // --- LÓGICA PARA DETECTAR ESTADO EN EL TEXTO ---
+            // Si el usuario escribe algo que parece "INACTIVO" (ej: "INA", "INACTIVO")
+            if ("INACTIVO".includes(termUpper) && termUpper.length >= 3) {
+                orConditions.push({ activo: false });
+            }
+            // Si escribe algo que parece "ACTIVO" (ej: "ACT", "ACTIVO") pero NO "INACTIVO"
+            else if ("ACTIVO".includes(termUpper) && termUpper.length >= 3) {
+                orConditions.push({ activo: true });
+            }
+
+            // Agregamos el bloque OR al WHERE principal
             where[Op.and] = [
-                ...(where[Op.and] || []), // Mantiene otros AND si existieran
-                {
-                    [Op.or]: [
-                        { texto: { [Op.like]: searchTerm } },                  // Buscar en Texto del Juicio
-                        { '$grado.nombre$': { [Op.like]: searchTerm } },       // Buscar en Nombre del Grado
-                        { '$asignatura.nombre$': { [Op.like]: searchTerm } },  // Buscar en Nombre de Asignatura
-                        { '$dimension.nombre$': { [Op.like]: searchTerm } }    // Buscar en Nombre de Dimensión
-                    ]
-                }
+                ...(where[Op.and] || []),
+                { [Op.or]: orConditions }
             ];
         }
 
@@ -59,8 +81,8 @@ export const juicioRepository = {
 
         const { rows, count } = await Juicio.findAndCountAll({
             where,
-            limit,
-            offset,
+            limit: Number(limit),
+            offset: Number(offset),
             order: [[orderBy || 'id', order || 'DESC']],
             // Es necesario subQuery: false cuando filtramos por columnas de tablas incluidas ($tabla.col$)
             // para que la paginación (limit/offset) funcione correctamente sobre el resultado final.
@@ -77,8 +99,8 @@ export const juicioRepository = {
             items: rows,
             pagination: {
                 total: count,
-                page,
-                limit,
+                page: Number(page),
+                limit: Number(limit),
                 totalPages: Math.ceil(count / limit)
             },
         };

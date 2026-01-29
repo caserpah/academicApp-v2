@@ -28,7 +28,7 @@ router.get("/:id", protect, vigenciaController.get);
 router.post(
     "/",
     protect,
-    restrictTo(["admin"]),
+    restrictTo(["admin", "secretaria"]),
     validarCrearVigencia,
     validationErrorHandler,
     vigenciaController.create
@@ -38,7 +38,7 @@ router.post(
 router.put(
     "/:id",
     protect,
-    restrictTo(["admin"]),
+    restrictTo(["admin", "secretaria"]),
     validarActualizarVigencia,
     validationErrorHandler,
     vigenciaController.update
@@ -48,7 +48,7 @@ router.put(
 router.delete(
     "/:id",
     protect,
-    restrictTo(["admin"]),
+    restrictTo(["admin", "secretaria"]),
     vigenciaController.remove
 );
 
@@ -56,7 +56,7 @@ router.delete(
 router.post(
     "/:id/abrir",
     protect,
-    restrictTo(["admin"]),
+    restrictTo(["admin", "secretaria"]),
     vigenciaController.abrir
 );
 
@@ -64,7 +64,7 @@ router.post(
 router.post(
     "/:id/cerrar",
     protect,
-    restrictTo(["admin"]),
+    restrictTo(["admin", "secretaria"]),
     vigenciaController.cerrar
 );
 
