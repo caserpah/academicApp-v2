@@ -73,6 +73,20 @@ export const actualizarMatricula = async (id, data) => {
 };
 
 /**
+ * Eliminar Matrícula
+ * Elimina el registro de la base de datos.
+ * @param {number|string} id - ID de la matrícula
+ */
+export const eliminarMatricula = async (id) => {
+    try {
+        const response = await apiClient.delete(`${MATRICULAS_ENDPOINT}/${id}`);
+        return response.data;
+    } catch (error) {
+        throw parseError(error);
+    }
+};
+
+/**
  * Matrícula Masiva (Promoción / Prematrícula)
  * Procesa un lote de estudiantes hacia un grupo destino.
  * @param {Object} payload

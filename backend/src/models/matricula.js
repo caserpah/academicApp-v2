@@ -54,6 +54,40 @@ export const Matricula = sequelize.define("matricula", {
         defaultValue: "TRADICIONAL"
     },
 
+    bloqueo_notas: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        comment: "Si es true, no permite ingresar notas (ej: por inasistencia)."
+    },
+
+    es_nuevo: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        comment: "Indica si el estudiante es nuevo en la institución."
+    },
+
+    es_repitente: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        comment: "Indica si el estudiante está repitiendo el grado."
+    },
+
+    situacion_ano_anterior: {
+        type: DataTypes.ENUM(
+            "NO_ESTUDIO",
+            "APROBO",
+            "REPROBO",
+            "NO_CULMINO",
+            "SIN_INFO"
+        ),
+        allowNull: false,
+        defaultValue: "APROBO",
+        comment: "Situación académica del año inmediatamente anterior."
+    },
+
     observaciones: {
         type: DataTypes.TEXT,
         allowNull: true,

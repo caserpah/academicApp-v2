@@ -5,12 +5,6 @@ import { Grado } from "../models/grado.js";
 import { Dimension } from "../models/dimension.js";
 import { Desempeno } from "../models/desempeno.js";
 
-// Helper para identificar si un grado es Preescolar (Excepción de la regla)
-const esGradoPreescolar = (nombreGrado) => {
-    const normalizado = nombreGrado ? nombreGrado.trim().toUpperCase() : "";
-    return ["PRE_JARDIN", "PRE JARDIN", "JARDIN", "TRANSICION", "TRANSICIÓN"].includes(normalizado);
-};
-
 export const juicioRepository = {
 
     /**
@@ -39,19 +33,54 @@ export const juicioRepository = {
         }
 
         // Filtros opcionales específicos
-        if (gradoId) where.gradoId = gradoId;
         if (dimensionId) where.dimensionId = dimensionId;
         if (desempenoId) where.desempenoId = desempenoId;
-        if (asignaturaId) where.asignaturaId = asignaturaId;
         if (periodo) where.periodo = periodo;
 
-        // Si hay término de búsqueda, aplicamos búsqueda global multi-campo
+        // ---------------------------------------------------------
+        //  LÓGICA DE JERARQUÍA (Globales vs Específicos)
+        // ---------------------------------------------------------
+
+        // Solo aplicamos esta lógica compleja si estamos filtrando por Grado o Asignatura
+        if (gradoId || asignaturaId) {
+
+            const condicionesOr = [];
+
+            // A. Coincidencia Exacta (Prioridad Máxima)
+            const matchExacto = {};
+            if (gradoId) matchExacto.gradoId = gradoId;
+            if (asignaturaId) matchExacto.asignaturaId = asignaturaId;
+            condicionesOr.push(matchExacto);
+
+            // B. Transversales Globales (Grado NULL, Asignatura NULL)
+            condicionesOr.push({
+                gradoId: null,
+                asignaturaId: null
+            });
+
+            // C. Globales de Asignatura (Grado NULL, Asignatura ESPECÍFICA)
+            if (asignaturaId) {
+                condicionesOr.push({
+                    gradoId: null,
+                    asignaturaId: asignaturaId
+                });
+            }
+
+            // Inyectamos estas condiciones DENTRO del bloque if
+            where[Op.and] = [
+                ...(where[Op.and] || []),
+                { [Op.or]: condicionesOr }
+            ];
+        }
+
+        // ---------------------------------------------------------
+        //  BÚSQUEDA GLOBAL (Search)
+        // ---------------------------------------------------------
         if (search) {
             const term = search.trim();
             const termUpper = term.toUpperCase();
             const likeTerm = `%${term}%`;
 
-            // Definimos las columnas donde buscamos texto normalmente
             const orConditions = [
                 { texto: { [Op.like]: likeTerm } },
                 { '$grado.nombre$': { [Op.like]: likeTerm } },
@@ -60,23 +89,20 @@ export const juicioRepository = {
                 { '$desempeno.nombre$': { [Op.like]: likeTerm } }
             ];
 
-            // --- LÓGICA PARA DETECTAR ESTADO EN EL TEXTO ---
-            // Si el usuario escribe algo que parece "INACTIVO" (ej: "INA", "INACTIVO")
+            // Detectar estado en el texto
             if ("INACTIVO".includes(termUpper) && termUpper.length >= 3) {
                 orConditions.push({ activo: false });
-            }
-            // Si escribe algo que parece "ACTIVO" (ej: "ACT", "ACTIVO") pero NO "INACTIVO"
-            else if ("ACTIVO".includes(termUpper) && termUpper.length >= 3) {
+            } else if ("ACTIVO".includes(termUpper) && termUpper.length >= 3) {
                 orConditions.push({ activo: true });
             }
 
-            // Agregamos el bloque OR al WHERE principal
             where[Op.and] = [
                 ...(where[Op.and] || []),
                 { [Op.or]: orConditions }
             ];
         }
 
+        // Paginación
         const offset = (page - 1) * limit;
 
         const { rows, count } = await Juicio.findAndCountAll({
@@ -84,9 +110,7 @@ export const juicioRepository = {
             limit: Number(limit),
             offset: Number(offset),
             order: [[orderBy || 'id', order || 'DESC']],
-            // Es necesario subQuery: false cuando filtramos por columnas de tablas incluidas ($tabla.col$)
-            // para que la paginación (limit/offset) funcione correctamente sobre el resultado final.
-            subQuery: false,
+            subQuery: false, // Necesario para includes con filtros
             include: [
                 { model: Asignatura, as: "asignatura", attributes: ["id", "codigo", "nombre", "abreviatura"] },
                 { model: Grado, as: "grado", attributes: ["id", "nombre", "codigo", "modalidad"] },

@@ -61,6 +61,15 @@ router.put(
     matriculaController.actualizar
 );
 
+// Eliminar matrícula
+router.delete(
+    "/:id",
+    protect,
+    restrictTo(["admin", "secretaria"]),
+    vigenciaContext,
+    matriculaController.eliminar
+);
+
 // Crear Matrícula / Promoción Masiva
 router.post(
     "/masivo",

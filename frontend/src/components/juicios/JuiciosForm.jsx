@@ -1,6 +1,6 @@
-import React, { useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSave, faTimes, faInfoCircle } from "@fortawesome/free-solid-svg-icons";
+import { faSave, faTimes, faGlobe, faInfoCircle } from "@fortawesome/free-solid-svg-icons";
 
 /**
  * Formulario reutilizable para la creación y edición de Juicios.
@@ -20,8 +20,90 @@ const JuiciosForm = ({
     desempenos = [],
     rangos = []
 }) => {
-    const inputBaseClasses = "mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150";
+    const inputBaseClasses = "mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150 disabled:bg-gray-100 disabled:text-gray-400";
     const readOnlyClasses = "bg-gray-100 cursor-not-allowed text-gray-700 font-bold text-center";
+
+    // Estado para el Checkbox Global
+    const [esTransversal, setEsTransversal] = useState(false);
+    // Estado para detectar si es Comportamiento
+    const [esComportamiento, setEsComportamiento] = useState(false);
+
+    /**
+     * Efecto para inicializar el estado del Checkbox Global al cargar el formulario en modo 'editar'
+     */
+    useEffect(() => {
+        if (mode === 'editar') {
+            const esGlobal = !formData.gradoId && !formData.asignaturaId;
+            setEsTransversal(esGlobal);
+
+            // Chequeo si es comportamiento basado en ID
+            const asig = asignaturas.find(a => String(a.id) === String(formData.asignaturaId));
+            const esComp = asig && asig.nombre.trim().toUpperCase() === "COMPORTAMIENTO";
+            setEsComportamiento(!!esComp);
+        }
+    }, [mode, formData.id, asignaturas]);
+
+    /**
+     * Efecto para forzar Período = 0 si es Transversal o Comportamiento
+     */
+    useEffect(() => {
+        // Si es Transversal (Acumulativa/Social/Laboral) o es Comportamiento
+        if (esTransversal || esComportamiento) {
+            // Forzamos Periodo = 0 (Todos)
+            // Solo si no está ya en 0 para evitar loops infinitos
+            if (String(formData.periodo) !== "0") {
+                handleLocalChange({ target: { name: 'periodo', value: "0" } });
+            }
+        }
+    }, [esTransversal, esComportamiento, formData.periodo]);
+
+    const handleTransversalChange = (e) => {
+        const checked = e.target.checked;
+        setEsTransversal(checked);
+        if (checked) {
+            handleLocalChange({
+                target: {
+                    name: 'reset_global',
+                    values: { gradoId: null, asignaturaId: null, dimensionId: "" }
+                }
+            });
+        }
+    };
+
+    const handleLocalChange = (e) => {
+        // Si es un evento de reseteo masivo (definido por nosotros)
+        if (e.target.name === 'reset_global' || e.target.name === 'reset_asignatura') {
+            Object.keys(e.target.values).forEach(key => {
+                // Llamamos al handleChange del padre campo por campo
+                handleChange({ target: { name: key, value: e.target.values[key] } });
+            });
+        } else {
+            // Si es un cambio normal, lo pasamos directo
+            handleChange(e);
+        }
+    };
+
+    /**
+     * Detectar cambio de asignatura para ver si es Comportamiento
+     */
+    const handleAsignaturaChange = (e) => {
+        const id = e.target.value;
+        const asig = asignaturas.find(a => String(a.id) === String(id));
+        const esComp = asig && asig.nombre.trim().toUpperCase() === "COMPORTAMIENTO";
+
+        setEsComportamiento(!!esComp);
+
+        // Si es comportamiento, reseteamos dimensión a 999 si existe, o vacía
+        let newDim = formData.dimensionId;
+        if (esComp) newDim = "999";
+
+        handleLocalChange({
+            target: {
+                name: 'reset_asignatura',
+                values: { asignaturaId: id, dimensionId: newDim }
+            }
+        });
+    };
 
     /**
      * Lógica de negocios y filtro
@@ -29,25 +111,58 @@ const JuiciosForm = ({
 
     // Filtrar Dimensiones según la Asignatura seleccionada
     const filteredDimensiones = useMemo(() => {
-        // Caso A: Si NO hay asignatura seleccionada (Juicio Global), mostramos todas
-        // (El usuario elegirá Social, Laboral, Acumulativa, etc.)
-        if (!formData.asignaturaId) {
-            return dimensiones;
+        const NOMBRES_TRANSVERSALES = ["SOCIAL", "LABORAL", "ACUMULATIVA"];
+        const NOMBRES_PREESCOLAR_EXCLUIDOS = ["SOCIAL", "LABORAL", "ACUMULATIVA"]; // Lo que NO ve preescolar en el select
+        const NOMBRE_LABORAL_SOCIAL = "LABORAL Y SOCIAL"; // Nueva competencia fusionada para preescolar
+        const NOMBRE_COMPORTAMIENTO = "COMPORTAMIENTO";
+        const GRADOS_PREESCOLAR = ["PRE_JARDIN", "PRE JARDIN", "JARDIN", "TRANSICION", "TRANSICIÓN"];
+
+        // JUCIO GLOBAL (Check activado) -> Solo transversales
+        if (esTransversal) {
+            return dimensiones.filter(d =>
+                NOMBRES_TRANSVERSALES.includes(d.nombre.trim().toUpperCase())
+            );
         }
 
-        // Buscamos la asignatura seleccionada
-        const selectedAsig = asignaturas.find(a => String(a.id) === String(formData.asignaturaId));
-        const nombreAsig = selectedAsig ? selectedAsig.nombre.trim().toUpperCase() : "";
-
-        // Caso B: Si es COMPORTAMIENTO -> Solo permitir ID 999
-        if (nombreAsig === "COMPORTAMIENTO") {
-            return dimensiones.filter(d => Number(d.id) === 999);
+        // COMPORTAMIENTO (Prioridad alta)
+        if (formData.asignaturaId) {
+            const selectedAsig = asignaturas.find(a => String(a.id) === String(formData.asignaturaId));
+            const nombreAsig = selectedAsig ? selectedAsig.nombre.trim().toUpperCase() : "";
+            if (nombreAsig === NOMBRE_COMPORTAMIENTO) {
+                return dimensiones.filter(d => Number(d.id) === 999);
+            }
         }
 
-        // Caso C: Cualquier otra asignatura -> Excluir ID 999
-        return dimensiones.filter(d => Number(d.id) !== 999);
+        // DETECTAR SI ES PREESCOLAR
+        let esGradoPreescolar = false;
+        if (formData.gradoId) {
+            const gradoObj = grados.find(g => String(g.id) === String(formData.gradoId));
+            if (gradoObj) {
+                const nombreGrado = gradoObj.nombre.trim().toUpperCase();
+                esGradoPreescolar = GRADOS_PREESCOLAR.includes(nombreGrado);
+            }
+        }
 
-    }, [formData.asignaturaId, dimensiones, asignaturas]);
+        return dimensiones.filter(d => {
+            const nombreDim = d.nombre.trim().toUpperCase();
+            const esId999 = Number(d.id) === 999;
+            if (esId999) return false; // Excluir dimensión Comportamiento en este filtro
+
+            if (esGradoPreescolar) {
+                // No cargar Acumulativa (usarán la Global Transversal heredada), tampoco Social ni Laboral (usarán la fusionada Laboral y Social)
+                if (NOMBRES_PREESCOLAR_EXCLUIDOS.includes(nombreDim)) return false;
+                return true; // Mostrar todas las demás dimensiones para preescolar
+            }
+
+            if (nombreDim === NOMBRE_LABORAL_SOCIAL) return false;
+
+            // Ocultar las transversales si el check global NO está activo
+            if (NOMBRES_TRANSVERSALES.includes(nombreDim)) return false;
+
+            return true;
+        });
+
+    }, [esTransversal, formData.asignaturaId, formData.gradoId, dimensiones, asignaturas, grados]);
 
     // Encontrar el desempeño seleccionado para saber su código (ej: UN)
     const selectedDesempeno = desempenos.find(d => d.id == formData.desempenoId);
@@ -75,13 +190,18 @@ const JuiciosForm = ({
             <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
 
                 {/* --- CABECERA CON SWITCH DE ESTADO --- */}
-                <div className="flex flex-col md:flex-row justify-between items-center border-b border-gray-200 pb-2 mb-6 gap-4">
+                <div className="flex flex-col md:flex-row justify-between items-center border-b border-gray-200 pb-4 mb-6 gap-4">
 
                     {/* Lado Izquierdo: Título */}
                     <div className="flex items-center gap-3">
                         <h3 className="text-lg font-semibold text-gray-700">
                             {mode === "agregar" ? "Registrar Nuevo Juicio" : "Editar Juicio"}
                         </h3>
+                        {vigencia && (
+                            <span className="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-bold border border-blue-200">
+                                Año Lectivo {vigencia.anio}
+                            </span>
+                        )}
                     </div>
 
                     {/* Lado Derecho: Switch de Estado (Estilo Referencia) */}
@@ -106,6 +226,22 @@ const JuiciosForm = ({
                     </div>
                 </div>
 
+                {/* CHECKBOX GLOBAL */}
+                <div className={`mb-6 p-4 rounded-lg border flex items-center ${esComportamiento ? 'bg-gray-100 border-gray-200 opacity-50' : 'bg-blue-50/50 border-blue-100'}`}>
+                    <input
+                        id="check_transversal"
+                        type="checkbox"
+                        checked={esTransversal}
+                        onChange={handleTransversalChange}
+                        disabled={loading || esComportamiento}
+                        className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                    />
+                    <label htmlFor="check_transversal" className="ml-3 block text-sm font-bold text-gray-700 cursor-pointer select-none">
+                        Es un Juicio Global / Transversal (Social, Laboral, Acumulativa)
+                    </label>
+                    <FontAwesomeIcon icon={faGlobe} className="ml-auto text-blue-300 text-xl" />
+                </div>
+
                 {/* --- CUERPO DEL FORMULARIO --- */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
 
@@ -122,17 +258,6 @@ const JuiciosForm = ({
                         </div>
                     )}
 
-                    {/* Vigencia */}
-                    <div className="col-span-1">
-                        <label className="block text-sm font-medium text-[#4a5568] mb-1">Año Lectivo</label>
-                        <input
-                            type="text"
-                            value={vigencia ? vigencia.anio : "..."}
-                            disabled
-                            className={`${inputBaseClasses} bg-gray-100 text-gray-500 font-semibold`}
-                        />
-                    </div>
-
                     {/* Período */}
                     <div className="col-span-1">
                         <label className="block text-sm font-medium text-[#4a5568] mb-1">
@@ -141,65 +266,68 @@ const JuiciosForm = ({
                         <select
                             name="periodo"
                             value={formData.periodo || ""}
-                            onChange={handleChange}
+                            onChange={handleLocalChange}
                             className={inputBaseClasses}
+                            required
+                            disabled={esTransversal || esComportamiento} // Deshabilitado si es un Juicio Transversal (Acumulativa, Social, Laboral) o Comportamiento
                         >
                             <option value="">-- Seleccione --</option>
+                            {(esTransversal || esComportamiento) && (
+                                <option value="0" className="font-bold text-green-700 bg-green-50">Todos los periodos</option>
+                            )}
                             {[1, 2, 3, 4].map(p => <option key={p} value={p}>Periodo {p}</option>)}
+                            <option value="5" className="font-bold text-blue-700 bg-blue-50">Informe Final</option>
                         </select>
+                        {(esTransversal || esComportamiento) && (
+                            <p className="text-[10px] text-green-600 mt-1 flex items-center">
+                                <FontAwesomeIcon icon={faInfoCircle} className="mr-1" />
+                                Aplica para cualquier periodo del año.
+                            </p>
+                        )}
                     </div>
 
                     {/* Grado (Select Dinámico) */}
                     <div className="col-span-1">
                         <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                            Grado <span className="text-gray-400 font-normal text-xs">(Opcional para juicios globales)</span>
+                            Grado {esTransversal || esComportamiento ? <span className="text-gray-400">(No aplica)</span> : <span className="text-[#e74c3c] font-semibold">*</span>}
                         </label>
                         <select
                             name="gradoId"
                             value={formData.gradoId || ""}
-                            onChange={handleChange}
+                            onChange={handleLocalChange}
                             className={inputBaseClasses}
-                        // className={`${inputBaseClasses} ${!formData.gradoId ? "bg-blue-50 border-blue-300" : ""}`}
+                            disabled={esTransversal || esComportamiento}
+                            required={!esTransversal && !esComportamiento}
                         >
-                            <option value="">-- GLOBAL (Todos los grados) --</option>
+                            <option value="">-- {esComportamiento ? "GLOBAL (TODOS)" : "Seleccione Grado"} --</option>
                             {grados.map(g => (
                                 <option key={g.id} value={g.id}>
                                     {g.nombre ? g.nombre.replace(/_/g, " ") : "Sin Nombre"}
                                 </option>
                             ))}
                         </select>
-                        {!formData.gradoId && (
-                            <p className="text-[12px] text-blue-600 mt-1 flex items-center">
-                                <FontAwesomeIcon icon={faInfoCircle} className="mr-1" />
-                                Aplica de 1° a Ciclo VI (Excluye Preescolar)
-                            </p>
-                        )}
                     </div>
 
                     {/* Asignatura */}
                     <div className="col-span-1 md:col-span-2">
                         <label className="block text-sm font-medium text-[#4a5568] mb-1">
-                            Asignatura <span className="text-gray-400 font-normal text-xs">(Opcional para juicios globales)</span>
+                            Asignatura {esTransversal ? <span className="text-gray-400">(No aplica)</span> : <span className="text-[#e74c3c] font-semibold">*</span>}
                         </label>
                         <select
                             name="asignaturaId"
                             value={formData.asignaturaId || ""}
-                            onChange={handleChange}
+                            onChange={handleAsignaturaChange}
                             className={inputBaseClasses}
-                        // className={`${inputBaseClasses} ${!formData.asignaturaId ? "bg-blue-50 border-blue-300" : ""}`}
+                            disabled={esTransversal}
+                            required={!esTransversal}
                         >
-                            <option value="">-- GLOBAL (Todas las asignaturas) --</option>
+                            <option value="">-- Seleccione Asignatura --</option>
                             {asignaturas.map((asignatura) => (
                                 <option key={asignatura.id} value={asignatura.id}>
                                     {asignatura.nombre} - {asignatura.codigo}
                                 </option>
                             ))}
                         </select>
-                        {!formData.asignaturaId && (
-                            <p className="text-[12px] text-blue-600 mt-1">
-                                * Para competencias transversales (Social, Laboral, Acumulativa).
-                            </p>
-                        )}
                     </div>
 
                     {/* Competencia (Select Dinámico) */}
@@ -210,8 +338,9 @@ const JuiciosForm = ({
                         <select
                             name="dimensionId"
                             value={formData.dimensionId || ""}
-                            onChange={handleChange}
+                            onChange={handleLocalChange}
                             className={inputBaseClasses}
+                            required
                         >
                             <option value="">-- Seleccione --</option>
                             {filteredDimensiones.map(d => (
@@ -220,6 +349,10 @@ const JuiciosForm = ({
                                 </option>
                             ))}
                         </select>
+                        {/* {esTransversal && <p className="text-[11px] text-blue-600 mt-1">* Solo competencias transversales.</p>}
+                        {!esTransversal && formData.gradoId && filteredDimensiones.length > 5 && (
+                            <p className="text-[10px] text-gray-400 mt-1">Mostrando dimensiones disponibles para el grado.</p>
+                        )} */}
                     </div>
 
                     {/* Desempeño (Select Dinámico) */}
@@ -230,13 +363,12 @@ const JuiciosForm = ({
                         <select
                             name="desempenoId"
                             value={formData.desempenoId || ""}
-                            onChange={handleChange}
+                            onChange={handleLocalChange}
                             className={inputBaseClasses}
+                            required
                         >
                             <option value="">-- Seleccione --</option>
-                            {desempenos.map(d => (
-                                <option key={d.id} value={d.id}>{d.nombre}</option>
-                            ))}
+                            {desempenos.map(d => <option key={d.id} value={d.id}>{d.nombre}</option>)}
                         </select>
                     </div>
 
@@ -264,31 +396,6 @@ const JuiciosForm = ({
                             </div>
                         </>
                     )}
-
-                    {/* Estado Activo/Inactivo */}
-                    {/* <div className="col-span-1 flex items-end">
-                        <button
-                            type="button"
-                            onClick={handleToggleActivo}
-                            className={`flex items-center justify-center space-x-3 w-full px-4 py-2 rounded-lg border transition duration-150 mb-[2px] ${formData.activo
-                                ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
-                                : 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100'
-                                }`}
-                            disabled={loading}
-                        >
-                            {formData.activo ? (
-                                <>
-                                    <FontAwesomeIcon icon={faToggleOn} className="text-green-600 text-xl" />
-                                    <span className="font-medium">Activo</span>
-                                </>
-                            ) : (
-                                <>
-                                    <FontAwesomeIcon icon={faToggleOff} className="text-red-600 text-xl" />
-                                    <span className="font-medium">Inactivo</span>
-                                </>
-                            )}
-                        </button>
-                    </div> */}
                 </div>
 
                 {/* Texto del Juicio */}
@@ -304,10 +411,11 @@ const JuiciosForm = ({
                     <textarea
                         name="texto"
                         value={formData.texto || ""}
-                        onChange={handleChange}
+                        onChange={handleLocalChange}
                         rows="4"
                         placeholder="Ingrese el texto descriptivo del juicio..."
                         className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 transition duration-150 resize-none"
+                        required
                     />
                     <span className="text-[12px] text-gray-400">Mínimo 10 caracteres.</span>
                 </div>

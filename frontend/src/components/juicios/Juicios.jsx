@@ -158,6 +158,7 @@ const Juicios = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         const requiredFields = ['texto', 'periodo', 'dimensionId', 'desempenoId', 'vigenciaId'];
+
         for (const field of requiredFields) {
             if (!formData[field]) return showWarning("Todos los campos obligatorios (<span class='text-[#e74c3c]'>*</span>) deben completarse.");
         }
@@ -165,8 +166,9 @@ const Juicios = () => {
         try {
             setLoading(true);
             const dataToSubmit = { ...formData };
+
+            // Limpieza de strings vacíos a null
             Object.keys(dataToSubmit).forEach(k => {
-                // Convierte "" a null para que el backend lo acepte
                 if (typeof dataToSubmit[k] === 'string' && dataToSubmit[k].trim() === '') {
                     dataToSubmit[k] = null;
                 }
@@ -176,13 +178,22 @@ const Juicios = () => {
                 const { id, ...dataToCreate } = dataToSubmit;
                 await crearJuicio(dataToCreate);
                 showSuccess(`Juicio creado exitosamente.`);
+
+                // Mantenemos: Grado, Asignatura, Dimensión, Desempeño, Checkbox Activo, etc.
+                setFormData(prev => ({
+                    ...prev,
+                    texto: '',      // Limpiamos la descripción
+                    periodo: '',    // Limpiamos el periodo
+                }));
             } else {
                 const { id, ...dataToUpdate } = dataToSubmit;
                 await actualizarJuicio(id, dataToUpdate);
                 showSuccess(`Juicio actualizado exitosamente.`);
+
+                resetForm();
             }
             loadJuicios();
-            resetForm();
+
         } catch (err) {
             showError(err.message);
         } finally {

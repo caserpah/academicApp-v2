@@ -12,7 +12,7 @@ export const juicioService = {
         const limit = Number(params.limit) || 10;
 
         const orderBy = params.orderBy || "gradoId";
-        const order = params.order || "ASC";
+        const order = params.order || "DESC";
 
         return juicioRepository.findAll({
             ...params,

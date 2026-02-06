@@ -18,7 +18,7 @@ export const asignaturaRepository = {
             vigenciaId,
             areaId,
             search,
-            orderBy = "nombre",
+            orderBy = "codigo",
             order = "ASC",
             attributes,
             includeVigencia = true,
@@ -48,7 +48,7 @@ export const asignaturaRepository = {
         }
 
         const validOrderFields = ["id", "codigo", "nombre", "abreviatura", "promociona", "porcentual"];
-        const safeOrderBy = validOrderFields.includes(orderBy) ? orderBy : "nombre";
+        const safeOrderBy = validOrderFields.includes(orderBy) ? orderBy : "codigo";
         const safeOrder = order?.toUpperCase() === "DESC" ? "DESC" : "ASC";
 
         const include = [];

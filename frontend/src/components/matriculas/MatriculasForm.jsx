@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faSave, faTimes, faSearch, faEye, faIdCard, faUser, faMapMarkerAlt, faPhone, faTrash
+    faSave, faTimes, faSearch, faEye, faIdCard, faUser, faMapMarkerAlt, faPhone,
+    faTrash, faLock, faFileAlt, faCalendarAlt, faInfoCircle
 } from "@fortawesome/free-solid-svg-icons";
 
 const MatriculasForm = ({
@@ -14,12 +15,13 @@ const MatriculasForm = ({
     resetForm,
     listas = { sedes: [], grupos: [] },
     onBuscarEstudiante,
-    onDeselectStudent
+    onDeselectStudent,
+    vigenciaNombre = new Date().getFullYear().toString(),
+    onDelete
 }) => {
 
     // Estado local para el input del buscador
     const [busquedaTemp, setBusquedaTemp] = useState("");
-
     const [mostrarDetalle, setMostrarDetalle] = useState(false); // Estado para el modal con la información del estudiante
 
     const inputBaseClasses = "mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150";
@@ -36,6 +38,12 @@ const MatriculasForm = ({
             .replace("MANANA", "MAÑANA"); // Corrige la ñ
     };
 
+    // Helper para manejar Checkboxes
+    const handleCheck = (e) => {
+        const { name, checked } = e.target;
+        handleChange({ target: { name, value: checked } });
+    };
+
     // ==========================
     // Renderizado del formulario
     // ==========================
@@ -43,20 +51,127 @@ const MatriculasForm = ({
         <>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-                    <div className="border-b pb-2 mb-4 border-[#d8d5d5]">
-                        <h3 className="text-lg font-semibold text-gray-700">{mode === "agregar" ? "Registrar Nueva Matrícula" : "Editar Matrícula"}</h3>
+
+                    {/* --- ENCABEZADO CON ALERTA DE BLOQUEO --- */}
+                    <div className="border-b pb-2 mb-4 border-[#d8d5d5] flex justify-between items-center">
+                        <h3 className="text-lg font-semibold text-gray-700">
+                            {mode === "agregar" ? "Registrar Nueva Matrícula" : "Editar Matrícula"}
+                        </h3>
+
+                        {/* Indicador visual si está bloqueado */}
+                        {formData.bloqueo_notas && (
+                            <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold flex items-center animate-pulse">
+                                <FontAwesomeIcon icon={faLock} className="mr-1" /> BLOQUEADO ACADÉMICAMENTE
+                            </span>
+                        )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
 
-                        {/* -- ESTUDIANTE -- */}
-                        <div className="col-span-1">
+                        {/* ==============================================================
+                            SECCIÓN 1: DATOS ADMINISTRATIVOS (Año, Folio, Sede, Grupo)
+                           ============================================================== */}
+
+                        {/* Año Lectivo */}
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <FontAwesomeIcon icon={faCalendarAlt} className="mr-1" />
+                                Año Lectivo <span className="text-red-500"> *</span>
+                            </label>
+
+                            <select
+                                name="vigenciaId"
+                                value={formData.vigenciaId || ""}
+                                onChange={handleChange}
+                                className={getInputClasses()}
+                                title="Seleccione el año lectivo para esta matrícula"
+                            >
+                                <option value="">Seleccione...</option>
+
+                                {/* Iteramos las vigencias pasadas desde el padre */}
+                                {listas.vigencias && listas.vigencias.length > 0 ? (
+                                    listas.vigencias.map(v => (
+                                        <option key={v.id} value={v.id}>
+                                            {v.anio} {v.activa ? "(Activo)" : ""}
+                                        </option>
+                                    ))
+                                ) : (
+                                    /* Fallback visual si no hay lista, muestra el nombre que llega por prop */
+                                    <option value={formData.vigenciaId}>{vigenciaNombre}</option>
+                                )}
+                            </select>
+                        </div>
+
+                        {/* Número de Folio (Solo Lectura, visible al editar o si ya se generó) */}
+                        <div className="md:col-span-3">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <FontAwesomeIcon icon={faFileAlt} className="mr-1" />No. Folio
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.folio || "Generado autom."}
+                                readOnly
+                                className={`${getInputClasses(true)} text-gray-500 italic`}
+                            />
+                        </div>
+
+                        {/* SEDE */}
+                        <div className="md:col-span-3">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Sede <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                                name="sedeId"
+                                value={formData.sedeId || ""}
+                                onChange={handleChange}
+                                className={getInputClasses()}
+                            >
+                                <option value="">Seleccione Sede...</option>
+                                {listas.sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                            </select>
+                        </div>
+
+                        {/* -- GRUPO -- */}
+                        <div className="md:col-span-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Grupo <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                                name="grupoId"
+                                value={formData.grupoId || ""}
+                                onChange={handleChange}
+                                className={getInputClasses()}
+                                disabled={!formData.sedeId || loadingGrupos} // Se deshabilita si carga
+                            >
+                                <option value="">
+                                    {!formData.sedeId
+                                        ? "Seleccione Sede primero..."
+                                        : (loadingGrupos
+                                            ? "⏳ Cargando grupos..."
+                                            : (listas.grupos.length === 0 ? "⚠️ No hay grupos en esta sede" : "Seleccione Grupo..."))
+                                    }
+                                </option>
+                                {listas.grupos.map(g => (
+                                    <option key={g.id} value={g.id}>
+                                        {/* GRADO - GRUPO (JORNADA) | NIVEL */}
+                                        {g.grado ? `${formatTexto(g.grado.nombre)} - ` : ""} {g.nombre} | Jornada: {formatTexto(g.jornada)}
+                                        {g.grado?.nivelAcademico ? ` | ${formatTexto(g.grado.nivelAcademico)}` : ""}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* ==============================================================
+                            SECCIÓN 2: DATOS DEL ESTUDIANTE
+                           ============================================================== */}
+
+                        <div className="md:col-span-12">
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Estudiante <span className="text-red-500">*</span>
                             </label>
 
                             {/* Buscador (Solo en modo agregar) */}
-                            {mode === "agregar" && (
+                            {mode === "agregar" && !est && (
                                 <div className="flex gap-2 mb-3">
                                     <input
                                         type="text"
@@ -111,63 +226,73 @@ const MatriculasForm = ({
                                     </div>
                                 </div>
                             ) : (
-                                <div className="bg-gray-50 border border-gray-200 border-dashed rounded-lg p-3 text-center text-sm text-gray-400">
-                                    No se ha seleccionado estudiante
-                                </div>
+                                mode === "agregar" && <div className="bg-gray-50 border border-gray-200 border-dashed rounded-lg p-3 text-center text-sm text-gray-400">No se ha seleccionado estudiante</div>
                             )}
 
                             {/* Input oculto para enviar el ID */}
                             <input type="hidden" name="estudianteId" value={formData.estudianteId || ""} />
                         </div>
 
-                        {/* -- SEDE -- */}
-                        <div className="col-span-1">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Sede <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                                name="sedeId"
-                                value={formData.sedeId || ""}
-                                onChange={handleChange}
-                                className={getInputClasses()}
-                            >
-                                <option value="">Seleccione Sede...</option>
-                                {listas.sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-                            </select>
+                        {/* ==============================================================
+                            SECCIÓN 3: INFORMACIÓN ACADÉMICA (Req #4)
+                           ============================================================== */}
+                        <div className="md:col-span-12 border-t border-gray-100 pt-4 mt-2">
+                            <h4 className="text-sm font-bold text-gray-700 mb-3 flex items-center">
+                                <FontAwesomeIcon icon={faInfoCircle} className="mr-2 text-blue-500" />
+                                Historial Académico
+                            </h4>
+
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                                {/* Situación Anterior */}
+                                <div className="md:col-span-4">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Situación Año Anterior</label>
+                                    <select
+                                        name="situacion_ano_anterior"
+                                        value={formData.situacion_ano_anterior || "APROBO"}
+                                        onChange={handleChange}
+                                        className={getInputClasses()}
+                                    >
+                                        <option value="NO_ESTUDIO">No Estudió</option>
+                                        <option value="APROBO">Aprobó</option>
+                                        <option value="REPROBO">Reprobó</option>
+                                        <option value="NO_CULMINO">No Culminó Estudios</option>
+                                        <option value="SIN_INFO">Sin Información</option>
+                                    </select>
+                                </div>
+
+                                {/* Checkboxes Nuevo/Repitente */}
+                                <div className="md:col-span-8 flex items-end pb-2 space-x-6">
+                                    <label className="inline-flex items-center cursor-pointer bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition w-full md:w-auto">
+                                        <input
+                                            type="checkbox"
+                                            name="es_nuevo"
+                                            checked={formData.es_nuevo || false}
+                                            onChange={handleCheck}
+                                            className="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+                                        />
+                                        <span className="ml-2 text-sm text-gray-700 font-medium">Es Estudiante Nuevo</span>
+                                    </label>
+
+                                    <label className="inline-flex items-center cursor-pointer bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition w-full md:w-auto">
+                                        <input
+                                            type="checkbox"
+                                            name="es_repitente"
+                                            checked={formData.es_repitente || false}
+                                            onChange={handleCheck}
+                                            className="form-checkbox h-5 w-5 text-orange-500 rounded focus:ring-orange-500"
+                                        />
+                                        <span className="ml-2 text-sm text-gray-700 font-medium">Es Repitente</span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* -- GRUPO -- */}
-                        <div className="col-span-1">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Grupo <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                                name="grupoId"
-                                value={formData.grupoId || ""}
-                                onChange={handleChange}
-                                className={getInputClasses()}
-                                disabled={!formData.sedeId || loadingGrupos} // Se deshabilita si carga
-                            >
-                                <option value="">
-                                    {!formData.sedeId
-                                        ? "Seleccione Sede primero..."
-                                        : (loadingGrupos
-                                            ? "⏳ Cargando grupos..."
-                                            : (listas.grupos.length === 0 ? "⚠️ No hay grupos en esta sede" : "Seleccione Grupo..."))
-                                    }
-                                </option>
-                                {listas.grupos.map(g => (
-                                    <option key={g.id} value={g.id}>
-                                        {/* GRADO - GRUPO (JORNADA) | NIVEL */}
-                                        {g.grado ? `${formatTexto(g.grado.nombre)} - ` : ""} {g.nombre} | Jornada: {formatTexto(g.jornada)}
-                                        {g.grado?.nivelAcademico ? ` | ${formatTexto(g.grado.nivelAcademico)}` : ""}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                        {/* ==============================================================
+                            SECCIÓN 4: ESTADO Y CONTROL
+                           ============================================================== */}
 
                         {/* -- METODOLOGÍA -- */}
-                        <div className="col-span-1">
+                        <div className="md:col-span-4">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Metodología</label>
                             <select
                                 name="metodologia"
@@ -183,7 +308,7 @@ const MatriculasForm = ({
                         </div>
 
                         {/* -- ESTADO -- */}
-                        <div className="col-span-1">
+                        <div className="md:col-span-4">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
                             <select
                                 name="estado"
@@ -196,11 +321,30 @@ const MatriculasForm = ({
                                 <option value="ACTIVA">Activa</option>
                                 <option value="RETIRADO">Retirado</option>
                                 <option value="PROMOVIDO">Promovido</option>
+                                <option value="DESERTADO">Desertado</option>
                             </select>
                         </div>
 
+                        {/* Bloqueo de Notas (Switch) */}
+                        <div className="md:col-span-4">
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Control de Calificaciones</label>
+                            <div
+                                className={`flex items-center justify-between p-2 rounded-lg border cursor-pointer transition ${formData.bloqueo_notas ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}
+                                onClick={() => handleChange({ target: { name: 'bloqueo_notas', value: !formData.bloqueo_notas } })}
+                            >
+                                <span className={`text-sm font-bold ${formData.bloqueo_notas ? 'text-red-700' : 'text-green-700'}`}>
+                                    {formData.bloqueo_notas ? "🚫 NOTAS BLOQUEADAS" : "✅ Notas Habilitadas"}
+                                </span>
+
+                                <div className={`relative w-11 h-6 transition rounded-full ${formData.bloqueo_notas ? 'bg-red-500' : 'bg-green-500'}`}>
+                                    <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition transform ${formData.bloqueo_notas ? 'translate-x-5' : ''}`}></div>
+                                </div>
+                            </div>
+                            <p className="text-[10px] text-gray-400 mt-1">Úselo para restringir digitación por inasistencia.</p>
+                        </div>
+
                         {/* -- OBSERVACIONES -- */}
-                        <div className="col-span-1 md:col-span-2">
+                        <div className="md:col-span-12">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
                             <textarea
                                 name="observaciones"
@@ -208,14 +352,33 @@ const MatriculasForm = ({
                                 onChange={handleChange}
                                 rows="2"
                                 className={getInputClasses()}
+                                placeholder="Escriba aquí cualquier observación adicional..."
                             />
                         </div>
                     </div>
 
                     <div className="pt-4 flex justify-center space-x-3 border-t border-[#eee] mt-6">
+
+                        {/* BOTÓN GUARDAR */}
                         <button type="submit" disabled={loading} className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition flex items-center shadow-md">
                             <FontAwesomeIcon icon={faSave} className="mr-2" /> {mode === "agregar" ? "Guardar" : "Guardar Cambios"}
                         </button>
+
+                        {/* BOTÓN ELIMINAR (Solo en modo Editar) */}
+                        {mode === "editar" && (
+                            <button
+                                type="button"
+                                onClick={onDelete} // Llama a la función del padre
+                                disabled={loading}
+                                className="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition flex items-center shadow-md border border-red-700"
+                                title="Eliminar matrícula permanentemente"
+                            >
+                                <FontAwesomeIcon icon={faTrash} className="mr-2" /> Eliminar
+                            </button>
+                        )}
+
+
+                        {/* BOTÓN CANCELAR */}
                         <button type="button" onClick={resetForm} disabled={loading} className="bg-red-500 text-white px-5 py-2 rounded-lg hover:bg-red-600 transition flex items-center shadow-md">
                             <FontAwesomeIcon icon={faTimes} className="mr-2" /> Cancelar
                         </button>

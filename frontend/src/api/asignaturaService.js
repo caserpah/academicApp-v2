@@ -17,7 +17,7 @@ export const fetchInitialData = async (params = {}) => {
     try {
         // Obtener áreas y vigencias (Catálogos necesarios)
         const [areasResponse, vigenciasResponse] = await Promise.all([
-            apiClient.get(`${AREAS_ENDPOINT}?limit=200`),
+            apiClient.get(`${AREAS_ENDPOINT}?limit=100`),
             apiClient.get(VIGENCIAS_ENDPOINT),
         ]);
 

@@ -28,7 +28,7 @@ router.get("/:id", protect, sedeController.get);
 router.post(
     "/",
     protect,
-    restrictTo(["admin"]),
+    restrictTo(["admin", "secretaria"]),
     validarCrearSede,
     validationErrorHandler,
     sedeController.create
@@ -38,7 +38,7 @@ router.post(
 router.put(
     "/:id",
     protect,
-    restrictTo(["admin"]),
+    restrictTo(["admin", "secretaria"]),
     validarActualizarSede,
     validationErrorHandler,
     sedeController.update
@@ -48,7 +48,7 @@ router.put(
 router.delete(
     "/:id",
     protect,
-    restrictTo(["admin"]),
+    restrictTo(["admin", "secretaria"]),
     sedeController.remove
 );
 

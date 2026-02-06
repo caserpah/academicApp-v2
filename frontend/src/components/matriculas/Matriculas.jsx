@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom"; // Importamos Link para la navegación
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -9,11 +7,12 @@ import {
 
 // Hooks y Servicios
 import { useMatriculas } from "../../hooks/useMatriculas.js";
-import { showSuccess, showWarning, showError } from "../../utils/notifications.js";
+import { showSuccess, showWarning, showError, showConfirm } from "../../utils/notifications.js";
 import { fetchInitialData as fetchSedesData } from "../../api/sedesService.js";
 import { fetchGruposPorSede } from "../../api/gruposService.js";
 import { listarEstudiantes } from "../../api/estudiantesService.js";
-
+import { eliminarMatricula } from "../../api/matriculasService.js";
+import { fetchVigencias } from "../../api/vigenciasService.js";
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
 import MatriculasForm from "./MatriculasForm.jsx";
 
@@ -27,7 +26,12 @@ const Matriculas = () => {
         metodologia: "TRADICIONAL",
         estado: "PREMATRICULADO",
         observaciones: "",
-        folio: ""
+        folio: "",
+        vigenciaId: "",
+        bloqueo_notas: false,
+        es_nuevo: false,
+        es_repitente: false,
+        situacion_ano_anterior: "APROBO"
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -36,11 +40,15 @@ const Matriculas = () => {
     // Estados de filtros y tabla
     const [busqueda, setBusqueda] = useState("");
     const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
+    // const [totalPages, setTotalPages] = useState(1);
+
+    // Estado de vigencia activa
+    const [vigenciaActiva, setVigenciaActiva] = useState(null);
 
     // Estados de listas auxiliares
-    const [listasAuxiliares, setListasAuxiliares] = useState({ sedes: [], grupos: [] });
+    const [listasAuxiliares, setListasAuxiliares] = useState({ sedes: [], grupos: [], vigencias: [] });
     const [loadingGrupos, setLoadingGrupos] = useState(false);
+    const [processing, setProcessing] = useState(false);
 
     const formContainerRef = useRef(null);
 
@@ -55,21 +63,37 @@ const Matriculas = () => {
     } = useMatriculas();
 
     // ----------------------------------------------------------------
-    // EFECTO: CARGA DE SEDES (Solo una vez al montar)
+    // EFECTO: CARGA DE SEDES Y VIGENCIAS(Solo una vez al montar)
     // ----------------------------------------------------------------
     useEffect(() => {
-        const cargarSedes = async () => {
+        const cargarDatosMaestros = async () => {
             try {
-                const data = await fetchSedesData();
-                if (data && data.sedes) {
-                    setListasAuxiliares(prev => ({ ...prev, sedes: data.sedes }));
+                // Ejecutamos ambas peticiones en paralelo
+                const [dataSedes, listaVigencias] = await Promise.all([
+                    fetchSedesData(),
+                    fetchVigencias()
+                ]);
+
+                // DETECTAR VIGENCIA ACTIVA (Buscamos la que tiene activa: true)
+                const activa = listaVigencias?.find(v => v.activa === true);
+                if (activa) {
+                    setVigenciaActiva(activa);
+                    setFormData(prev => ({ ...prev, vigenciaId: activa.id })); // Preseleccionamos la vigencia activa
                 }
+
+                setListasAuxiliares(prev => ({
+                    ...prev,
+                    sedes: dataSedes?.sedes || [],
+                    vigencias: listaVigencias || []
+                }));
+
             } catch (err) {
-                console.error("Error cargando sedes:", err);
-                showError("No se pudieron cargar las sedes.");
+                console.error("Error cargando datos maestros:", err);
+                showWarning("No se pudieron cargar algunas listas desplegables.");
             }
         };
-        cargarSedes();
+
+        cargarDatosMaestros();
     }, []);
 
     // ----------------------------------------------------------------
@@ -92,7 +116,6 @@ const Matriculas = () => {
                 setListasAuxiliares(prev => ({ ...prev, grupos: [] }));
                 return;
             }
-
             setLoadingGrupos(true);
             try {
                 const grupos = await fetchGruposPorSede(formData.sedeId);
@@ -104,7 +127,6 @@ const Matriculas = () => {
                 setLoadingGrupos(false);
             }
         };
-
         cargarGrupos();
     }, [formData.sedeId]);
 
@@ -126,7 +148,6 @@ const Matriculas = () => {
                     estudianteId: est.id,
                     estudiante: est
                 }));
-                //showSuccess(`Seleccionado: ${est.primerNombre} ${est.primerApellido}`);
             } else {
                 showWarning("Estudiante no encontrado.");
                 setFormData(prev => ({ ...prev, estudianteId: "", estudiante: null }));
@@ -152,7 +173,7 @@ const Matriculas = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!formData.estudianteId || !formData.sedeId || !formData.grupoId) {
+        if (!formData.vigenciaId || !formData.estudianteId || !formData.sedeId || !formData.grupoId) {
             return showWarning("Todos los campos obligatorios (<span class='text-[#e74c3c]'>*</span>) deben completarse.");
         }
 
@@ -177,6 +198,11 @@ const Matriculas = () => {
             estudianteId: mat.estudianteId,
             sedeId: mat.sedeId,
             grupoId: mat.grupoId,
+            vigenciaId: mat.vigenciaId,
+            bloqueo_notas: mat.bloqueo_notas || false,
+            es_nuevo: mat.es_nuevo || false,
+            es_repitente: mat.es_repitente || false,
+            situacion_ano_anterior: mat.situacion_ano_anterior || "APROBO",
             observaciones: mat.observaciones || ""
         });
         setMode("editar");
@@ -185,8 +211,35 @@ const Matriculas = () => {
         }
     };
 
+    const handleDelete = async () => {
+        const idToDelete = formData.id;
+        if (!idToDelete) return;
+
+        if (await showConfirm(
+            "Esta acción eliminará permanentemente la matrícula. ¿Desea continuar?",
+            "Eliminar matrícula"
+        )) {
+            try {
+                setProcessing(true);
+                await eliminarMatricula(idToDelete);
+
+                showSuccess("Matrícula eliminada exitosamente.");
+                resetForm();
+                cargarMatriculas({ page, limit: 10, busqueda });
+
+            } catch (err) {
+                showError(err.message || "No se pudo eliminar la matrícula, porque tiene registros asociados.");
+            } finally {
+                setProcessing(false);
+            }
+        }
+    };
+
     const resetForm = () => {
-        setFormData(initialFormState);
+        setFormData({
+            ...initialFormState,
+            vigenciaId: vigenciaActiva?.id || "" // Reseteamos a vigencia activa si existe
+        });
         setMode("agregar");
     };
 
@@ -204,6 +257,20 @@ const Matriculas = () => {
             </span>
         );
     };
+
+    /**
+     * FILTRADO DE VIGENCIAS PARA EL SELECT
+     * Mostrar solo la Vigencia Activa O las Futuras (Año > AñoActivo)
+     */
+    const vigenciasFiltradas = listasAuxiliares.vigencias.filter(v => {
+        // Si estamos editando y el registro pertenece a un año viejo (ej. 2023),
+        // debemos permitir verlo para no romper el select.
+        if (mode === 'editar' && formData.vigenciaId === v.id) return true;
+
+        // Mostrar vigencia Activa o Futuras
+        if (!vigenciaActiva) return true; // Si no cargó la activa, muestra todo por seguridad
+        return v.activa || v.anio > vigenciaActiva.anio;
+    });
 
     // ----------------------------------------------------------------
     // RENDERIZADO
@@ -242,14 +309,18 @@ const Matriculas = () => {
                     <MatriculasForm
                         formData={formData}
                         mode={mode}
-                        loading={loadingMatriculas}
+                        loading={loadingMatriculas || processing}
                         loadingGrupos={loadingGrupos}
                         handleChange={handleChange}
                         handleSubmit={handleSubmit}
                         resetForm={resetForm}
-                        listas={listasAuxiliares}
                         onBuscarEstudiante={handleBuscarEstudiante}
                         onDeselectStudent={handleDeselectStudent}
+                        onDelete={handleDelete}
+                        listas={{
+                            ...listasAuxiliares,
+                            vigencias: vigenciasFiltradas
+                        }}
                     />
                 </div>
 
@@ -312,9 +383,7 @@ const Matriculas = () => {
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
-                                                No se encontraron matrículas registradas.
-                                            </td>
+                                            <td colSpan="5" className="px-6 py-8 text-center text-gray-500">No se encontraron matrículas registradas.</td>
                                         </tr>
                                     )}
                                 </tbody>

@@ -1,7 +1,7 @@
 import { matriculaService } from "../services/matricula.service.js";
 import { sendSuccess, sendError } from "../middleware/responseHandler.js";
-import { handleSequelizeError } from "../middleware/handleSequelizeError.js";
 import { getVigenciaFromRequest } from "../utils/vigencia.helper.js";
+import { Vigencia } from "../models/vigencia.js";
 
 export const matriculaController = {
 
@@ -35,7 +35,7 @@ export const matriculaController = {
             return sendSuccess(res, resultado);
 
         } catch (error) {
-            return handleSequelizeError(res, error);
+            next(error);
         }
     },
 
@@ -48,7 +48,7 @@ export const matriculaController = {
             const matricula = await matriculaService.obtenerPorId(id);
             return sendSuccess(res, matricula);
         } catch (error) {
-            return handleSequelizeError(res, error);
+            next(error);
         }
     },
 
@@ -58,21 +58,37 @@ export const matriculaController = {
      */
     async crear(req, res) {
         try {
-            const vigencia = getVigenciaFromRequest(req);
             const usuarioAuditorId = req.user?.id;
+
+            // Obtenemos la vigencia "por defecto" (la actual del sistema)
+            const vigenciaDefault = getVigenciaFromRequest(req);
+
+            let vigenciaFinal = vigenciaDefault;
+            let anioFinal = vigenciaDefault.anio;
+
+            // Si el usuario envió una vigenciaId distinta en el formulario...
+            if (req.body.vigenciaId && req.body.vigenciaId != vigenciaDefault.id) {
+                // ...buscamos esa vigencia en la BD para asegurarnos que existe y obtener su año (para el folio)
+                const vigenciaSeleccionada = await Vigencia.findByPk(req.body.vigenciaId);
+
+                if (!vigenciaSeleccionada) {
+                    return sendError(res, "El año lectivo seleccionado no es válido.", 400);
+                }
+                vigenciaFinal = vigenciaSeleccionada;
+                anioFinal = vigenciaSeleccionada.anio; // Necesario para generar el folio (MAT-202X-...)
+            }
 
             const datos = {
                 ...req.body,
-                vigenciaId: vigencia.id, // Forzamos vigencia
-                anioVigencia: vigencia.anio // Para el folio
+                vigenciaId: vigenciaFinal.id, // Usamos la vigencia final seleccionada por el usuario
+                anioVigencia: anioFinal // Usamos el año de la vigencia final para el folio
             };
 
             const nuevaMatricula = await matriculaService.crear(datos, usuarioAuditorId);
-
             return sendSuccess(res, nuevaMatricula, "La matrícula fue registrada exitosamente", 201);
 
         } catch (error) {
-            return handleSequelizeError(res, error);
+            next(error);
         }
     },
 
@@ -84,13 +100,45 @@ export const matriculaController = {
         try {
             const { id } = req.params;
             const usuarioAuditorId = req.user?.id;
+            const datosActualizar = { ...req.body };
 
-            const matriculaActualizada = await matriculaService.actualizar(id, req.body, usuarioAuditorId);
+            if (datosActualizar.vigenciaId) {
+                const vigenciaDestino = await Vigencia.findByPk(datosActualizar.vigenciaId);
+                if (!vigenciaDestino) {
+                    return sendError(res, "El año lectivo seleccionado no existe.", 400);
+                }
+
+                const existe = await Matricula.findOne({
+                    where: {
+                        estudianteId: datosActualizar.estudianteId || (id_actual_estudiante),
+                        vigenciaId: datosActualizar.vigenciaId,
+                        id: { [Op.ne]: id }
+                    }
+                });
+                if (existe) throw new Error("El estudiante ya tiene matrícula en el año lectivo seleccionado.");
+            }
+
+            const matriculaActualizada = await matriculaService.actualizar(id, datosActualizar, usuarioAuditorId);
 
             return sendSuccess(res, matriculaActualizada, "La matrícula fue actualizada exitosamente");
 
         } catch (error) {
-            return handleSequelizeError(res, error);
+            next(error);
+        }
+    },
+
+    /**
+     * DELETE /api/matriculas/:id
+     * Elimina una matrícula (si es posible).
+     */
+    async eliminar(req, res) {
+        try {
+            const { id } = req.params;
+
+            const eliminada = await matriculaService.eliminar(id);
+            return sendSuccess(res, eliminada, "La matrícula fue eliminada exitosamente");
+        } catch (error) {
+            next(error);
         }
     },
 
@@ -125,7 +173,7 @@ export const matriculaController = {
             return sendSuccess(res, resultado, resultado.mensaje, 201);
 
         } catch (error) {
-            return handleSequelizeError(res, error);
+            next(error);
         }
     }
 };

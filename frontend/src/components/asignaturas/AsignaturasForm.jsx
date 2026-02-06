@@ -95,6 +95,7 @@ const AsignaturasForm = ({
                             onChange={(e) => handleAlphanumericInput(e, 6)}
                             placeholder="Entre 3-6 caracteres alfanuméricos"
                             maxLength={6}
+                            required
                             className={getInputClasses()}
                         />
                     </div>
@@ -112,6 +113,7 @@ const AsignaturasForm = ({
                             onChange={(e) => handleUpperCaseInput(e, 60)}
                             placeholder="Nombre completo de la asignatura"
                             maxLength={60}
+                            required
                             className={getInputClasses()}
                         />
                     </div>
@@ -129,6 +131,7 @@ const AsignaturasForm = ({
                             onChange={(e) => handleAlphanumericInput(e, 6)}
                             placeholder="Entre 3-6 caracteres alfanuméricos"
                             maxLength={6}
+                            required
                             className={getInputClasses()}
                         />
                     </div>
@@ -149,6 +152,7 @@ const AsignaturasForm = ({
                                 max="100"
                                 step="0.1"
                                 className={`${getInputClasses()} w-full`}
+                                required
                                 placeholder="Ej: 30.5"
                             />
                             <span className="ml-2 text-gray-600">%</span>

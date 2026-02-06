@@ -21,7 +21,7 @@ export const Juicio = sequelize.define("juicio", {
     periodo: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        validate: { min: 1, max: 4 }
+        validate: { min: 0, max: 5 } // 1-4 para periodos regulares, 5 para Final
     },
     activo: {
         type: DataTypes.BOOLEAN,
