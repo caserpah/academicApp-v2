@@ -4,7 +4,7 @@ import { sendError } from "./responseHandler.js";
 /**
  * 🛡️ Middleware: protect
  * -----------------------
- * Verifica la validez del JWT y adjunta el usuario decodificado a `req.usuario`.
+ * Verifica la validez del JWT y adjunta el usuario decodificado a `req.user`.
  */
 export const protect = (req, res, next) => {
     let token;
@@ -24,8 +24,8 @@ export const protect = (req, res, next) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
         // 4. Adjuntar la información del usuario decodificada a la solicitud
-        // Esto permite acceder al ID y al rol en los controladores (ej. req.usuario.id)
-        req.usuario = decoded;
+        // Esto permite acceder al ID y al rol en los controladores (ej. req.user.id)
+        req.user = decoded;
 
         // 5. Continuar con el siguiente middleware/controlador
         next();
@@ -51,8 +51,8 @@ export const protect = (req, res, next) => {
  */
 export const restrictTo = (roles = []) => {
     return (req, res, next) => {
-        // req.usuario.role viene adjunto por el middleware 'protect'
-        if (!req.usuario || !roles.includes(req.usuario.role)) {
+        // req.user.role viene adjunto por el middleware 'protect'
+        if (!req.user || !roles.includes(req.user.role)) {
             return sendError(res, "No tiene permiso para realizar esta acción.", 403);
         }
         next();

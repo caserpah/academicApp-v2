@@ -163,16 +163,21 @@ const Matriculas = () => {
     };
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
+        const { name, value, type, checked } = e.target;
+
+        // Para checkboxes, el valor final es el estado checked (true/false)
+        const valorFinal = type === 'checkbox' ? checked : value;
+
         if (name === "sedeId") {
-            setFormData(prev => ({ ...prev, sedeId: value, grupoId: "" }));
+            setFormData(prev => ({ ...prev, sedeId: valorFinal, grupoId: "" }));
         } else {
-            setFormData(prev => ({ ...prev, [name]: value }));
+            setFormData(prev => ({ ...prev, [name]: valorFinal }));
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
         if (!formData.vigenciaId || !formData.estudianteId || !formData.sedeId || !formData.grupoId) {
             return showWarning("Todos los campos obligatorios (<span class='text-[#e74c3c]'>*</span>) deben completarse.");
         }
@@ -199,9 +204,9 @@ const Matriculas = () => {
             sedeId: mat.sedeId,
             grupoId: mat.grupoId,
             vigenciaId: mat.vigenciaId,
-            bloqueo_notas: mat.bloqueo_notas || false,
-            es_nuevo: mat.es_nuevo || false,
-            es_repitente: mat.es_repitente || false,
+            bloqueo_notas: !!mat.bloqueo_notas,
+            es_nuevo: !!mat.es_nuevo,
+            es_repitente: !!mat.es_repitente,
             situacion_ano_anterior: mat.situacion_ano_anterior || "APROBO",
             observaciones: mat.observaciones || ""
         });

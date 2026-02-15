@@ -96,6 +96,7 @@ const AreasForm = ({
                             onChange={(e) => handleAlphanumericInput(e, 6)}
                             placeholder="Entre 3-6 caracteres alfanuméricos"
                             maxLength={6}
+                            required
                             className={getInputClasses()}
                         />
                     </div>
@@ -113,6 +114,7 @@ const AreasForm = ({
                             onChange={(e) => handleUpperCaseInput(e, 60)}
                             placeholder="Nombre completo del área"
                             maxLength={60}
+                            required
                             className={getInputClasses()}
                         />
                     </div>
@@ -130,6 +132,7 @@ const AreasForm = ({
                             onChange={(e) => handleAlphanumericInput(e, 6)}
                             placeholder="Entre 3-6 caracteres alfanuméricos"
                             maxLength={6}
+                            required
                             className={getInputClasses()}
                         />
                     </div>

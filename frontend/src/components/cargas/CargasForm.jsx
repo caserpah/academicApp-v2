@@ -198,19 +198,20 @@ const CargasForm = ({
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
                                     <label className={labelClasses}>Sede <span className="text-red-500">*</span></label>
-                                    <select name="sedeId" value={formData.sedeId} onChange={handleChange} className={inputClasses} >
+                                    <select name="sedeId" value={formData.sedeId} onChange={handleChange} className={inputClasses} required >
                                         <option value="">-- Seleccione --</option>
                                         {catalogos.sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
                                     </select>
                                 </div>
                                 {/* SELECT DE GRADO (FILTRO) */}
                                 <div>
-                                    <label className={labelClasses}>Grado (Filtro)</label>
+                                    <label className={labelClasses}>Grado (Filtro) <span className="text-red-500">*</span></label>
                                     <select
                                         name="gradoId"
                                         value={formData.gradoId}
                                         onChange={handleChange}
                                         className={inputClasses}
+                                        required
                                     >
                                         <option value="">-- Seleccione --</option>
                                         {catalogos.grados.map(g => (
@@ -220,7 +221,7 @@ const CargasForm = ({
                                 </div>
                                 <div>
                                     <label className={labelClasses}>Grupo <span className="text-red-500">*</span></label>
-                                    <select name="grupoId" value={formData.grupoId} onChange={handleChange} className={inputClasses} disabled={!formData.sedeId}>
+                                    <select name="grupoId" value={formData.grupoId} onChange={handleChange} className={inputClasses} disabled={!formData.sedeId} required>
                                         <option value="">{!formData.sedeId ? "Primero elija Sede" : catalogos.grupos.length === 0 ? "Sin grupos" : "-- Seleccione --"}</option>
                                         {catalogos.grupos.map(g => <option key={g.id} value={g.id}>{g.nombre} ({g.jornada})</option>)}
                                     </select>
@@ -232,22 +233,22 @@ const CargasForm = ({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className={labelClasses}>Asignatura <span className="text-red-500">*</span></label>
-                                <select name="asignaturaId" value={formData.asignaturaId} onChange={handleChange} className={inputClasses}>
+                                <select name="asignaturaId" value={formData.asignaturaId} onChange={handleChange} className={inputClasses} required>
                                     <option value="">-- Seleccione --</option>
                                     {catalogos.asignaturas.map(a => <option key={a.id} value={a.id}>{a.nombre} - {a.codigo}</option>)}
                                 </select>
                                 {esComportamiento && <p className="text-xs text-orange-600 mt-1 font-semibold">* Horas fijas en 0.</p>}
                             </div>
                             <div>
-                                <label className={labelClasses}>Horas Semanales</label>
-                                <input type="number" name="horas" value={formData.horas} onChange={handleChange} className={inputClasses} min="0" disabled={esComportamiento} placeholder="Ej: 4" />
+                                <label className={labelClasses}>Horas Semanales <span className="text-red-500">*</span></label>
+                                <input type="number" name="horas" value={formData.horas} onChange={handleChange} className={inputClasses} required min="0" disabled={esComportamiento} placeholder="Ej: 4" />
                             </div>
                         </div>
 
                         {/* SECCIÓN 3: DOCENTE */}
                         <div>
                             <label className={labelClasses}>Docente Responsable <span className="text-red-500">*</span></label>
-                            <select name="docenteId" value={formData.docenteId} onChange={handleChange} className={inputClasses}>
+                            <select name="docenteId" value={formData.docenteId} onChange={handleChange} className={inputClasses} required>
                                 <option value="">-- Seleccione --</option>
                                 {catalogos.docentes.map(d => <option key={d.id} value={d.id}>{d.apellidos} {d.nombre} ({d.documento})</option>)}
                             </select>

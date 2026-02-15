@@ -22,10 +22,15 @@ export const juicioRepository = {
         page,
         limit,
         orderBy,
-        order
+        order,
+        excludeId
     }) {
         // Filtro base: siempre por vigencia
         const where = { vigenciaId };
+
+        if (excludeId) {
+            where.id = { [Op.ne]: excludeId };
+        }
 
         // Filtro explícito de estado
         if (activo !== undefined && activo !== null && activo !== "") {
@@ -35,7 +40,10 @@ export const juicioRepository = {
         // Filtros opcionales específicos
         if (dimensionId) where.dimensionId = dimensionId;
         if (desempenoId) where.desempenoId = desempenoId;
-        if (periodo) where.periodo = periodo;
+
+        if (periodo !== undefined && periodo !== null && periodo !== "") {
+            where.periodo = periodo;
+        }
 
         // ---------------------------------------------------------
         //  LÓGICA DE JERARQUÍA (Globales vs Específicos)
@@ -43,7 +51,6 @@ export const juicioRepository = {
 
         // Solo aplicamos esta lógica compleja si estamos filtrando por Grado o Asignatura
         if (gradoId || asignaturaId) {
-
             const condicionesOr = [];
 
             // A. Coincidencia Exacta (Prioridad Máxima)
@@ -160,5 +167,14 @@ export const juicioRepository = {
 
         await registro.destroy();
         return true;
+    },
+
+    // Método específico para validación masiva: Trae solo campos esenciales y sin relaciones para máxima velocidad
+    async findAllForValidation(vigenciaId) {
+        return Juicio.findAll({
+            where: { vigenciaId },
+            attributes: ['id', 'gradoId', 'asignaturaId', 'dimensionId', 'desempenoId', 'periodo'],
+            raw: true // Importante: Devuelve objetos planos, más rápido y ligero
+        });
     },
 };

@@ -48,14 +48,8 @@ export const matriculaService = {
             return await sequelize.transaction(async (t) => {
                 // Desestructuración de campos permitidos
                 const {
-                    estudianteId,
-                    grupoId,
-                    sedeId,
-                    vigenciaId,
-                    anioVigencia,
-                    observaciones,
-                    metodologia,
-                    estado
+                    estudianteId, grupoId, sedeId, vigenciaId, anioVigencia, observaciones, estado,
+                    metodologia, es_nuevo, es_repitente, bloqueo_notas, situacion_ano_anterior
                 } = datos;
 
                 // Validar que no exista matrícula previa en esa vigencia
@@ -94,7 +88,11 @@ export const matriculaService = {
                     metodologia: metodologia || "TRADICIONAL", // Valor por defecto si no viene
                     fechaHora: new Date(),
                     estado: estado || "PREMATRICULADO", // Valor por defecto si no viene
-                    usuarioCreacion: usuarioAuditorId
+                    usuarioCreacion: usuarioAuditorId,
+                    es_nuevo: !!es_nuevo, // Forzamos boolean por seguridad
+                    es_repitente: !!es_repitente,
+                    bloqueo_notas: !!bloqueo_notas,
+                    situacion_ano_anterior: situacion_ano_anterior || "APROBO"
                 };
 
                 // Crear Matrícula
@@ -134,12 +132,8 @@ export const matriculaService = {
 
                 // Extraer campos permitidos para update
                 const {
-                    grupoId,
-                    sedeId,
-                    estado,
-                    observaciones,
-                    metodologia,
-                    motivoRetiro   // <--- Importante si cambia a retirado
+                    grupoId, sedeId, estado, observaciones, metodologia, motivoRetiro,
+                    es_nuevo, es_repitente, bloqueo_notas, situacion_ano_anterior
                 } = datos;
 
                 // Detectar cambios para el historial
@@ -185,6 +179,10 @@ export const matriculaService = {
                 if (sedeId) datosActualizar.sedeId = sedeId;
                 if (estado) datosActualizar.estado = estado;
                 if (motivoRetiro) datosActualizar.motivoRetiro = motivoRetiro;
+                if (es_nuevo !== undefined) datosActualizar.es_nuevo = es_nuevo;
+                if (es_repitente !== undefined) datosActualizar.es_repitente = es_repitente;
+                if (bloqueo_notas !== undefined) datosActualizar.bloqueo_notas = bloqueo_notas;
+                if (situacion_ano_anterior !== undefined) datosActualizar.situacion_ano_anterior = situacion_ano_anterior;
 
                 // Si es retiro, llenar datos de retiro
                 if ((estado === "RETIRADO" || estado === "DESERTADO") && matriculaActual.estado !== estado) {

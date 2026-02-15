@@ -51,6 +51,7 @@ const GruposForm = ({
                             value={formData.sedeId}
                             onChange={handleChange}
                             className={inputBaseClasses}
+                            required
                         >
                             <option value="">-- Seleccione Sede --</option>
                             {catalogos.sedes.map((sede) => (
@@ -71,6 +72,7 @@ const GruposForm = ({
                             value={formData.gradoId}
                             onChange={handleChange}
                             className={inputBaseClasses}
+                            required
                         >
                             <option value="">-- Seleccione Grado --</option>
                             {catalogos.grados.map((grado) => (
@@ -93,6 +95,7 @@ const GruposForm = ({
                             onChange={handleNombreInput}
                             placeholder="Ej: A, B, C, ..., 1, 2, 3"
                             className={inputBaseClasses}
+                            required
                         />
                         <p className="text-xs text-gray-400 mt-1">Máx. 10 caracteres.</p>
                     </div>
@@ -107,6 +110,7 @@ const GruposForm = ({
                             value={formData.jornada}
                             onChange={handleChange}
                             className={inputBaseClasses}
+                            required
                         >
                             <option value="">-- Seleccione Jornada --</option>
                             <option value="MANANA">Mañana</option>
@@ -149,6 +153,7 @@ const GruposForm = ({
                             min="1"
                             max="100"
                             className={inputBaseClasses}
+                            required
                         />
                     </div>
                 </div>

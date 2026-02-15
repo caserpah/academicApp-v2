@@ -1,5 +1,3 @@
-
-
 import {
     UniqueConstraintError,
     ForeignKeyConstraintError,
@@ -105,6 +103,20 @@ export const handleSequelizeError = (error) => {
         // Caso 10: Especial para matriculas
         if (indexName === "idx_unique_estudiante_vigencia") {
             const err = new Error("No es posible crear la matrícula. Ya existe una matrícula registrada para este estudiante en el mismo año lectivo.");
+            err.status = 409;
+            return err;
+        }
+
+        // Caso 11: Calificaciones (Estudiante + Asignatura + Periodo + Vigencia)
+        if (indexName === "idx_unique_calificacion_periodo_estudiante_asignatura_vigencia") {
+            const err = new Error("Ya existe una calificación registrada para este estudiante en esta asignatura y periodo.");
+            err.status = 409;
+            return err;
+        }
+
+        // Caso 12: Nivelaciones (Matricula + Asignatura)
+        if (indexName === "idx_unique_nivelacion_matricula_asignatura") {
+            const err = new Error("Este estudiante ya tiene una nivelación registrada para esta asignatura.");
             err.status = 409;
             return err;
         }

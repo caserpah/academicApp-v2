@@ -170,6 +170,7 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
                                 value={formData.afinidad}
                                 onChange={handleChange}
                                 className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                required
                             >
                                 <option value="">-- Seleccione --</option>
                                 {AFINIDADES.map(a => <option key={a} value={a}>{a}</option>)}

@@ -42,6 +42,7 @@ const menuStructure = [
         items: [
             { path: "/calificaciones", label: "Calificaciones", icon: "star", requiredRole: 'admin' },
             { path: "/juicios", label: "Juicios Académicos", icon: "gavel", requiredRole: 'admin' },
+            { path: "/ventanas", label: "Ventanas de Calificación", icon: "calendar-alt", requiredRole: 'admin' },
         ]
     }
 ];

@@ -1,4 +1,5 @@
 import express from "express";
+import multer from "multer";
 import { protect, restrictTo } from "../middleware/auth.middleware.js";
 import { validationErrorHandler } from "../validators/validationErrorHandler.js";
 
@@ -9,6 +10,7 @@ import {
 
 import { juicioController } from "../controllers/juicio.controller.js";
 
+const upload = multer({ storage: multer.memoryStorage() });
 const router = express.Router();
 
 /**
@@ -48,6 +50,23 @@ router.delete(
     protect,
     restrictTo(["admin"]),
     juicioController.remove
+);
+
+// Descargar plantilla de importación
+router.get(
+    "/plantilla",
+    protect,
+    restrictTo(["admin"]),
+    juicioController.descargarPlantilla
+);
+
+// Importar juicios desde archivo Excel
+router.post(
+    "/importar",
+    protect,
+    restrictTo(["admin"]),
+    upload.single("archivo"),
+    juicioController.importar
 );
 
 export default router;

@@ -1,77 +1,73 @@
-import { body, query } from "express-validator";
+import { body } from "express-validator";
+import {
+    validarCampoRequerido,
+    verificarExistenciaPorId,
+} from "../utils/dbUtils.js";
+
 import { Estudiante } from "../models/estudiante.js";
 import { Asignatura } from "../models/asignatura.js";
-import { Grupo } from "../models/grupo.js";
-import { validarCampoRequerido, verificarExistenciaPorCampo } from "../utils/dbUtils.js";
 import { validationErrorHandler } from "./validationErrorHandler.js";
 
-const rangoNota = (campo) =>
-    body(campo)
-        .isFloat({ min: 0, max: 5 }).withMessage("Ingrese una nota entre 0.0 y 5.0.");
+/**
+ * Validaciones para Crear/Actualizar Calificación
+ * Nota: Al ser un "Upsert" (Guardar), usamos un solo validador principal.
+ */
+export const ValidarGuardarCalificacion = [
+    // --- Identificadores Obligatorios ---
 
-const camposNotas = [
-    rangoNota("notaAcademica"),
-    rangoNota("notaAcumulativa"),
-    rangoNota("notaLaboral"),
-    rangoNota("notaSocial"),
-];
+    validarCampoRequerido("estudianteId", "El estudiante es requerido.")
+        .isInt().withMessage("El ID del estudiante debe ser un número entero.")
+        .bail()
+        .custom(verificarExistenciaPorId(Estudiante, "id", "el estudiante")),
 
-const camposJuicios = [
-    body("juicioAcademica").optional({ checkFalsy: true }).isLength({ max: 2000 }).withMessage("El juicio académico no debe exceder 2000 caracteres."),
-    body("juicioAcumulativa").optional({ checkFalsy: true }).isLength({ max: 2000 }).withMessage("El juicio acumulativo no debe exceder 2000 caracteres."),
-    body("juicioLaboral").optional({ checkFalsy: true }).isLength({ max: 2000 }).withMessage("El juicio laboral no debe exceder 2000 caracteres."),
-    body("juicioSocial").optional({ checkFalsy: true }).isLength({ max: 2000 }).withMessage("El juicio social no debe exceder 2000 caracteres."),
-];
+    validarCampoRequerido("asignaturaId", "La asignatura es requerida.")
+        .isInt().withMessage("El ID de la asignatura debe ser un número entero.")
+        .bail()
+        .custom(verificarExistenciaPorId(Asignatura, "id", "la asignatura")),
 
-export const validarUpsertIndividual = [
-    validarCampoRequerido("periodo", "Seleccione el periodo.")
-        .isInt({ min: 1, max: 4 }).withMessage("El periodo debe estar entre 1 y 4."),
-    validarCampoRequerido("estudianteId", "Seleccione el estudiante.")
-        .isInt({ min: 1 }).withMessage("El estudiante seleccionado no es válido.")
-        .bail().custom(verificarExistenciaPorCampo(Estudiante, "id", "el estudiante", "ID")),
-    validarCampoRequerido("asignaturaId", "Seleccione la asignatura.")
-        .isInt({ min: 1 }).withMessage("La asignatura seleccionada no es válida.")
-        .bail().custom(verificarExistenciaPorCampo(Asignatura, "id", "la asignatura", "ID")),
-    ...camposNotas,
-    ...camposJuicios,
-    body("recomendacionUno").optional({ checkFalsy: true }).isLength({ max: 2000 }).withMessage("La recomendación no debe exceder 2000 caracteres."),
-    body("recomendacionDos").optional({ checkFalsy: true }).isLength({ max: 2000 }).withMessage("La recomendación no debe exceder 2000 caracteres."),
-    body("fallas").optional({ checkFalsy: true }).isInt({ min: 0, max: 400 }).withMessage("Las fallas deben estar entre 0 y 400."),
-    validationErrorHandler,
-];
+    validarCampoRequerido("periodo", "El periodo es requerido.")
+        .isInt({ min: 1, max: 4 })
+        .withMessage("El periodo debe ser un número entre 1 y 4."),
 
-export const validarPrecargaGrupo = [
-    query("grupoId").isInt({ min: 1 }).withMessage("Seleccione un grupo válido."),
-    query("asignaturaId").isInt({ min: 1 }).withMessage("Seleccione una asignatura válida."),
-    query("periodo").isInt({ min: 1, max: 4 }).withMessage("El periodo debe estar entre 1 y 4."),
-    query("valorBase").optional({ checkFalsy: true }).isFloat({ min: 0, max: 5 }).withMessage("El valor base debe estar entre 0.0 y 5.0."),
-    validationErrorHandler,
-];
+    // --- Notas (Opcionales pero validadas si vienen) ---
+    // Usamos .optional({ nullable: true, checkFalsy: true }) para permitir vacíos o nulls
 
-export const validarUpsertMasivo = [
-    validarCampoRequerido("grupoId", "Seleccione un grupo.")
-        .isInt({ min: 1 }).withMessage("Seleccione un grupo válido.")
-        .bail().custom(verificarExistenciaPorCampo(Grupo, "id", "el grupo", "ID")),
-    validarCampoRequerido("asignaturaId", "Seleccione una asignatura.")
-        .isInt({ min: 1 }).withMessage("Seleccione una asignatura válida.")
-        .bail().custom(verificarExistenciaPorCampo(Asignatura, "id", "la asignatura", "ID")),
-    validarCampoRequerido("periodo", "Seleccione el periodo.")
-        .isInt({ min: 1, max: 4 }).withMessage("El periodo debe estar entre 1 y 4."),
-    body("filas").isArray({ min: 1 }).withMessage("Cargue al menos un estudiante para registrar calificaciones."),
-    // Valida notas y campos por cada fila (light validation)
-    validationErrorHandler,
-];
+    body("notaAcademica")
+        .optional({ nullable: true, checkFalsy: true })
+        .isFloat({ min: 0.0, max: 5.0 })
+        .withMessage("La nota Académica debe estar entre 0.0 y 5.0"),
 
-export const validarDescargarPlantilla = [
-    query("grupoId").isInt({ min: 1 }).withMessage("Seleccione un grupo válido."),
-    query("asignaturaId").isInt({ min: 1 }).withMessage("Seleccione una asignatura válida."),
-    query("periodo").isInt({ min: 1, max: 4 }).withMessage("El periodo debe estar entre 1 y 4."),
-    validationErrorHandler,
-];
+    body("notaAcumulativa")
+        .optional({ nullable: true, checkFalsy: true })
+        .isFloat({ min: 0.0, max: 5.0 })
+        .withMessage("La nota Acumulativa debe estar entre 0.0 y 5.0"),
 
-export const validarImportarExcel = [
-    validarCampoRequerido("grupoId", "Seleccione un grupo.").isInt({ min: 1 }),
-    validarCampoRequerido("asignaturaId", "Seleccione una asignatura.").isInt({ min: 1 }),
-    validarCampoRequerido("periodo", "Seleccione el periodo.").isInt({ min: 1, max: 4 }),
+    body("notaLaboral")
+        .optional({ nullable: true, checkFalsy: true })
+        .isFloat({ min: 0.0, max: 5.0 })
+        .withMessage("La nota Laboral debe estar entre 0.0 y 5.0"),
+
+    body("notaSocial")
+        .optional({ nullable: true, checkFalsy: true })
+        .isFloat({ min: 0.0, max: 5.0 })
+        .withMessage("La nota Social debe estar entre 0.0 y 5.0"),
+
+    // Caso especial: Nota Definitiva directa (Comportamiento)
+    body("notaDefinitivaInput")
+        .optional({ nullable: true, checkFalsy: true })
+        .isFloat({ min: 0.0, max: 5.0 })
+        .withMessage("La nota Definitiva debe estar entre 0.0 y 5.0"),
+
+    // --- Otros campos ---
+    body("fallas")
+        .optional({ nullable: true })
+        .isInt({ min: 0 })
+        .withMessage("El número de inasistencias debe ser un entero positivo."),
+
+    // Auditoría (Opcionales en estructura, obligatorios por lógica de negocio en Service)
+    body("observacion_cambio").optional().isString(),
+    body("url_evidencia_cambio").optional().isString(),
+
+    // Middleware final de manejo de errores
     validationErrorHandler,
 ];

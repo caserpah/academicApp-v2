@@ -38,12 +38,6 @@ const MatriculasForm = ({
             .replace("MANANA", "MAÑANA"); // Corrige la ñ
     };
 
-    // Helper para manejar Checkboxes
-    const handleCheck = (e) => {
-        const { name, checked } = e.target;
-        handleChange({ target: { name, value: checked } });
-    };
-
     // ==========================
     // Renderizado del formulario
     // ==========================
@@ -125,6 +119,8 @@ const MatriculasForm = ({
                                 value={formData.sedeId || ""}
                                 onChange={handleChange}
                                 className={getInputClasses()}
+                                required
+                                title="Seleccione la sede donde se matricula el estudiante"
                             >
                                 <option value="">Seleccione Sede...</option>
                                 {listas.sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
@@ -141,6 +137,7 @@ const MatriculasForm = ({
                                 value={formData.grupoId || ""}
                                 onChange={handleChange}
                                 className={getInputClasses()}
+                                required
                                 disabled={!formData.sedeId || loadingGrupos} // Se deshabilita si carga
                             >
                                 <option value="">
@@ -266,8 +263,8 @@ const MatriculasForm = ({
                                         <input
                                             type="checkbox"
                                             name="es_nuevo"
-                                            checked={formData.es_nuevo || false}
-                                            onChange={handleCheck}
+                                            checked={!!formData.es_nuevo}
+                                            onChange={handleChange}
                                             className="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
                                         />
                                         <span className="ml-2 text-sm text-gray-700 font-medium">Es Estudiante Nuevo</span>
@@ -277,8 +274,8 @@ const MatriculasForm = ({
                                         <input
                                             type="checkbox"
                                             name="es_repitente"
-                                            checked={formData.es_repitente || false}
-                                            onChange={handleCheck}
+                                            checked={!!formData.es_repitente}
+                                            onChange={handleChange}
                                             className="form-checkbox h-5 w-5 text-orange-500 rounded focus:ring-orange-500"
                                         />
                                         <span className="ml-2 text-sm text-gray-700 font-medium">Es Repitente</span>
@@ -330,7 +327,15 @@ const MatriculasForm = ({
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Control de Calificaciones</label>
                             <div
                                 className={`flex items-center justify-between p-2 rounded-lg border cursor-pointer transition ${formData.bloqueo_notas ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}
-                                onClick={() => handleChange({ target: { name: 'bloqueo_notas', value: !formData.bloqueo_notas } })}
+                                onClick={() => {
+                                    handleChange({
+                                        target: {
+                                            name: 'bloqueo_notas',
+                                            value: !formData.bloqueo_notas, // Invertimos el valor actual
+                                            type: 'custom' // Tipo custom para que entre por la lógica de 'value' en el padre
+                                        }
+                                    });
+                                }}
                             >
                                 <span className={`text-sm font-bold ${formData.bloqueo_notas ? 'text-red-700' : 'text-green-700'}`}>
                                     {formData.bloqueo_notas ? "🚫 NOTAS BLOQUEADAS" : "✅ Notas Habilitadas"}

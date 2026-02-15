@@ -74,4 +74,39 @@ export const juicioController = {
             next(error);
         }
     },
+
+    // ========== Funciones para Importación Masiva ==========
+
+    async descargarPlantilla(req, res, next) {
+        try {
+            const csvContent = await juicioService.generarPlantilla();
+            res.header('Content-Type', 'text/csv');
+            res.attachment('plantilla_juicios.csv');
+            return res.send(csvContent);
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    async importar(req, res, next) {
+        try {
+            if (!req.file) throw new Error("No se ha subido ningún archivo CSV.");
+
+            const vigenciaId = req.vigenciaActual.id;
+            const resultado = await juicioService.importarMasivo(req.file.buffer, vigenciaId);
+
+            if (!resultado.exito) {
+                // Retornamos 400 Bad Request con la lista de errores
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'Se encontraron errores en el archivo. No se importaron datos.',
+                    errors: resultado.errores
+                });
+            }
+
+            return sendSuccess(res, null, `Se importaron ${resultado.total} juicios exitosamente.`);
+        } catch (error) {
+            next(error);
+        }
+    }
 };

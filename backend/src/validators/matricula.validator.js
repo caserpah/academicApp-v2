@@ -73,7 +73,7 @@ export const validarActualizarMatricula = [
         .trim()
         .isLength({ max: 500 }).withMessage("Las observaciones no pueden exceder 500 caracteres"),
 
-    validarFechaNoFutura("fechaRetiro", "de retiro"),
+    //validarFechaNoFutura("fechaRetiro", "de retiro"),
 
     body("motivoRetiro")
         .optional({ nullable: true })

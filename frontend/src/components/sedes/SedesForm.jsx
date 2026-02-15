@@ -91,6 +91,7 @@ const SedesForm = ({
                             placeholder="Máx. 20 caracteres alfanuméricos"
                             maxLength={20}
                             className={getInputClasses()}
+                            required
                         />
                     </div>
 
@@ -108,6 +109,7 @@ const SedesForm = ({
                             placeholder="Nombre completo de la sede"
                             maxLength={60}
                             className={getInputClasses()}
+                            required
                         />
                     </div>
 
@@ -125,6 +127,7 @@ const SedesForm = ({
                             placeholder="Ej: Calle 10 # 5-20"
                             maxLength={80}
                             className={getInputClasses()}
+                            required
                         />
                     </div>
 

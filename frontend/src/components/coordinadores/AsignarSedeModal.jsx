@@ -50,7 +50,7 @@ const AsignarSedeModal = ({
     };
 
     return (
-        <div 
+        <div
             className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
             onClick={handleOverlayClick}
         >
@@ -128,8 +128,8 @@ const AsignarSedeModal = ({
                                             className="sr-only"
                                             disabled={loading}
                                         />
-                                        <FontAwesomeIcon 
-                                            icon={faCalendarDay} 
+                                        <FontAwesomeIcon
+                                            icon={faCalendarDay}
                                             className={`w-4 h-4 mr-2 ${formData.jornada === jornada.value ? 'text-purple-600' : 'text-gray-400'}`}
                                         />
                                         <span className="text-sm font-medium">{jornada.label}</span>

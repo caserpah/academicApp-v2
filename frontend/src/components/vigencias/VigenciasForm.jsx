@@ -37,6 +37,7 @@ const VigenciasForm = ({ formData, setFormData, mode, loading, handleSubmit, res
                         value={formData.anio} onChange={handleChange}
                         className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
                         placeholder="Ej: 2026"
+                        required
                     />
                 </div>
 
@@ -50,6 +51,7 @@ const VigenciasForm = ({ formData, setFormData, mode, loading, handleSubmit, res
                         type="date" name="fechaInicio"
                         value={formData.fechaInicio} onChange={handleChange}
                         className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        required
                     />
                 </div>
 
@@ -63,6 +65,7 @@ const VigenciasForm = ({ formData, setFormData, mode, loading, handleSubmit, res
                         type="date" name="fechaFin"
                         value={formData.fechaFin} onChange={handleChange}
                         className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        required
                     />
                 </div>
 

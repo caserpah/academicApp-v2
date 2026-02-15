@@ -1,7 +1,9 @@
 import { matriculaService } from "../services/matricula.service.js";
+import { Matricula } from "../models/matricula.js";
 import { sendSuccess, sendError } from "../middleware/responseHandler.js";
 import { getVigenciaFromRequest } from "../utils/vigencia.helper.js";
 import { Vigencia } from "../models/vigencia.js";
+import { Op } from "sequelize";
 
 export const matriculaController = {
 
@@ -9,7 +11,7 @@ export const matriculaController = {
      * GET /api/matriculas
      * Lista matrículas con paginación y filtros.
      */
-    async listar(req, res) {
+    async listar(req, res, next) {
 
         try {
             // Obtener contexto de vigencia
@@ -42,7 +44,7 @@ export const matriculaController = {
     /**
      * GET /api/matriculas/:id
      */
-    async obtenerPorId(req, res) {
+    async obtenerPorId(req, res, next) {
         try {
             const { id } = req.params;
             const matricula = await matriculaService.obtenerPorId(id);
@@ -56,7 +58,7 @@ export const matriculaController = {
      * POST /api/matriculas
      * Crea una matrícula individual.
      */
-    async crear(req, res) {
+    async crear(req, res, next) {
         try {
             const usuarioAuditorId = req.user?.id;
 
@@ -96,26 +98,41 @@ export const matriculaController = {
      * PUT /api/matriculas/:id
      * Actualiza matrícula (estado, traslados, etc).
      */
-    async actualizar(req, res) {
+    async actualizar(req, res, next) {
         try {
             const { id } = req.params;
             const usuarioAuditorId = req.user?.id;
             const datosActualizar = { ...req.body };
 
+            // --- VALIDACIÓN DE CAMBIO DE AÑO LECTIVO ---
             if (datosActualizar.vigenciaId) {
+                // Verificar que el año destino existe
                 const vigenciaDestino = await Vigencia.findByPk(datosActualizar.vigenciaId);
                 if (!vigenciaDestino) {
                     return sendError(res, "El año lectivo seleccionado no existe.", 400);
                 }
 
+                // Obtener el ID del estudiante para verificar duplicados
+                // Si viene en el body lo usamos, si no, buscamos la matrícula actual
+                let idEstudiante = datosActualizar.estudianteId;
+
+                if (!idEstudiante) {
+                    const matriculaActual = await Matricula.findByPk(id, { attributes: ['estudianteId'] });
+                    if (!matriculaActual) return sendError(res, "La matrícula a editar no existe.", 404);
+                    idEstudiante = matriculaActual.estudianteId;
+                }
+
+                // Verificar que el estudiante no tenga otra matrícula en el año destino (excepto la actual)
                 const existe = await Matricula.findOne({
                     where: {
-                        estudianteId: datosActualizar.estudianteId || (id_actual_estudiante),
+                        estudianteId: idEstudiante,
                         vigenciaId: datosActualizar.vigenciaId,
                         id: { [Op.ne]: id }
                     }
                 });
-                if (existe) throw new Error("El estudiante ya tiene matrícula en el año lectivo seleccionado.");
+                if (existe) {
+                    throw new Error("El estudiante ya tiene otra matrícula registrada en el año lectivo seleccionado.");
+                }
             }
 
             const matriculaActualizada = await matriculaService.actualizar(id, datosActualizar, usuarioAuditorId);
@@ -131,7 +148,7 @@ export const matriculaController = {
      * DELETE /api/matriculas/:id
      * Elimina una matrícula (si es posible).
      */
-    async eliminar(req, res) {
+    async eliminar(req, res, next) {
         try {
             const { id } = req.params;
 
@@ -146,7 +163,7 @@ export const matriculaController = {
      * POST /api/matriculas/masivo
      * Pre-matrícula o Promoción masiva.
      */
-    async crearMasivo(req, res) {
+    async crearMasivo(req, res, next) {
         try {
             const vigencia = getVigenciaFromRequest(req);
             const usuarioId = req.user?.id;

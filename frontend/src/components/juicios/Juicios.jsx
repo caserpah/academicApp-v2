@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faEdit, faTrash, faScaleBalanced, faChevronLeft,
-    faSearch, faChevronRight, faSpinner, faEraser
+    faSearch, faChevronRight, faSpinner, faEraser,
+    faGlobe, faLayerGroup
 } from "@fortawesome/free-solid-svg-icons";
 
 import {
@@ -86,13 +87,12 @@ const Juicios = () => {
 
     // --- EFECTO DEBOUCE (BÚSQUEDA EN TIEMPO REAL) ---
     useEffect(() => {
-        // Configuramos un temporizador para no llamar a la API en cada tecla
         const delayDebounceFn = setTimeout(() => {
-            setActiveSearch(searchTerm); // Actualiza la búsqueda activa
-            setPagination(prev => ({ ...prev, page: 1 })); // Resetea a página 1
-        }, 500); // Espera 500ms después de dejar de escribir
+            setActiveSearch(searchTerm);
+            setPagination(prev => ({ ...prev, page: 1 }));
+        }, 500);
 
-        return () => clearTimeout(delayDebounceFn); // Limpia el timer si el usuario sigue escribiendo
+        return () => clearTimeout(delayDebounceFn);
     }, [searchTerm]);
 
     // --- CARGA DE DATOS ---
@@ -106,7 +106,7 @@ const Juicios = () => {
                 page: pagination.page,
                 limit: pagination.limit,
                 search: activeSearch,
-                ...filters // Esparcimos gradoId, asignaturaId, dimensionId
+                ...filters
             };
 
             const response = await fetchJuiciosPaginated(params);
@@ -126,7 +126,6 @@ const Juicios = () => {
         }
     }, [vigencia, pagination.page, pagination.limit, activeSearch, filters]);
 
-    // Recargar cuando cambie la página, vigencia o la búsqueda activa (activeSearch)
     useEffect(() => {
         loadJuicios();
     }, [loadJuicios]);
@@ -135,7 +134,7 @@ const Juicios = () => {
     const handleFilterChange = (e) => {
         const { name, value } = e.target;
         setFilters(prev => ({ ...prev, [name]: value }));
-        setPagination(prev => ({ ...prev, page: 1 })); // Resetear página al filtrar
+        setPagination(prev => ({ ...prev, page: 1 }));
     };
 
     const clearFilters = () => {
@@ -157,10 +156,11 @@ const Juicios = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const requiredFields = ['texto', 'periodo', 'dimensionId', 'desempenoId', 'vigenciaId'];
+        // Nota: Quitamos validaciones manuales estrictas aquí porque algunos campos pueden ser null (Globales)
+        // Confiamos en la validación HTML 'required' del componente hijo JuiciosForm
 
-        for (const field of requiredFields) {
-            if (!formData[field]) return showWarning("Todos los campos obligatorios (<span class='text-[#e74c3c]'>*</span>) deben completarse.");
+        if (!formData.texto || !formData.dimensionId || !formData.desempenoId) {
+            return showWarning("Complete la información básica del juicio.");
         }
 
         try {
@@ -175,21 +175,21 @@ const Juicios = () => {
             });
 
             if (mode === "agregar") {
-                const { id, ...dataToCreate } = dataToSubmit;
+                const dataToCreate = { ...dataToSubmit };
+                delete dataToCreate.id;
+
                 await crearJuicio(dataToCreate);
                 showSuccess(`Juicio creado exitosamente.`);
 
-                // Mantenemos: Grado, Asignatura, Dimensión, Desempeño, Checkbox Activo, etc.
+                // Limpiamos solo el texto para facilitar carga masiva
                 setFormData(prev => ({
                     ...prev,
-                    texto: '',      // Limpiamos la descripción
-                    periodo: '',    // Limpiamos el periodo
+                    texto: ''
                 }));
             } else {
                 const { id, ...dataToUpdate } = dataToSubmit;
                 await actualizarJuicio(id, dataToUpdate);
                 showSuccess(`Juicio actualizado exitosamente.`);
-
                 resetForm();
             }
             loadJuicios();
@@ -205,11 +205,12 @@ const Juicios = () => {
         setFormData({
             id: juicio.id,
             texto: juicio.texto,
-            gradoId: juicio.grado?.id || juicio.gradoId,
-            periodo: typeof juicio.periodo === 'object' ? (juicio.periodo.orden || juicio.periodo.id) : juicio.periodo,
-            dimensionId: juicio.dimension?.id || juicio.dimensionId,
-            desempenoId: juicio.desempeno?.id || juicio.desempenoId,
-            asignaturaId: juicio.asignatura?.id || juicio.asignaturaId,
+            // Importante: Si viene null del backend, lo convertimos a '' para que el Select muestre la opción por defecto
+            gradoId: juicio.grado?.id || juicio.gradoId || '',
+            periodo: (juicio.periodo === 0 || juicio.periodo === "0") ? "0" : (juicio.periodo !== null ? (typeof juicio.periodo === 'object' ? juicio.periodo.id : juicio.periodo) : ''),
+            dimensionId: juicio.dimension?.id || juicio.dimensionId || '',
+            desempenoId: juicio.desempeno?.id || juicio.desempenoId || '',
+            asignaturaId: juicio.asignatura?.id || juicio.asignaturaId || '',
             vigenciaId: juicio.vigenciaId,
             activo: juicio.activo
         });
@@ -233,10 +234,78 @@ const Juicios = () => {
         }
     };
 
+    // Este handler soporta cambios normales y actualizaciones masivas (reset_global)
+    const handleFormChange = (e) => {
+        if (e.target.name === 'reset_global') {
+            // Si es una orden de limpieza masiva, mezclamos los valores directamente
+            setFormData(prev => ({
+                ...prev,
+                ...e.target.values
+            }));
+        } else {
+            // Cambio normal de un solo campo
+            setFormData(prev => ({
+                ...prev,
+                [e.target.name]: e.target.value
+            }));
+        }
+    };
+
     const resetForm = () => {
         setFormData({ ...initialFormState, vigenciaId: vigencia ? vigencia.id : '' });
         setMode("agregar");
     };
+
+    // =======================================================
+    // HELPERS VISUALES (Aquí está la magia para la tabla)
+    // =======================================================
+
+    const renderPeriodoColumn = (val) => {
+        // Manejar si viene como objeto o primitivo
+        const periodoVal = typeof val === 'object' && val !== null ? (val.orden || val.id) : val;
+        const num = Number(periodoVal);
+
+        if (num === 0) {
+            return (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                    TODOS
+                </span>
+            );
+        }
+        if (num === 5) {
+            return (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">
+                    FINAL
+                </span>
+            );
+        }
+        return <span className="font-bold text-gray-700">{num}</span>;
+    };
+
+    const renderGradoColumn = (grado) => {
+        if (!grado) {
+            return (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-gray-100 text-gray-600 border border-gray-200">
+                    <FontAwesomeIcon icon={faGlobe} className="mr-1.5 text-[10px]" />
+                    GLOBAL
+                </span>
+            );
+        }
+        return <span className="text-sm text-gray-700">{grado.nombre.replace(/_/g, " ")}</span>;
+    };
+
+    const renderAsignaturaColumn = (asignatura) => {
+        if (!asignatura) {
+            return (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                    <FontAwesomeIcon icon={faLayerGroup} className="mr-1.5 text-[10px]" />
+                    TRANSVERSAL
+                </span>
+            );
+        }
+        return <span className="text-sm text-gray-700">{asignatura.nombre}</span>;
+    };
+
 
     // --- RENDERIZADO ---
     return (
@@ -255,7 +324,7 @@ const Juicios = () => {
                         formData={formData}
                         mode={mode}
                         loading={loading}
-                        handleChange={(e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }))}
+                        handleChange={handleFormChange}
                         handleSubmit={handleSubmit}
                         resetForm={resetForm}
                         asignaturas={asignaturas}
@@ -289,7 +358,6 @@ const Juicios = () => {
                                 icon={faSearch}
                                 className="absolute left-3 top-2.5 text-gray-400 text-sm"
                             />
-                            {/* Icono de carga si el usuario está escribiendo o la data cargando */}
                             {loadingData && (
                                 <div className="absolute right-3 top-2.5">
                                     <FontAwesomeIcon icon={faSpinner} spin className="text-blue-500" />
@@ -360,13 +428,13 @@ const Juicios = () => {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Período</th>
+                                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Período</th>
                                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grado</th>
                                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asignatura</th>
                                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Competencia</th>
-                                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Desempeño</th>
-                                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rangos Nota</th>
-                                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Desempeño</th>
+                                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Nota</th>
+                                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                                     <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                                 </tr>
                             </thead>
@@ -374,13 +442,11 @@ const Juicios = () => {
                                 {loadingData && juicios.length === 0 ? (
                                     <tr><td colSpan="8" className="py-10 text-center"><LoadingSpinner /></td></tr>
                                 ) : juicios.length > 0 ? (
-                                    juicios.map((juicio, index) => {
-                                        const valPeriodo = typeof juicio.periodo === 'object' ? (juicio.periodo.orden || juicio.periodo.id) : juicio.periodo;
+                                    juicios.map((juicio) => {
 
-                                        const gradoNombre = juicio.grado?.nombre || 'N/A';
                                         const dimNombre = juicio.dimension?.nombre || 'N/A';
-                                        const asigNombre = juicio.asignatura?.nombre || 'N/A';
 
+                                        // Estilos Desempeño
                                         const despObj = juicio.desempeno || {};
                                         const codDesp = despObj.codigo || '';
                                         const nomDesp = despObj.nombre || 'N/A';
@@ -397,21 +463,35 @@ const Juicios = () => {
 
                                         return (
                                             <tr key={juicio.id} className="hover:bg-gray-50 transition-colors duration-150">
-                                                <td className="px-3 py-3 text-sm font-bold text-center text-gray-700">{valPeriodo}</td>
-                                                <td className="px-3 py-3 text-sm text-gray-700">{gradoNombre}</td>
-                                                <td className="px-3 py-3 text-sm text-gray-700">{asigNombre}</td>
-                                                <td className="px-3 py-3 text-sm text-gray-700">{dimNombre}</td>
-                                                <td className="px-3 py-3">
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${badgeColor}`}>
+                                                {/* PERIODO HUMANIZADO */}
+                                                <td className="px-3 py-3 text-center align-middle whitespace-nowrap">
+                                                    {renderPeriodoColumn(juicio.periodo)}
+                                                </td>
+
+                                                {/* GRADO HUMANIZADO */}
+                                                <td className="px-3 py-3 align-middle">
+                                                    {renderGradoColumn(juicio.grado)}
+                                                </td>
+
+                                                {/* ASIGNATURA HUMANIZADA */}
+                                                <td className="px-3 py-3 align-middle">
+                                                    {renderAsignaturaColumn(juicio.asignatura)}
+                                                </td>
+
+                                                <td className="px-3 py-3 text-sm text-gray-700 align-middle">
+                                                    {dimNombre}
+                                                </td>
+                                                <td className="px-3 py-3 text-center align-middle">
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-bold whitespace-nowrap ${badgeColor}`}>
                                                         {nomDesp}
                                                     </span>
                                                 </td>
                                                 <td className="px-3 py-3 text-sm text-gray-600 font-mono text-center">{textoRango}</td>
-                                                <td className="px-3 py-3 text-center">
+                                                <td className="px-3 py-3 text-center align-middle">
                                                     <span
                                                         className={`px-2 py-1 text-[10px] rounded-full font-bold uppercase tracking-wide border ${juicio.activo
-                                                                ? "bg-green-50 text-green-700 border-green-200" // Estilo ACTIVO
-                                                                : "bg-red-50 text-red-700 border-red-200"       // Estilo INACTIVO
+                                                            ? "bg-green-50 text-green-700 border-green-200"
+                                                            : "bg-red-50 text-red-700 border-red-200"
                                                             }`}
                                                     >
                                                         {juicio.activo ? "ACTIVO" : "INACTIVO"}

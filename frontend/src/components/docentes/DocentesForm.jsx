@@ -75,27 +75,27 @@ const DocentesForm = ({
 
                     <div>
                         <label className={labelClasses}>Documento <span className="text-red-500">*</span></label>
-                        <input type="text" name="documento" value={formData.documento} onChange={handleChange} className={inputClasses} maxLength={20} />
+                        <input type="text" name="documento" value={formData.documento} onChange={handleChange} className={inputClasses} maxLength={20} required />
                     </div>
 
                     <div>
                         <label className={labelClasses}>Nombres <span className="text-red-500">*</span></label>
-                        <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} className={inputClasses} />
+                        <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} className={inputClasses} required />
                     </div>
 
                     <div>
                         <label className={labelClasses}>Apellidos <span className="text-red-500">*</span></label>
-                        <input type="text" name="apellidos" value={formData.apellidos} onChange={handleChange} className={inputClasses} />
+                        <input type="text" name="apellidos" value={formData.apellidos} onChange={handleChange} className={inputClasses} required />
                     </div>
 
                     <div>
                         <label className={labelClasses}>Fecha Nacimiento <span className="text-red-500">*</span></label>
-                        <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className={inputClasses} />
+                        <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className={inputClasses} required />
                     </div>
 
                     <div>
-                        <label className={labelClasses}>Email</label>
-                        <input type="email" name="email" value={formData.email} onChange={handleChange} className={inputClasses} />
+                        <label className={labelClasses}>Correo Electrónico  <span className="text-red-500">*</span></label>
+                        <input type="email" name="email" value={formData.email} onChange={handleChange} className={inputClasses} required />
                     </div>
 
                     <div>
@@ -117,7 +117,7 @@ const DocentesForm = ({
 
                     <div>
                         <label className={labelClasses}>Nivel Educativo <span className="text-red-500">*</span></label>
-                        <select name="nivelEducativo" value={formData.nivelEducativo} onChange={handleChange} className={inputClasses}>
+                        <select name="nivelEducativo" value={formData.nivelEducativo} onChange={handleChange} className={inputClasses} required>
                             <option value="">Seleccione...</option>
                             {NIVEL_EDUCATIVO_OPTIONS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
                         </select>
@@ -142,7 +142,7 @@ const DocentesForm = ({
 
                     <div>
                         <label className={labelClasses}>Tipo Vinculación <span className="text-red-500">*</span></label>
-                        <select name="vinculacion" value={formData.vinculacion} onChange={handleChange} className={inputClasses}>
+                        <select name="vinculacion" value={formData.vinculacion} onChange={handleChange} className={inputClasses} required>
                             <option value="">Seleccione...</option>
                             {VINCULACION_OPTIONS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
                         </select>
@@ -150,7 +150,7 @@ const DocentesForm = ({
 
                     <div>
                         <label className={labelClasses}>Nivel Enseñanza <span className="text-red-500">*</span></label>
-                        <select name="nivelEnsenanza" value={formData.nivelEnsenanza} onChange={handleChange} className={inputClasses}>
+                        <select name="nivelEnsenanza" value={formData.nivelEnsenanza} onChange={handleChange} className={inputClasses} required>
                             <option value="">Seleccione...</option>
                             {NIVEL_ENSENANZA_OPTIONS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
                         </select>

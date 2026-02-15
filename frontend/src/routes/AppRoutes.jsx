@@ -17,12 +17,14 @@ import Coordinadores from '../components/coordinadores/Coordinadores.jsx';
 import Docentes from '../components/docentes/Docentes.jsx';
 import Cargas from '../components/cargas/Cargas.jsx';
 import Juicios from '../components/juicios/Juicios.jsx';
+import Calificaciones from '../components/calificaciones/CalificacionesPage.jsx';
 import Estudiantes from '../components/estudiantes/Estudiantes.jsx';
 import Acudientes from '../components/acudientes/Acudientes.jsx';
 import AsignarAcudientes from '../components/estudiantes/AcudientesTab.jsx';
 import Matriculas from "../components/matriculas/Matriculas.jsx";
 import PromocionMasiva from "../components/matriculas/PromocionMasiva.jsx";
 import Vigencias from '../components/vigencias/Vigencias.jsx';
+import Ventanas from '../components/ventanas/Ventanas.jsx';
 
 // --- COMPONENTE TEMPORAL PARA RUTAS FALTANTES ---
 // Utilizar mientras se está en desarrollo de componentes reales
@@ -70,7 +72,8 @@ const AppRoutes = () => {
 
                     {/* === EVALUACIÓN === */}
                     <Route path="juicios" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador", "docente"]}><Juicios /></ProtectedRoute>} />
-                    <Route path="calificaciones" element={<ProtectedRoute requiredRole={["admin", "secretaria", "docente"]}><PaginaEnConstruccion titulo="Calificaciones" /></ProtectedRoute>} />
+                    <Route path="calificaciones" element={<ProtectedRoute requiredRole={["admin", "secretaria", "docente"]}><Calificaciones /></ProtectedRoute>} />
+                    <Route path="ventanas" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador"]}><Ventanas /></ProtectedRoute>} />
 
                 </Route>
             </Route>

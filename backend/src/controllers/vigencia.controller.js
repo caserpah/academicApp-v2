@@ -14,7 +14,7 @@ export const vigenciaController = {
      */
     async list(req, res, next) {
         try {
-            const isAdmin = req.usuario?.role === "admin";
+            const isAdmin = req.user?.role === "admin";
             const data = await vigenciaService.list(req.query, isAdmin);
             return sendSuccess(res, data, "Listado de años lectivos disponibles.");
         } catch (error) {
@@ -28,7 +28,7 @@ export const vigenciaController = {
     async get(req, res, next) {
         try {
             const { id } = req.params;
-            const isAdmin = req.usuario?.role === "admin";
+            const isAdmin = req.user?.role === "admin";
             const data = await vigenciaService.get(id, isAdmin, req.query.anio);
             return sendSuccess(res, data, "Detalles del año solicitado.");
         } catch (error) {

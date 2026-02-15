@@ -22,6 +22,9 @@ router.get("/", protect, cargaController.list);
 /** Obtener por ID */
 router.get("/:id", protect, cargaController.get);
 
+/** Listar mis cargas (Docente logueado) */
+router.get("/mis-cargas", protect, cargaController.listMisCargas);
+
 /** Crear */
 router.post(
     "/",

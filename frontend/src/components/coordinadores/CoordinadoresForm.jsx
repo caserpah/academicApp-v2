@@ -78,11 +78,11 @@ const CoordinadoresForm = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Número de Documento <span className="text-red-500">*</span></label>
-                        <input type="text" name="documento" value={formData.documento} placeholder="Máx. 15 dígitos" onChange={handleChange} className={inputClasses} maxLength={15} />
+                        <input type="text" name="documento" value={formData.documento} placeholder="Máx. 15 dígitos" onChange={handleChange} className={inputClasses} maxLength={15} required />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Nombre <span className="text-red-500">*</span></label>
-                        <input type="text" name="nombre" value={formData.nombre} placeholder="Nombre completo del Coordinador" onChange={handleChange} className={inputClasses} />
+                        <input type="text" name="nombre" value={formData.nombre} placeholder="Nombre completo del Coordinador" onChange={handleChange} className={inputClasses} required />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Correo Electrónico</label>
@@ -111,6 +111,7 @@ const CoordinadoresForm = ({
                             value={nuevaAsig.sedeId}
                             onChange={e => setNuevaAsig({ ...nuevaAsig, sedeId: e.target.value })}
                             className={inputClasses}
+                            required
                         >
                             <option value="">-- Seleccione Sede --</option>
                             {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
@@ -122,6 +123,7 @@ const CoordinadoresForm = ({
                             value={nuevaAsig.vigenciaId}
                             onChange={e => setNuevaAsig({ ...nuevaAsig, vigenciaId: e.target.value })}
                             className={inputClasses}
+                            required
                         >
                             <option value="">Año...</option>
                             {/* Mostramos 'anio' en el select también */}
@@ -134,6 +136,7 @@ const CoordinadoresForm = ({
                             value={nuevaAsig.tipo}
                             onChange={e => setNuevaAsig({ ...nuevaAsig, tipo: e.target.value })}
                             className={inputClasses}
+                            required
                         >
                             <option value="ACADEMICO">Académico</option>
                             <option value="CONVIVENCIA">Convivencia</option>
@@ -146,6 +149,7 @@ const CoordinadoresForm = ({
                             onChange={e => setNuevaAsig({ ...nuevaAsig, jornada: e.target.value })}
                             className={inputClasses}
                             disabled={nuevaAsig.tipo === 'ACADEMICO'}
+                            requireda={nuevaAsig.tipo === 'CONVIVENCIA'}
                         >
                             <option value="">{nuevaAsig.tipo === 'ACADEMICO' ? 'N/A' : 'Seleccione...'}</option>
                             {JORNADAS_ENUMS.map(j => <option key={j} value={j}>{j}</option>)}

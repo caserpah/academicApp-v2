@@ -375,6 +375,7 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
                             onChange={handleChange}
                             options={TIPOS_DOC}
                             width="md:col-span-2"
+                            required
                         />
                         <InputGroup
                             label="Número Documento"
@@ -382,6 +383,7 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
                             value={formData.documento}
                             onChange={handleChange}
                             width="md:col-span-2"
+                            required
                         />
 
                         <div className="md:col-span-2">
@@ -407,6 +409,7 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
                             value={formData.primerNombre}
                             onChange={handleChange}
                             width="md:col-span-3"
+                            required
                         />
                         <InputGroup
                             label="Segundo Nombre"
@@ -423,6 +426,7 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
                             value={formData.primerApellido}
                             onChange={handleChange}
                             width="md:col-span-3"
+                            required
                         />
                         <InputGroup
                             label="Segundo Apellido"
@@ -455,6 +459,7 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
                             onChange={handleChange}
                             type="date"
                             width="md:col-span-3"
+                            required
                         />
 
                         {/* FILA 5: Edad y Sexo (2 Columnas) */}
@@ -478,6 +483,7 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
                             options={SEXOS}
                             mapOption
                             width="md:col-span-3"
+                            required
                         />
                     </div>
                 )}
@@ -571,10 +577,10 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
 
                         <h3 className="text-gray-800 font-semibold border-b border-gray-300 pb-4">Caracterización</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <SelectGroup label="Población Víctima" name="victimas" value={formData.victimas} onChange={handleChange} options={VICTIMAS} mapOption />
-                            <SelectGroup label="Discapacidad" name="discapacidad" value={formData.discapacidad} onChange={handleChange} options={DISCAPACIDADES} mapOption />
-                            <SelectGroup label="Capacidades Excepcionales" name="capacidades" value={formData.capacidades} onChange={handleChange} options={CAPACIDADES} mapOption />
-                            <SelectGroup label="Etnia" name="etnia" value={formData.etnia} onChange={handleChange} options={ETNIAS} mapOption />
+                            <SelectGroup label="Población Víctima" name="victimas" value={formData.victimas} onChange={handleChange} options={VICTIMAS} mapOption required />
+                            <SelectGroup label="Discapacidad" name="discapacidad" value={formData.discapacidad} onChange={handleChange} options={DISCAPACIDADES} mapOption required />
+                            <SelectGroup label="Capacidades Excepcionales" name="capacidades" value={formData.capacidades} onChange={handleChange} options={CAPACIDADES} mapOption required />
+                            <SelectGroup label="Etnia" name="etnia" value={formData.etnia} onChange={handleChange} options={ETNIAS} mapOption required />
                         </div>
                     </div>
                 )}

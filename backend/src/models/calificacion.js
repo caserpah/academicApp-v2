@@ -16,75 +16,59 @@ export const Calificacion = sequelize.define("calificacion", {
         type: DataTypes.INTEGER,
         allowNull: false
     },
-    notaAcademica: {
-        type: DataTypes.FLOAT,
-        allowNull: false
-    },
-    promedioAcademica: {
-        type: DataTypes.FLOAT,
-        allowNull: false
-    },
-    juicioAcademica: {
-        type: DataTypes.TEXT,
-        allowNull: false
-    },
-    notaAcumulativa: {
-        type: DataTypes.FLOAT,
-        allowNull: false
-    },
-    promedioAcumulativa: {
-        type: DataTypes.FLOAT,
-        allowNull: false
-    },
-    juicioAcumulativa: {
-        type: DataTypes.TEXT,
-        allowNull: false
-    },
-    notaLaboral: {
-        type: DataTypes.FLOAT,
-        allowNull: false
-    },
-    promedioLaboral: {
-        type: DataTypes.FLOAT,
-        allowNull: false
-    },
-    juicioLaboral: {
-        type: DataTypes.TEXT,
-        allowNull: false
-    },
-    notaSocial: {
-        type: DataTypes.FLOAT,
-        allowNull: false
-    },
-    promedioSocial: {
-        type: DataTypes.FLOAT,
-        allowNull: false
-    },
-    juicioSocial: {
-        type: DataTypes.TEXT,
-        allowNull: false
-    },
-    notaDefinitiva: {
-        type: DataTypes.FLOAT,
-        allowNull: false
-    },
-    notaNivelacion: {
-        type: DataTypes.FLOAT,
-                allowNull: true,
-        comment: "Nota obtenida en el proceso de recuperación/nivelación final."
-    },
-    recomendacionUno: {
-        type: DataTypes.TEXT,
-        allowNull: true
-    },
-    recomendacionDos: {
-        type: DataTypes.TEXT,
-        allowNull: true
-    },
+    // --- INSUMOS ---
+    notaAcademica: { type: DataTypes.FLOAT, allowNull: false },
+    promedioAcademica: { type: DataTypes.FLOAT, allowNull: false },
+    juicioAcademica: { type: DataTypes.TEXT, allowNull: false },
+
+    notaAcumulativa: { type: DataTypes.FLOAT, allowNull: false },
+    promedioAcumulativa: { type: DataTypes.FLOAT, allowNull: false },
+    juicioAcumulativa: { type: DataTypes.TEXT, allowNull: false },
+
+    notaLaboral: { type: DataTypes.FLOAT, allowNull: false },
+    promedioLaboral: { type: DataTypes.FLOAT, allowNull: false },
+    juicioLaboral: { type: DataTypes.TEXT, allowNull: false },
+
+    notaSocial: { type: DataTypes.FLOAT, allowNull: false },
+    promedioSocial: { type: DataTypes.FLOAT, allowNull: false },
+    juicioSocial: { type: DataTypes.TEXT, allowNull: false },
+
+    // --- DEFINITIVA ---
+    notaDefinitiva: { type: DataTypes.FLOAT, allowNull: false },
+
+    // --- RECOMENDACIONES (Texto Histórico) ---
+    recomendacionUno: { type: DataTypes.TEXT, allowNull: true },
+    recomendacionDos: { type: DataTypes.TEXT, allowNull: true },
+
     fallas: {
         type: DataTypes.INTEGER,
         allowNull: true
     },
+
+    // --- CAMPOS PARA AUDITORÍA DE CAMBIOS (Ventana de Tiempo) ---
+    docenteId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: "Docente que realizó el último registro/modificación.",
+        references: { model: "docentes", key: "id" }
+    },
+    observacion_cambio: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: "Justificación obligatoria si se edita fuera de fecha."
+    },
+    url_evidencia_cambio: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: "Link al documento de soporte (PDF/Img) para cambios extemporáneos."
+    },
+    fecha_edicion: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: "Fecha real de la última modificación."
+    },
+
+    // --- RELACIONES ---
     estudianteId: {
         type: DataTypes.INTEGER,
         allowNull: false,

@@ -43,7 +43,6 @@ export const fetchCatalogs = async () => {
         // Obtener vigencias para encontrar la activa
         const vigenciasResponse = await apiClient.get(VIGENCIAS_ENDPOINT);
         const vigenciasItems = vigenciasResponse.data?.data?.items || [];
-
         const vigenciaActiva = vigenciasItems.find(v => v.activa === true);
 
         if (!vigenciaActiva) throw new Error("No se encontró una vigencia activa.");
@@ -83,7 +82,7 @@ export const fetchCatalogs = async () => {
 
     } catch (error) {
         console.error('Error en fetchCatalogs:', error);
-        throw parseError(error); // Usamos el helper
+        throw parseError(error);
     }
 };
 
