@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faSpinner, faBan, faReplyAll
+    faSpinner, faBan, faReplyAll,
+    faCommentDots, faCheckCircle
 } from "@fortawesome/free-solid-svg-icons";
 import { showSuccess, showError, showConfirm, showWarning } from "../../utils/notifications";
+import RecomendacionesModal from "./RecomendacionesModal.jsx";
 
 // Porcentajes Institucionales
 const WEIGHTS = {
@@ -17,13 +19,18 @@ const GrillaCalificaciones = ({
     students = [],
     loading,
     onSave,
-    asignaturaNombre = ""
+    asignaturaNombre = "",
+    bancoRecomendaciones = []
 }) => {
-    // --- ESTADOS LOCALES ---
+    // --- Estado para la Grilla de calificaciones ---
     const [gridData, setGridData] = useState([]);
     const [savingIds, setSavingIds] = useState({});
 
-    // Estado para la "Fila Maestra"
+    // --- Estado para el modal de recomendaciones ---
+    const [modalOpen, setModalOpen] = useState(false);
+    const [currentStudent, setCurrentStudent] = useState(null);
+
+    // --- Estado para la Fila Maestra ---
     const [masterValues, setMasterValues] = useState({
         notaAcademica: "",
         notaAcumulativa: "",
@@ -44,12 +51,21 @@ const GrillaCalificaciones = ({
                 nombreCompleto: item.nombreCompleto,
                 documento: item.documento,
                 bloqueo_notas: item.bloqueo_notas,
+
+                // Notas
                 notaAcademica: cal.notaAcademica ?? "",
                 notaAcumulativa: cal.notaAcumulativa ?? "",
                 notaLaboral: cal.notaLaboral ?? "",
                 notaSocial: cal.notaSocial ?? "",
                 notaDefinitiva: cal.notaDefinitiva ?? "",
+
+                //Fallas
                 fallas: cal.fallas ?? 0,
+
+                // Recomendaciones
+                recomendacionUno: cal.recomendacionUno ?? "",
+                recomendacionDos: cal.recomendacionDos ?? "",
+
                 isDirty: false
             };
         });
@@ -98,7 +114,9 @@ const GrillaCalificaciones = ({
         try {
             let payload = {
                 estudianteId: row.estudianteId,
-                fallas: row.fallas
+                fallas: row.fallas,
+                recomendacionUno: row.recomendacionUno, // Enviar recomendaciones actuales para no perderlas
+                recomendacionDos: row.recomendacionDos
             };
 
             if (esComportamiento) {
@@ -122,8 +140,56 @@ const GrillaCalificaciones = ({
         }
     };
 
-    // --- LÓGICA FILA MAESTRA (MASS UPDATE UNIFICADO) ---
+    // --- HANDLER PARA ABRIR MODAL ---
+    const handleOpenRecommendations = (row, index) => {
+        if (row.bloqueo_notas) {
+            showError("Estudiante bloqueado.");
+            return;
+        }
+        setCurrentStudent({ ...row, index });
+        setModalOpen(true);
+    };
 
+    // --- HANDLER PARA GUARDAR DESDE EL MODAL ---
+    const handleSaveRecommendations = async (rec1, rec2) => {
+        if (!currentStudent) return;
+        const index = currentStudent.index;
+        const row = gridData[index];
+
+        const newData = [...gridData];
+        newData[index].recomendacionUno = rec1;
+        newData[index].recomendacionDos = rec2;
+        newData[index].isDirty = false;
+        setGridData(newData);
+
+        setSavingIds(prev => ({ ...prev, [currentStudent.estudianteId]: true }));
+
+        try {
+            const payload = {
+                estudianteId: row.estudianteId,
+                fallas: row.fallas,
+                notaAcademica: row.notaAcademica,
+                notaAcumulativa: row.notaAcumulativa,
+                notaLaboral: row.notaLaboral,
+                notaSocial: row.notaSocial,
+                notaDefinitivaInput: row.notaDefinitiva,
+                recomendacionUno: rec1,
+                recomendacionDos: rec2
+            };
+
+            await onSave(payload);
+            showSuccess("Recomendaciones guardadas.");
+        } catch (error) {
+            console.error(error);
+            showError("No se pudieron guardar las recomendaciones.");
+        } finally {
+            setSavingIds(prev => ({ ...prev, [currentStudent.estudianteId]: false }));
+            setModalOpen(false);
+            setCurrentStudent(null);
+        }
+    };
+
+    // --- LÓGICA FILA MAESTRA (MASS UPDATE UNIFICADO) ---
     const handleMasterChange = (field, value) => {
         if (!/^\d*\.?\d*$/.test(value)) return;
         if (parseFloat(value) > 5) return;
@@ -147,12 +213,11 @@ const GrillaCalificaciones = ({
             }
         }
 
-        if (!(await showConfirm("¿Estás seguro de sobrescribir las notas de TODOS los estudiantes habilitados?", "Aplicar Masivamente"))) return;
+        if (!(await showConfirm("¿Estás seguro de sobrescribir las notas de todos los estudiantes habilitados?", "Aplicar Masivamente"))) return;
 
         // 2. Actualizar estado visualmente
         const newData = gridData.map(row => {
             if (row.bloqueo_notas) return row;
-
             const updatedRow = { ...row, isDirty: true };
 
             if (esComportamiento) {
@@ -175,7 +240,12 @@ const GrillaCalificaciones = ({
         for (const row of habilitados) {
             setSavingIds(prev => ({ ...prev, [row.estudianteId]: true }));
             try {
-                let payload = { estudianteId: row.estudianteId, fallas: row.fallas };
+                let payload = {
+                    estudianteId: row.estudianteId,
+                    fallas: row.fallas,
+                    recomendacionUno: row.recomendacionUno,
+                    recomendacionDos: row.recomendacionDos
+                };
                 if (esComportamiento) {
                     payload.notaDefinitivaInput = row.notaDefinitiva;
                 } else {
@@ -184,7 +254,6 @@ const GrillaCalificaciones = ({
                     payload.notaLaboral = row.notaLaboral;
                     payload.notaSocial = row.notaSocial;
                 }
-
                 await onSave(payload);
                 successCount++;
             } catch (err) {
@@ -284,7 +353,14 @@ const GrillaCalificaciones = ({
                         )}
 
                         <th rowSpan="2" className="px-2 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-20">Nota Periodo</th>
-                        <th rowSpan="2" className="px-2 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Fallas</th>
+
+                        {/* OCULTAR FALLAS Y OBS SI ES COMPORTAMIENTO */}
+                        {!esComportamiento && (
+                            <>
+                                <th rowSpan="2" className="px-2 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Fallas</th>
+                                <th rowSpan="2" className="px-2 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-10">Obs.</th>
+                            </>
+                        )}
                     </tr>
 
                     {/* FILA MAESTRA */}
@@ -301,7 +377,9 @@ const GrillaCalificaciones = ({
                         )}
 
                         {/* BOTÓN DE ACCIÓN MASIVA */}
-                        <td colSpan="2" className="p-1 text-center align-middle">
+                        {/* Normal: Definitiva(1) + Fallas(1) + Obs(1) = 3 */}
+                        {/* Comportamiento: Definitiva(1) = 1 */}
+                        <td colSpan={!esComportamiento ? 3 : 1} className="p-1 text-center align-middle">
                             <button
                                 onClick={applyGlobalMassUpdate}
                                 className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-3 rounded shadow flex items-center justify-center gap-2 mx-auto transition-transform active:scale-95"
@@ -358,21 +436,54 @@ const GrillaCalificaciones = ({
                                 </>
                             )}
 
-                            <td className="px-2 py-2 text-center">
-                                <input
-                                    type="number"
-                                    min="0"
-                                    value={row.fallas}
-                                    onChange={(e) => handleCellChange(index, 'fallas', e.target.value)}
-                                    onBlur={() => handleBlur(index)}
-                                    disabled={row.bloqueo_notas}
-                                    className="w-12 text-center border border-gray-300 rounded text-xs py-1"
-                                />
-                            </td>
+                            {/* OCULTAR CELDAS DE FALLAS Y BOTÓN OBS SI ES COMPORTAMIENTO */}
+                            {!esComportamiento && (
+                                <>
+                                    <td className="px-2 py-2 text-center">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={row.fallas}
+                                            onChange={(e) => handleCellChange(index, 'fallas', e.target.value)}
+                                            onBlur={() => handleBlur(index)}
+                                            disabled={row.bloqueo_notas}
+                                            className="w-12 text-center border border-gray-300 rounded text-xs py-1"
+                                        />
+                                    </td>
+                                    <td className="px-2 py-2 text-center">
+                                        <button
+                                            onClick={() => handleOpenRecommendations(row, index)}
+                                            disabled={row.bloqueo_notas}
+                                            title={row.recomendacionUno ? "Editar Recomendaciones" : "Agregar Recomendaciones"}
+                                            className={`
+                                                w-8 h-8 rounded-full flex items-center justify-center transition-colors
+                                                ${row.recomendacionUno
+                                                    ? "bg-blue-100 text-blue-600 hover:bg-blue-200"
+                                                    : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                                                }
+                                                ${row.bloqueo_notas ? "opacity-50 cursor-not-allowed" : ""}
+                                            `}
+                                        >
+                                            {row.recomendacionUno ? <FontAwesomeIcon icon={faCheckCircle} /> : <FontAwesomeIcon icon={faCommentDots} />}
+                                        </button>
+                                    </td>
+                                </>
+                            )}
                         </tr>
                     ))}
                 </tbody>
             </table>
+
+            {/* RENDERIZADO DEL MODAL DE RECOMENDACIONES */}
+            <RecomendacionesModal
+                isOpen={modalOpen}
+                onClose={() => setModalOpen(false)}
+                onSave={handleSaveRecommendations}
+                studentName={currentStudent?.nombreCompleto || ""}
+                initialRec1={currentStudent?.recomendacionUno}
+                initialRec2={currentStudent?.recomendacionDos}
+                bancoOptions={bancoRecomendaciones} // Pasamos el catálogo
+            />
         </div>
     );
 };

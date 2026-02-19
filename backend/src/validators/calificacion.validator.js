@@ -34,29 +34,29 @@ export const ValidarGuardarCalificacion = [
 
     body("notaAcademica")
         .optional({ nullable: true, checkFalsy: true })
-        .isFloat({ min: 0.0, max: 5.0 })
-        .withMessage("La nota Académica debe estar entre 0.0 y 5.0"),
+        .isFloat({ min: 1.0, max: 5.0 })
+        .withMessage("La nota Académica debe estar entre 1.0 y 5.0"),
 
     body("notaAcumulativa")
         .optional({ nullable: true, checkFalsy: true })
-        .isFloat({ min: 0.0, max: 5.0 })
-        .withMessage("La nota Acumulativa debe estar entre 0.0 y 5.0"),
+        .isFloat({ min: 1.0, max: 5.0 })
+        .withMessage("La nota Acumulativa debe estar entre 1.0 y 5.0"),
 
     body("notaLaboral")
         .optional({ nullable: true, checkFalsy: true })
-        .isFloat({ min: 0.0, max: 5.0 })
-        .withMessage("La nota Laboral debe estar entre 0.0 y 5.0"),
+        .isFloat({ min: 1.0, max: 5.0 })
+        .withMessage("La nota Laboral debe estar entre 1.0 y 5.0"),
 
     body("notaSocial")
         .optional({ nullable: true, checkFalsy: true })
-        .isFloat({ min: 0.0, max: 5.0 })
-        .withMessage("La nota Social debe estar entre 0.0 y 5.0"),
+        .isFloat({ min: 1.0, max: 5.0 })
+        .withMessage("La nota Social debe estar entre 1.0 y 5.0"),
 
     // Caso especial: Nota Definitiva directa (Comportamiento)
     body("notaDefinitivaInput")
         .optional({ nullable: true, checkFalsy: true })
-        .isFloat({ min: 0.0, max: 5.0 })
-        .withMessage("La nota Definitiva debe estar entre 0.0 y 5.0"),
+        .isFloat({ min: 1.0, max: 5.0 })
+        .withMessage("La nota Definitiva debe estar entre 1.0 y 5.0"),
 
     // --- Otros campos ---
     body("fallas")

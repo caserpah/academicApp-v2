@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faEdit, faTrash, faScaleBalanced, faChevronLeft,
     faSearch, faChevronRight, faSpinner, faEraser,
-    faGlobe, faLayerGroup
+    faGlobe, faLayerGroup, faFileImport
 } from "@fortawesome/free-solid-svg-icons";
 
 import {
@@ -16,6 +16,7 @@ import {
 
 import { showSuccess, showError, showWarning, showConfirm } from "../../utils/notifications.js";
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
+import JuiciosImportModal from "./JuiciosImportModal.jsx";
 import JuiciosForm from "./JuiciosForm.jsx";
 
 const Juicios = () => {
@@ -28,6 +29,7 @@ const Juicios = () => {
     const [formData, setFormData] = useState(initialFormState);
     const [juicios, setJuicios] = useState([]);
     const [vigencia, setVigencia] = useState(null);
+    const [showImportModal, setShowImportModal] = useState(false); // Control del modal de importación
 
     // Catálogos
     const [asignaturas, setAsignaturas] = useState([]);
@@ -309,14 +311,25 @@ const Juicios = () => {
 
     // --- RENDERIZADO ---
     return (
-        <div className="min-h-full bg-[#f7f7fc] p-4 md:p-8 font-inter rounded-xl">
+        <div className="min-h-full bg-[#f7f9fc] p-4 md:p-8 font-inter rounded-xl">
             <div className="max-w-7xl mx-auto space-y-8">
 
                 {/* Título Principal */}
-                <h1 className="text-2xl font-semibold text-gray-800 mb-6 border-b pb-4">
-                    <FontAwesomeIcon icon={faScaleBalanced} className="w-6 h-6 mr-3 text-[#2c3e50]" />
-                    Gestión de Juicios
-                </h1>
+                <div className="flex flex-col md:flex-row justify-between items-center border-b pb-4">
+                    <h1 className="text-2xl font-semibold text-gray-800 flex items-center mb-4 md:mb-0">
+                        <FontAwesomeIcon icon={faScaleBalanced} className="w-6 h-6 mr-3 text-[#2c3e50]" />
+                        Gestión de Juicios
+                    </h1>
+
+                    {/* Botón de Carga Masiva */}
+                    <button
+                        onClick={() => setShowImportModal(true)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition flex items-center shadow-sm text-sm font-medium"
+                    >
+                        <FontAwesomeIcon icon={faFileImport} />
+                        Carga Masiva
+                    </button>
+                </div>
 
                 {/* Formulario */}
                 <div ref={formContainerRef}>
@@ -551,6 +564,19 @@ const Juicios = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Se renderiza solo si showImportModal es true */}
+            {showImportModal && (
+                <JuiciosImportModal
+                    onClose={() => setShowImportModal(false)}
+                    onSuccess={() => {
+                        setShowImportModal(false);
+                        loadJuicios(); // Recarga la tabla para ver los nuevos datos
+                        showSuccess("Importación completada.");
+                    }}
+                />
+            )}
+
         </div>
     );
 };

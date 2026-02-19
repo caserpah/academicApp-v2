@@ -52,6 +52,12 @@ export const Calificacion = sequelize.define("calificacion", {
         comment: "Docente que realizó el último registro/modificación.",
         references: { model: "docentes", key: "id" }
     },
+    usuarioId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        field: 'usuarioId',
+        references: { model: "usuarios", key: "id" }
+    },
     observacion_cambio: {
         type: DataTypes.TEXT,
         allowNull: true,

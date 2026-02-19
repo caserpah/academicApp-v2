@@ -18,7 +18,6 @@ import { HistorialMatriculas } from "../../models/historial_matriculas.js";
 import { Matricula } from "../../models/matricula.js";
 import { Calificacion } from "../../models/calificacion.js";
 import { Nivelacion } from "../../models/nivelacion.js";
-import { BancoFrases } from "../../models/banco_frases.js";
 import { Vigencia } from "../../models/vigencia.js";
 import { VentanaCalificacion } from "../../models/ventana_calificacion.js";
 import { ConfigGrado } from "../../models/config_grado.js";

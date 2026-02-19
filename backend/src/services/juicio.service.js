@@ -1,12 +1,13 @@
+import { sequelize } from "../database/db.connect.js";
 import { juicioRepository } from "../repositories/juicio.repository.js";
 import { Grado } from "../models/grado.js"; // Necesario para validar nivel
 import { Asignatura } from "../models/asignatura.js";
 import { Dimension } from "../models/dimension.js";
 import { Desempeno } from "../models/desempeno.js";
+import { Juicio } from "../models/juicio.js";
 import { handleSequelizeError } from "../middleware/handleSequelizeError.js";
 import { formatearErrorForaneo } from "../utils/dbUtils.js";
-import { parse } from "csv-parse/sync"; // Para importaciones masivas desde CSV
-import { Op } from "sequelize";
+import * as XLSX from 'xlsx';
 
 // Constantes para mejorar la legibilidad del código
 const DIMENSION = {
@@ -273,17 +274,38 @@ export const juicioService = {
             'ESTADO'
         ];
 
-        // Ejemplo:
+        // Datos de Ejemplo:
         // Grado: 2 (Segundo) - Asignatura: CNT01 (Biología) - Dimensión: ACAD (Académica - ID 1) - Desempeño: BS (Básico)
-        const ejemplo = [
-            '2', 'CNT01', 'ACAD', 'BS', '1', 'Identificar los seres vivos...', 'ACTIVO'
+        const data = [
+            {
+                CODIGO_GRADO: '2',
+                CODIGO_ASIGNATURA: 'CNT01',
+                CODIGO_DIMENSION: 'ACAD',
+                CODIGO_DESEMPENO: 'BS',
+                PERIODO: 1,
+                TEXTO_JUICIO: 'Identificar los seres vivos...',
+                ESTADO: 'ACTIVO'
+            }
         ];
 
-        return headers.join(',') + '\n' + ejemplo.join(',');
+        // Crear Libro y Hoja
+        const worksheet = XLSX.utils.json_to_sheet(data, { header: headers });
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Plantilla Juicios");
+
+        // Ajustar ancho de columnas
+        const wscols = [
+            { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 50 }, { wch: 10 }
+        ];
+        worksheet['!cols'] = wscols;
+
+        // Generar Buffer binario
+        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+        return buffer;
     },
 
     /**
-     * IMPORTAR MASIVO DESDE CSV
+     * IMPORTAR MASIVO DESDE EXCEL (.xlsx)
      * Valida todo el archivo antes de guardar. Si hay un error, rechaza todo.
      */
     async importarMasivo(fileBuffer, vigenciaId) {
@@ -291,16 +313,21 @@ export const juicioService = {
         const errores = [];
         const registrosParaCrear = [];
 
-        // Set de duplicados detectados en el CSV para evitar que traiga 2 veces el mismo juicio en el mismo archivo
-        const firmasEnCSV = new Set();
+        // Set de duplicados detectados en el XLSX para evitar que traiga 2 veces el mismo juicio en el mismo archivo
+        const firmasEnExcel = new Set();
 
         try {
-            // Parsear el CSV
-            const registrosRaw = parse(fileBuffer, {
-                columns: true, // Usa la primera fila como headers
-                skip_empty_lines: true,
-                trim: true
-            });
+            // Leer el buffer como Workbook
+            const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+
+            // Obtener la primera hoja
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+
+            // Convertir a JSON
+            // defval: "" asegura que celdas vacías no sean undefined
+            // raw: false fuerza a que todo se lea como texto (ayuda con los '001')
+            const registrosRaw = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
             if (registrosRaw.length === 0) throw new Error("El archivo está vacío.");
 
@@ -308,20 +335,20 @@ export const juicioService = {
 
             // Grados (Mapeamos Código -> Objeto Completo para validar nivel académico)
             const grados = await Grado.findAll({ attributes: ['id', 'codigo', 'nivelAcademico'], raw: true });
-            const mapGrados = new Map(grados.map(g => [String(g.codigo), g])); // Convertimos g.codigo a String por seguridad si viene numérico
+            const mapGrados = new Map(grados.map(g => [String(g.codigo).trim(), g])); // Convertimos g.codigo a String por seguridad si viene numérico
 
             const asignaturas = await Asignatura.findAll({ attributes: ['id', 'codigo'], raw: true });
-            const mapAsignaturas = new Map(asignaturas.map(a => [a.codigo, a.id]));
+            const mapAsignaturas = new Map(asignaturas.map(a => [String(a.codigo).trim(), a.id]));
 
             const dimensiones = await Dimension.findAll({ attributes: ['id', 'codigo'], raw: true });
             const mapDimensiones = new Map();
             dimensiones.forEach(d => {
                 mapDimensiones.set(String(d.id), d.id); // Soporta "1", "4", "999"
-                if (d.codigo) mapDimensiones.set(d.codigo, d.id); // Soporta "ACAD", "ACU", "ND"
+                if (d.codigo) mapDimensiones.set(String(d.codigo).trim(), d.id); // Soporta "ACAD", "ACU", "ND"
             });
 
             const desempenos = await Desempeno.findAll({ attributes: ['id', 'codigo'], raw: true });
-            const mapDesempenos = new Map(desempenos.map(d => [d.codigo, d.id])); // Soporta "BA", "BS", "UN"
+            const mapDesempenos = new Map(desempenos.map(d => [String(d.codigo).trim(), d.id])); // Soporta "BA", "BS", "UN"
 
             // CARGAMOS JUICIOS EXISTENTES (OPTIMIZACIÓN DE RENDIMIENTO)
 
@@ -336,13 +363,13 @@ export const juicioService = {
             // Iterar y Validar en Memoria
             for (let i = 0; i < registrosRaw.length; i++) {
                 const fila = registrosRaw[i];
-                const linea = i + 2; // +2 porque el array es 0-indexado y la primera fila es el header
+                const linea = i + 2; // Excel empieza en 1, Header es 1, Datos desde 2
 
                 try {
-                    const codGrado = fila['CODIGO_GRADO'];
-                    const codAsig = fila['CODIGO_ASIGNATURA'];
-                    const codDim = fila['CODIGO_DIMENSION'];
-                    const codDesp = fila['CODIGO_DESEMPENO'];
+                    const codGrado = fila['CODIGO_GRADO'] !== undefined ? String(fila['CODIGO_GRADO']).trim() : "";
+                    const codAsig = fila['CODIGO_ASIGNATURA'] !== undefined ? String(fila['CODIGO_ASIGNATURA']).trim() : "";
+                    const codDim = fila['CODIGO_DIMENSION'] !== undefined ? String(fila['CODIGO_DIMENSION']).trim() : "";
+                    const codDesp = fila['CODIGO_DESEMPENO'] !== undefined ? String(fila['CODIGO_DESEMPENO']).trim() : "";
                     const txtPeriodo = fila['PERIODO'];
 
                     // Validar Existencia en Catálogos y Obtener IDs
@@ -400,12 +427,12 @@ export const juicioService = {
                     }
 
                     // Chequeo contra el propio CSV (Duplicados en el archivo)
-                    if (firmasEnCSV.has(firmaActual)) {
+                    if (firmasEnExcel.has(firmaActual)) {
                         throw new Error("Estás intentando cargar este mismo juicio más de una vez dentro del archivo. Elimina las filas repetidas.");
                     }
 
                     // Si pasa, guardamos la firma y agregamos al lote
-                    firmasEnCSV.add(firmaActual);
+                    firmasEnExcel.add(firmaActual);
                     registrosParaCrear.push({ ...payloadFinal, vigenciaId });
 
                 } catch (error) {

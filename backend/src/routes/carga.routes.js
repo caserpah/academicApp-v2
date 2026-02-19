@@ -19,11 +19,11 @@ const router = express.Router();
 /** Listar */
 router.get("/", protect, cargaController.list);
 
-/** Obtener por ID */
-router.get("/:id", protect, cargaController.get);
-
 /** Listar mis cargas (Docente logueado) */
 router.get("/mis-cargas", protect, cargaController.listMisCargas);
+
+/** Obtener por ID */
+router.get("/:id", protect, cargaController.get);
 
 /** Crear */
 router.post(

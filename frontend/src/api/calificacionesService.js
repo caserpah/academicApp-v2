@@ -11,6 +11,7 @@ const GRUPOS_ENDPOINT = '/api/grupos';                // Endpoint General (Admin
 const ASIGNATURAS_ENDPOINT = '/api/asignaturas';      // Endpoint General (Admins)
 const SEDES_ENDPOINT = '/api/sedes';                 // Endpoint General (Admins)
 const VIGENCIAS_ENDPOINT = '/api/vigencias';
+const RECOMENDACIONES_ENDPOINT = '/api/recomendaciones'
 
 /* Helper: Formatear Jornada */
 const formatJornada = (jornadaEnum) => {
@@ -162,5 +163,18 @@ export const guardarCalificacion = async (data) => {
         return response.data.data;
     } catch (error) {
         throw parseError(error);
+    }
+};
+
+/**
+ * Función para traer recomendaciones
+ */
+export const fetchBancoRecomendaciones = async () => {
+    try {
+        const response = await apiClient.get(`${RECOMENDACIONES_ENDPOINT}&limit=200`);
+        return response.data.data || [];
+    } catch (error) {
+        console.error("Error cargando banco de recomendaciones:", error);
+        return []; // Retorna vacío si falla para no romper la UI
     }
 };

@@ -7,6 +7,7 @@ import { Desempeno } from "../models/desempeno.js";
 import { handleSequelizeError } from "../middleware/handleSequelizeError.js";
 import { Juicio } from "../models/juicio.js";
 import { Matricula } from "../models/matricula.js";
+import { Grado } from "../models/grado.js";
 import { Grupo } from "../models/grupo.js";
 
 // Porcentajes Institucionales
@@ -15,6 +16,15 @@ const PORCENTAJES = {
     ACUMULATIVA: 0.20,
     LABORAL: 0.15,
     SOCIAL: 0.15
+};
+
+// Competencias
+const DIM = {
+    ACADEMICA: 1,
+    SOCIAL: 2,
+    LABORAL: 3,
+    ACUMULATIVA: 4,
+    COMPORTAMIENTO: 999
 };
 
 /**
@@ -48,51 +58,99 @@ async function _validarVentana(periodo, vigenciaId, data) {
 }
 
 /**
- * Helper: Determinar el Juicio (Desempeño) basado en una nota numérica.
- * Busca en los rangos de la vigencia actual.
+ * Helper: Determinar el Texto del Juicio aplicando TODAS las Reglas de Negocio.
  */
-async function _obtenerJuicio(nota, rangos, context, dimensionId = null) {
+async function _obtenerJuicio(nota, rangos, context, dimensionId) {
+    // 1. Validaciones básicas
     if (nota === null || nota === undefined) return "PENDIENTE";
+    if (!dimensionId) return "SIN DIMENSIÓN";
 
     // Encontrar en qué rango numérico cae la nota (Ej: 4.5 cae en Alto)
     const rango = rangos.find(r => nota >= r.minNota && nota <= r.maxNota);
-
     if (!rango) return "SIN RANGO";
 
+
+    // Guardamos el ID calculado (1, 2, 3 o 4)
+    let idDesempenoBusqueda = rango.desempenoId;
+
     // Intentar buscar el TEXTO ESPECÍFICO en la tabla Juicios
-    // Usamos el contexto (gradoId, asignaturaId, periodo)
     try {
-        // Preparamos el filtro básico
-        const whereClause = {
+        // Preparamos el filtro base
+        let whereClause = {
             vigenciaId: context.vigenciaId,
-            asignaturaId: context.asignaturaId,
-            gradoId: context.gradoId,
-            periodo: context.periodo,
-            desempenoId: rango.desempenoId
+            dimensionId: dimensionId,
+            activo: true
         };
 
-        // Si tenemos el ID de la dimensión, lo agregamos a la búsqueda
-        if (dimensionId) {
-            whereClause.dimensionId = dimensionId;
+        // --- APLICACIÓN DE REGLAS DE NEGOCIO ---
+
+        // CASO 1: COMPORTAMIENTO (ID 999)
+        // Global por Asignatura: Periodo 0, Grado NULL, Asignatura ESPECÍFICA
+        if (dimensionId === 999) {
+            whereClause.periodo = 0;
+            whereClause.gradoId = null;
+            whereClause.asignaturaId = context.asignaturaId;
+            whereClause.desempenoId = idDesempenoBusqueda; // Usa rango (1-4)
         }
 
-        // Si existe un juicio redactado por el docente, retornamos ese texto
-        const juicioEncontrado = await Juicio.findOne({
-            where: whereClause
-        });
+        // CASO 2: COMPETENCIA ACUMULATIVA (ID 4)
+        // Transversal Total: Periodo 0, Grado NULL, Asignatura NULL
+        else if (dimensionId === 4) {
+            whereClause.periodo = 0;
+            whereClause.gradoId = null;
+            whereClause.asignaturaId = null;
+            whereClause.desempenoId = idDesempenoBusqueda; // Usa rango (1-4)
+        }
+
+        // CASO 3: COMPETENCIA SOCIAL (ID 2) O LABORAL (ID 3)
+        else if (dimensionId === 2 || dimensionId === 3) {
+            // A. Intentamos PREESCOLAR (Específico)
+            let juicioPreescolar = await Juicio.findOne({
+                where: {
+                    ...whereClause,
+                    periodo: context.periodo,
+                    gradoId: context.gradoId,
+                    asignaturaId: context.asignaturaId,
+                    desempenoId: idDesempenoBusqueda // Usa rango (1-4)
+                }
+            });
+            if (juicioPreescolar && juicioPreescolar.texto) return juicioPreescolar.texto;
+
+            // B. Si no existe, aplicamos Global (Primaria/Secundaria)
+            whereClause.periodo = 0;
+            whereClause.gradoId = null;
+            whereClause.asignaturaId = null;
+            whereClause.desempenoId = idDesempenoBusqueda; // Usa rango (1-4)
+        }
+
+        // CASO 4: COMPETENCIA ACADÉMICA (ID 1)
+        else if (dimensionId === 1) {
+            whereClause.periodo = context.periodo;
+            whereClause.gradoId = context.gradoId;
+            whereClause.asignaturaId = context.asignaturaId;
+
+            // Si NO es Preescolar, forzamos buscar el ID 5 (Rango de desempeño UNICO)
+            // ignorando si sacó nota alta, baja, etc.
+            if (context.nivelAcademico !== "PREESCOLAR") {
+                 whereClause.desempenoId = 5; // <--- FORZAMOS ID desempeño UNICO
+            } else {
+                 whereClause.desempenoId = idDesempenoBusqueda; // Preescolar sí usa rangos
+            }
+        }
+
+        // --- EJECUCIÓN FINAL ---
+        const juicioEncontrado = await Juicio.findOne({ where: whereClause });
 
         if (juicioEncontrado && juicioEncontrado.texto) {
             return juicioEncontrado.texto;
         }
+
     } catch (error) {
-        console.warn("Error buscando descripción de juicio.", error);
+        console.error(`Error recuperando juicio Dimensión ${dimensionId}:`, error);
     }
 
-    // Si no hay juicio redactado, devolvemos el nombre del rango (Ej: "ALTO")
-    if (rango.desempeno) {
-        return rango.desempeno.nombre;
-    }
-    return "PENDIENTE";
+    // Fallback: Nombre del rango (Ej: "ALTO")
+    return rango.desempeno ? rango.desempeno.nombre : "PENDIENTE";
 }
 
 export const calificacionService = {
@@ -140,10 +198,10 @@ export const calificacionService = {
         try {
             const { asignaturaId, periodo, vigenciaId, estudianteId, docenteId } = data;
 
-            // Validaciones de Negocio
+            // 1. Validaciones de Negocio (Ventana)
             await _validarVentana(periodo, vigenciaId, data);
 
-            // Preparar Datos Auxiliares (Asignatura y Rangos)
+            // 2. Preparar Datos Auxiliares (Asignatura y Rangos)
             const asignatura = await Asignatura.findByPk(asignaturaId);
             const esComportamiento = asignatura && asignatura.nombre.trim().toUpperCase() === "COMPORTAMIENTO";
 
@@ -152,21 +210,26 @@ export const calificacionService = {
                 include: [{ model: Desempeno, as: "desempeno" }]
             });
 
-            // Obtener el Grado del Estudiante para buscar el juicio correcto
+            // 3. Obtener Matrícula, Grado y Nivel Académico
             const matricula = await Matricula.findOne({
                 where: { estudianteId, vigenciaId },
-                include: [{ model: Grupo, as: "grupo" }]
+                include: [{
+                    model: Grupo,
+                    as: "grupo",
+                    include: [{ model: Grado, as: "grado" }]
+                }]
             });
 
             if (!matricula || !matricula.grupo) {
                 throw new Error("El estudiante no tiene matrícula o grupo asignado.");
             }
             const gradoId = matricula.grupo.gradoId;
+            const nivelAcademico = matricula.grupo.grado.nivelAcademico; // "PREESCOLAR", "PRIMARIA", etc.
 
-            // Preparamos el contexto para la búsqueda de juicios
-            const contextJuicio = { vigenciaId, asignaturaId, gradoId, periodo };
+            // 4. Preparamos el contexto para la búsqueda de juicios
+            const contextJuicio = { vigenciaId, asignaturaId, gradoId, periodo, nivelAcademico };
 
-            // Cálculos Matemáticos y construcción del objeto a guardar
+            // 5. Preparar objeto base
             let dataToSave = {
                 estudianteId, asignaturaId, periodo, vigenciaId, docenteId,
                 fallas: data.fallas,
@@ -180,9 +243,10 @@ export const calificacionService = {
                 dataToSave.url_evidencia_cambio = data.url_evidencia_cambio;
             }
 
+            // 6. Cálculos y Búsqueda de Juicios
             if (esComportamiento) {
                 const def = parseFloat(data.notaDefinitivaInput || 0);
-                const juicio = await _obtenerJuicio(def, rangos, contextJuicio);
+                const juicio = await _obtenerJuicio(def, rangos, contextJuicio, DIM.COMPORTAMIENTO); // Pasamos ID 999 (COMPORTAMIENTO) explícitamente
 
                 Object.assign(dataToSave, {
                     notaDefinitiva: def.toFixed(2),
@@ -191,6 +255,7 @@ export const calificacionService = {
                     notaLaboral: 0, promedioLaboral: 0, juicioLaboral: "NO APLICA",
                     notaSocial: 0, promedioSocial: 0, juicioSocial: "NO APLICA",
                 });
+
             } else {
                 const nAcad = parseFloat(data.notaAcademica || 0);
                 const nAcum = parseFloat(data.notaAcumulativa || 0);
@@ -206,10 +271,10 @@ export const calificacionService = {
                 // Calculamos juicios pasando el contexto
                 // Usamos await Promise.all para hacerlo paralelo y más rápido
                 const [jAcad, jAcum, jLab, jSoc] = await Promise.all([
-                    _obtenerJuicio(nAcad, rangos, contextJuicio, 1), // ACADEMICA
-                    _obtenerJuicio(nAcum, rangos, contextJuicio, 4), // ACUMULATIVA
-                    _obtenerJuicio(nLab, rangos, contextJuicio, 3),  // LABORAL
-                    _obtenerJuicio(nSoc, rangos, contextJuicio, 2)   // SOCIAL
+                    _obtenerJuicio(nAcad, rangos, contextJuicio, DIM.ACADEMICA),   // ID 1
+                    _obtenerJuicio(nAcum, rangos, contextJuicio, DIM.ACUMULATIVA), // ID 4
+                    _obtenerJuicio(nLab, rangos, contextJuicio, DIM.LABORAL),      // ID 3
+                    _obtenerJuicio(nSoc, rangos, contextJuicio, DIM.SOCIAL)        // ID 2
                 ]);
 
                 Object.assign(dataToSave, {
@@ -221,7 +286,7 @@ export const calificacionService = {
                 });
             }
 
-            // Persistencia (Delegada al Repository)
+            // 7. Persistencia (Upsert)
             const existingCal = await calificacionRepository.findOne(estudianteId, asignaturaId, periodo, vigenciaId, t);
 
             let result;

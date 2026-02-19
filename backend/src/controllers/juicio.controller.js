@@ -79,10 +79,12 @@ export const juicioController = {
 
     async descargarPlantilla(req, res, next) {
         try {
-            const csvContent = await juicioService.generarPlantilla();
-            res.header('Content-Type', 'text/csv');
-            res.attachment('plantilla_juicios.csv');
-            return res.send(csvContent);
+            const xlsxContent = await juicioService.generarPlantilla();
+
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', 'attachment; filename=Plantilla_Juicios.xlsx');
+
+            return res.send(xlsxContent);
         } catch (error) {
             next(error);
         }
@@ -90,7 +92,7 @@ export const juicioController = {
 
     async importar(req, res, next) {
         try {
-            if (!req.file) throw new Error("No se ha subido ningún archivo CSV.");
+            if (!req.file) throw new Error("No se ha subido ningún archivo Excel.");
 
             const vigenciaId = req.vigenciaActual.id;
             const resultado = await juicioService.importarMasivo(req.file.buffer, vigenciaId);

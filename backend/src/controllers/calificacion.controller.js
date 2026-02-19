@@ -1,4 +1,6 @@
 import { calificacionService } from "../services/calificacion.service.js";
+import { Docente } from "../models/docente.js";
+import { Usuario } from "../models/usuario.js";
 import { sendSuccess } from "../middleware/responseHandler.js";
 
 export const calificacionController = {
@@ -38,12 +40,28 @@ export const calificacionController = {
     async guardar(req, res, next) {
         try {
             const vigenciaId = req.vigenciaActual.id;
+            const usuarioAuditoriaId = req.user.id; // Obtenemos el ID del usuario del Token
 
             // Inyectamos la vigencia del middleware vigenciaContext al body
             const datosParaGuardar = {
                 ...req.body,
-                vigenciaId
+                vigenciaId,
+                usuarioId: usuarioAuditoriaId
             };
+
+            // LÓGICA DE AUDITORÍA: Resolver si el usuario es un Docente
+            const usuario = await Usuario.findByPk(usuarioAuditoriaId);
+            if (usuario && usuario.numeroDocumento) {
+                const docente = await Docente.findOne({
+                    where: { documento: usuario.numeroDocumento }
+                });
+
+                if (docente) {
+                    datosParaGuardar.docenteId = docente.id;
+                }
+                // Si NO es docente, NO tocamos docenteId.
+                // Se mantendrá el que ya tenía el registro (si es edición) o null.
+            }
 
             // Pasamos el body completo al servicio
             const data = await calificacionService.procesarGuardado(datosParaGuardar);

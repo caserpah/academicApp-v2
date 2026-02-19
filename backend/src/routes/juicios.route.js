@@ -10,7 +10,9 @@ import {
 
 import { juicioController } from "../controllers/juicio.controller.js";
 
+// Usamos memoryStorage para tener acceso al buffer en el controlador
 const upload = multer({ storage: multer.memoryStorage() });
+
 const router = express.Router();
 
 /**
@@ -52,20 +54,21 @@ router.delete(
     juicioController.remove
 );
 
-// Descargar plantilla de importación
+// Descargar plantilla vacía para importación masiva
 router.get(
-    "/plantilla",
+    "/plantilla/descargar",
     protect,
     restrictTo(["admin"]),
     juicioController.descargarPlantilla
 );
 
-// Importar juicios desde archivo Excel
+// Importar Masivo (Todo en uno)
+// Nota: 'archivo' debe coincidir con el formData del frontend
 router.post(
     "/importar",
     protect,
     restrictTo(["admin"]),
-    upload.single("archivo"),
+    upload.single("archivo"), // Middleware de multer para manejar la subida del archivo
     juicioController.importar
 );
 

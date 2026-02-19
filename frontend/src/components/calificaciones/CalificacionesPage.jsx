@@ -1,6 +1,8 @@
+
+
 import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faClipboardCheck, faFilter, faSpinner, faSchool } from "@fortawesome/free-solid-svg-icons";
+import { faClipboardCheck, faFilter, faSpinner, faSchool, faEraser } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../../context/AuthContext.jsx";
 
 import {
@@ -161,6 +163,20 @@ const CalificacionesPage = () => {
     };
 
     /**
+     * Función para limpiar filtros
+     */
+    const clearFilters = () => {
+        setFilters(prev => ({
+            // Si solo hay una sede, la mantenemos, si hay varias, limpiamos todo
+            sedeId: sedes.length === 1 ? prev.sedeId : '',
+            grupoId: '',
+            asignaturaId: '',
+            periodo: ''
+        }));
+        setStudentsData([]); // Limpiamos la grilla visualmente también
+    };
+
+    /**
      * Función que se pasa al hijo (Grilla) para guardar
      */
     const handleSaveCalificacion = async (calificacionData) => {
@@ -198,73 +214,86 @@ const CalificacionesPage = () => {
                 </div>
 
                 {/* Filtros: Ahora son 4 Columnas */}
-                <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
 
-                    {/* 1. Sede */}
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">Sede</label>
-                        <div className="relative">
-                            <select
-                                name="sedeId"
-                                value={filters.sedeId}
-                                onChange={handleFilterChange}
-                                className="w-full border border-gray-300 rounded-lg p-2.5 pl-8 text-sm focus:ring-2 focus:ring-blue-500 outline-none appearance-none bg-white"
-                            >
-                                <option value="">-- Seleccione Sede --</option>
-                                {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-                            </select>
-                            <FontAwesomeIcon icon={faSchool} className="absolute left-3 top-3 text-gray-400" />
+                        {/* 1. Sede (md:col-span-3) */}
+                        <div className="md:col-span-3">
+                            <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">Sede</label>
+                            <div className="relative">
+                                <select
+                                    name="sedeId"
+                                    value={filters.sedeId}
+                                    onChange={handleFilterChange}
+                                    className="w-full border border-gray-300 rounded-lg p-2.5 pl-8 text-sm focus:ring-2 focus:ring-blue-500 outline-none appearance-none bg-white"
+                                >
+                                    <option value="">-- Seleccione Sede --</option>
+                                    {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                                </select>
+                                <FontAwesomeIcon icon={faSchool} className="absolute left-3 top-3 text-gray-400" />
+                            </div>
                         </div>
-                    </div>
 
-                    {/* 2. Grupo (Filtrado y con nombre bonito) */}
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">Grupo</label>
-                        <select
-                            name="grupoId"
-                            value={filters.grupoId}
-                            onChange={handleFilterChange}
-                            disabled={!filters.sedeId}
-                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100"
-                        >
-                            <option value="">-- Seleccione Grupo --</option>
-                            {gruposDisponibles.map(g => (
-                                <option key={g.id} value={g.id}>{g.label}</option>
-                            ))}
-                        </select>
-                    </div>
+                        {/* 2. Grupo (md:col-span-3) */}
+                        <div className="md:col-span-3">
+                            <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">Grupo</label>
+                            <select
+                                name="grupoId"
+                                value={filters.grupoId}
+                                onChange={handleFilterChange}
+                                disabled={!filters.sedeId}
+                                className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100"
+                            >
+                                <option value="">-- Seleccione Grupo --</option>
+                                {gruposDisponibles.map(g => (
+                                    <option key={g.id} value={g.id}>{g.label}</option>
+                                ))}
+                            </select>
+                        </div>
 
-                    {/* 3. Asignatura */}
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">Asignatura</label>
-                        <select
-                            name="asignaturaId"
-                            value={filters.asignaturaId}
-                            onChange={handleFilterChange}
-                            disabled={!filters.grupoId}
-                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100"
-                        >
-                            <option value="">-- Seleccione Asignatura --</option>
-                            {asignaturasDisponibles.map(a => (
-                                <option key={a.id} value={a.id}>{a.nombre}</option>
-                            ))}
-                        </select>
-                    </div>
+                        {/* 3. Asignatura (md:col-span-3) */}
+                        <div className="md:col-span-3">
+                            <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">Asignatura</label>
+                            <select
+                                name="asignaturaId"
+                                value={filters.asignaturaId}
+                                onChange={handleFilterChange}
+                                disabled={!filters.grupoId}
+                                className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100"
+                            >
+                                <option value="">-- Seleccione Asignatura --</option>
+                                {asignaturasDisponibles.map(a => (
+                                    <option key={a.id} value={a.id}>{a.nombre}</option>
+                                ))}
+                            </select>
+                        </div>
 
-                    {/* 4. Periodo */}
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">Periodo</label>
-                        <select
-                            name="periodo"
-                            value={filters.periodo}
-                            onChange={handleFilterChange}
-                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                        >
-                            <option value="">-- Seleccione --</option>
-                            {[1, 2, 3, 4].map(p => <option key={p} value={p}>Periodo {p}</option>)}
-                        </select>
-                    </div>
+                        {/* 4. Periodo (md:col-span-2) */}
+                        <div className="md:col-span-2">
+                            <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">Periodo</label>
+                            <select
+                                name="periodo"
+                                value={filters.periodo}
+                                onChange={handleFilterChange}
+                                className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            >
+                                <option value="">-- Seleccione --</option>
+                                {[1, 2, 3, 4].map(p => <option key={p} value={p}>Periodo {p}</option>)}
+                            </select>
+                        </div>
 
+                        {/* 5. Botón Limpiar (md:col-span-1) */}
+                        <div className="md:col-span-1 flex justify-center md:justify-end">
+                            <button
+                                onClick={clearFilters}
+                                title="Limpiar filtros"
+                                className="w-full md:w-auto h-[42px] px-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg border border-gray-300 transition-colors flex items-center justify-center gap-2"
+                            >
+                                <FontAwesomeIcon icon={faEraser} />
+                            </button>
+                        </div>
+
+                    </div>
                 </div>
 
                 {/* Grilla */}

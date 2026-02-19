@@ -135,3 +135,57 @@ export const eliminarJuicio = async (id) => {
         throw parseError(error);
     }
 };
+
+/* -------------------------------------------------------------------------- */
+/* Funciones de Importación Masiva                                            */
+/* -------------------------------------------------------------------------- */
+
+export const descargarPlantilla = async () => {
+    try {
+        const response = await apiClient.get(`${JUICIOS_ENDPOINT}/plantilla/descargar`, {
+            responseType: 'blob',
+        });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'Plantilla_Juicios.xlsx');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    } catch (error) {
+        throw parseError(error);
+    }
+};
+
+/**
+ * Importar Archivo CSV
+ * Realiza la validación y el guardado en un solo paso.
+ * Si hay errores, el backend devolverá 400 y la lista de errores.
+ */
+export const importarArchivo = async (file) => {
+    try {
+        const formData = new FormData();
+        formData.append('archivo', file);
+
+        // Llamamos a la ruta única '/importar'
+        const response = await apiClient.post(`${JUICIOS_ENDPOINT}/importar`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        // Si es 200 OK, devolvemos el éxito
+        return response.data;
+    } catch (error) {
+        // Si el backend devuelve 400 con errores detallados, los parseamos para que el UI pueda mostrarlos
+        // parseError debería ser capaz de capturar response.data.errors
+        const apiError = error.response?.data;
+
+        if (apiError?.errors && Array.isArray(apiError.errors)) {
+            // Devolvemos el objeto de error estructurado para que el UI pueda mostrar la lista
+            const errorValidacion = new Error("El archivo contiene errores.");
+            errorValidacion.listaErrores = apiError.errors;
+            throw errorValidacion;
+        }
+
+        throw parseError(error);
+    }
+};
