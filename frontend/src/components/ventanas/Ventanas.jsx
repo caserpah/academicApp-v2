@@ -183,7 +183,7 @@ const Ventanas = () => {
                 {(mode === 'agregar' || mode === 'editar') && (
                     <VentanasForm
                         selectedVentana={selectedVentana}
-                        onSuccess={() => { showSuccess("Datos guardados."); setMode("lista"); loadData(); }}
+                        onSuccess={() => { showSuccess("Datos guardados exitosamente."); setMode("lista"); loadData(); }}
                         onCancel={() => setMode("lista")}
                         crearAPI={crearVentana}
                         actualizarAPI={actualizarVentana}

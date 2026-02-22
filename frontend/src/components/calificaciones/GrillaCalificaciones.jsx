@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faSpinner, faBan, faReplyAll,
-    faCommentDots, faCheckCircle
+    faSpinner, faBan, faReplyAll, faCommentDots, faEye,
+    faCheckCircle, faSave, faExclamationCircle
 } from "@fortawesome/free-solid-svg-icons";
 import { showSuccess, showError, showConfirm, showWarning } from "../../utils/notifications";
 import RecomendacionesModal from "./RecomendacionesModal.jsx";
@@ -19,12 +19,16 @@ const GrillaCalificaciones = ({
     students = [],
     loading,
     onSave,
+    onManualSave,
     asignaturaNombre = "",
     bancoRecomendaciones = []
 }) => {
     // --- Estado para la Grilla de calificaciones ---
     const [gridData, setGridData] = useState([]);
     const [savingIds, setSavingIds] = useState({});
+
+    // Estado para almacenar qué estudiantes requieren justificación
+    const [pendingJustificationRows, setPendingJustificationRows] = useState({});
 
     // --- Estado para el modal de recomendaciones ---
     const [modalOpen, setModalOpen] = useState(false);
@@ -43,6 +47,9 @@ const GrillaCalificaciones = ({
 
     // --- EFECTO: Sincronizar props ---
     useEffect(() => {
+        // Al recibir nuevos datos, limpiamos el estado "pending" porque asumimos que se guardó bien
+        setPendingJustificationRows({});
+
         const mappedData = students.map(item => {
             const cal = item.calificacion || {};
             return {
@@ -101,9 +108,14 @@ const GrillaCalificaciones = ({
         setGridData(newData);
     };
 
+    // --- Lógica para el Guardado Automático al salir de la celda ---
     const handleBlur = async (index) => {
         const row = gridData[index];
         if (!row.isDirty) return;
+
+        // Si la fila ya está en "Modo Pendiente", NO intentamos guardar automáticamente.
+        if (pendingJustificationRows[row.estudianteId]) return;
+
         if (row.bloqueo_notas) {
             showError(`Estudiante bloqueado.`);
             return;
@@ -128,16 +140,51 @@ const GrillaCalificaciones = ({
                 payload.notaSocial = row.notaSocial;
             }
 
+            // Intentamos guardar
             await onSave(payload);
 
+            // Si tiene éxito, limpiamos isDirty
             const newData = [...gridData];
             newData[index].isDirty = false;
             setGridData(newData);
+
         } catch (error) {
-            console.error("Error guardando fila", error);
+            // CASO A: Requiere Justificación (Admins fuera de fecha)
+            if (error.code === 'REQ_JUSTIFICACION') {
+                // No mostramos alerta roja. Activamos el modo manual.
+                setPendingJustificationRows(prev => ({ ...prev, [row.estudianteId]: true }));
+            } else { // CASO B: Error Genérico (Docentes fuera de fecha, Ventana no existe, Error 500)
+                console.error("Error guardando fila", error);
+                showError(error.message || "Error al guardar la calificación.");
+            }
         } finally {
             setSavingIds(prev => ({ ...prev, [row.estudianteId]: false }));
         }
+    };
+
+    // --- LÓGICA: Disparar el Guardado Manual ---
+    const handleTriggerManualSave = (row) => {
+        // Recopilamos todos los datos actuales de la fila
+        const payload = {
+            estudianteId: row.estudianteId,
+            fallas: row.fallas,
+            recomendacionUno: row.recomendacionUno,
+            recomendacionDos: row.recomendacionDos,
+            observacion_cambio: row.observacion_cambio,
+            url_evidencia_cambio: row.url_evidencia_cambio
+        };
+
+        if (esComportamiento) {
+            payload.notaDefinitivaInput = row.notaDefinitiva;
+        } else {
+            payload.notaAcademica = row.notaAcademica;
+            payload.notaAcumulativa = row.notaAcumulativa;
+            payload.notaLaboral = row.notaLaboral;
+            payload.notaSocial = row.notaSocial;
+        }
+
+        // Llamamos al padre para que abra el Modal
+        onManualSave(payload);
     };
 
     // --- HANDLER PARA ABRIR MODAL ---
@@ -156,11 +203,8 @@ const GrillaCalificaciones = ({
         const index = currentStudent.index;
         const row = gridData[index];
 
-        const newData = [...gridData];
-        newData[index].recomendacionUno = rec1;
-        newData[index].recomendacionDos = rec2;
-        newData[index].isDirty = false;
-        setGridData(newData);
+        // 1. Guardamos estado anterior por si hay error (optimistic rollback strategy)
+        // o simplemente NO actualizamos hasta confirmar. Haremos lo segundo.
 
         setSavingIds(prev => ({ ...prev, [currentStudent.estudianteId]: true }));
 
@@ -178,14 +222,30 @@ const GrillaCalificaciones = ({
             };
 
             await onSave(payload);
+
+            // Si tuvo exito, actualizamos la UI (Se renderiza el check azul de observaciones)
+            const newData = [...gridData];
+            newData[index].recomendacionUno = rec1;
+            newData[index].recomendacionDos = rec2;
+            newData[index].isDirty = false;
+            setGridData(newData);
+
             showSuccess("Recomendaciones guardadas.");
+            setModalOpen(false); // Cerramos modal solo si guardó
+            setCurrentStudent(null);
+
         } catch (error) {
             console.error(error);
-            showError("No se pudieron guardar las recomendaciones.");
+            // 4. Si falla, no actualizamos la UI (El icono de agregar observaciones de queda igual)
+            // Y mostramos el error correspondiente
+            if (error.code === 'REQ_JUSTIFICACION') {
+                showWarning("El periodo está cerrado. No se pueden editar observaciones.");
+            } else {
+                showError(error.message || "No se pudieron guardar las recomendaciones.");
+            }
+            // NO cerramos el modal para que el usuario vea que falló
         } finally {
             setSavingIds(prev => ({ ...prev, [currentStudent.estudianteId]: false }));
-            setModalOpen(false);
-            setCurrentStudent(null);
         }
     };
 
@@ -215,8 +275,16 @@ const GrillaCalificaciones = ({
 
         if (!(await showConfirm("¿Estás seguro de sobrescribir las notas de todos los estudiantes habilitados?", "Aplicar Masivamente"))) return;
 
-        // 2. Actualizar estado visualmente
-        const newData = gridData.map(row => {
+        // NO actualizamos gridData visualmente todavía para evitar falsos positivos masivos.
+        // o lo actualizamos pero sabiendo que revertiremos si falla.
+
+        // Iteramos sobre los datos actuales
+        const habilitados = gridData.filter(r => !r.bloqueo_notas);
+        let successCount = 0;
+        let failCount = 0;
+        let closedWindowCount = 0;
+
+        const previewData = gridData.map(row => {
             if (row.bloqueo_notas) return row;
             const updatedRow = { ...row, isDirty: true };
 
@@ -231,15 +299,12 @@ const GrillaCalificaciones = ({
             }
             return updatedRow;
         });
-        setGridData(newData);
-
-        // 3. Guardado Secuencial
-        const habilitados = newData.filter(r => !r.bloqueo_notas);
-        let successCount = 0;
+        setGridData(previewData);
 
         for (const row of habilitados) {
             setSavingIds(prev => ({ ...prev, [row.estudianteId]: true }));
             try {
+                // Construir payload con los valores MAESTROS
                 let payload = {
                     estudianteId: row.estudianteId,
                     fallas: row.fallas,
@@ -247,25 +312,45 @@ const GrillaCalificaciones = ({
                     recomendacionDos: row.recomendacionDos
                 };
                 if (esComportamiento) {
-                    payload.notaDefinitivaInput = row.notaDefinitiva;
+                    payload.notaDefinitivaInput = masterValues.notaDefinitivaInput;
                 } else {
-                    payload.notaAcademica = row.notaAcademica;
-                    payload.notaAcumulativa = row.notaAcumulativa;
-                    payload.notaLaboral = row.notaLaboral;
-                    payload.notaSocial = row.notaSocial;
+                    payload.notaAcademica = masterValues.notaAcademica;
+                    payload.notaAcumulativa = masterValues.notaAcumulativa;
+                    payload.notaLaboral = masterValues.notaLaboral;
+                    payload.notaSocial = masterValues.notaSocial;
                 }
                 await onSave(payload);
                 successCount++;
+
+                // Si guarda bien, limpiamos flags
+                setGridData(prev => {
+                    const copy = [...prev];
+                    const idx = copy.findIndex(r => r.estudianteId === row.estudianteId);
+                    if (idx !== -1) copy[idx].isDirty = false;
+                    return copy;
+                });
+
             } catch (err) {
-                console.error(err);
+                failCount++;
+                if (err.code === 'REQ_JUSTIFICACION') {
+                    closedWindowCount++;
+                    setPendingJustificationRows(prev => ({ ...prev, [row.estudianteId]: true }));
+                }
             } finally {
                 setSavingIds(prev => ({ ...prev, [row.estudianteId]: false }));
             }
         }
 
+        // --- ALERTAS FINALES ---
         if (successCount > 0) {
-            showSuccess(`Se actualizaron ${successCount} registros exitosamente.`);
-            setGridData(prev => prev.map(r => (!r.bloqueo_notas ? { ...r, isDirty: false } : r)));
+            showSuccess(`Se actualizaron ${successCount} registros.`);
+        }
+
+        // Alerta de cierre de ventana de calificaciones
+        if (closedWindowCount > 0) {
+            showWarning(`Atención: ${closedWindowCount} estudiantes no se guardaron porque el periodo académico está cerrado.`);
+        } else if (failCount > 0) {
+            showError(`Hubo errores al guardar ${failCount} registros.`);
         }
     };
 
@@ -361,6 +446,8 @@ const GrillaCalificaciones = ({
                                 <th rowSpan="2" className="px-2 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-10">Obs.</th>
                             </>
                         )}
+                        {/* --- COLUMNA ACCIONES --- */}
+                        <th rowSpan="2" className="px-2 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-24">Acciones</th>
                     </tr>
 
                     {/* FILA MAESTRA */}
@@ -393,84 +480,107 @@ const GrillaCalificaciones = ({
                 </thead>
 
                 <tbody className="bg-white divide-y divide-gray-200">
-                    {gridData.map((row, index) => (
-                        <tr key={row.estudianteId} className={`hover:bg-gray-50 transition-colors ${row.bloqueo_notas ? 'bg-red-50/30' : ''}`}>
-                            <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-400">{index + 1}</td>
+                    {gridData.map((row, index) => {
+                        // Detectamos si esta fila está en modo "Pendiente de Justificación" o ya tiene una justificación
+                        const needsJustification = pendingJustificationRows[row.estudianteId];
+                        const hasObservation = row.observacion_cambio && row.observacion_cambio.length > 0;
 
-                            <td className="px-4 py-2 whitespace-nowrap">
-                                <div className="flex items-center">
-                                    <div>
-                                        <div className={`text-sm font-medium ${row.bloqueo_notas ? 'text-red-600' : 'text-gray-900'}`}>
-                                            {row.nombreCompleto}
+                        return (
+                            <tr key={row.estudianteId} className={`
+                            transition-colors
+                            ${row.bloqueo_notas ? 'bg-red-50/30' : ''}
+                            ${needsJustification ? 'bg-orange-50 border-l-4 border-orange-400' : 'hover:bg-gray-50'}
+                        `}>
+                                <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-400">{index + 1}</td>
+
+                                <td className="px-4 py-2 whitespace-nowrap">
+                                    <div className="flex items-center">
+                                        <div>
+                                            <div className={`text-sm font-medium ${row.bloqueo_notas ? 'text-red-600' : 'text-gray-900'}`}>{row.nombreCompleto}</div>
+                                            <div className="text-xs text-gray-500">{row.documento}</div>
                                         </div>
-                                        <div className="text-xs text-gray-500">{row.documento}</div>
+                                        {row.bloqueo_notas && <div className="ml-2 text-red-500"><FontAwesomeIcon icon={faBan} /></div>}
                                     </div>
-                                    {row.bloqueo_notas && (
-                                        <div className="ml-2 text-red-500">
-                                            <FontAwesomeIcon icon={faBan} />
-                                        </div>
-                                    )}
-                                </div>
-                            </td>
+                                </td>
 
-                            {!esComportamiento ? (
-                                <>
-                                    <td className="px-2 py-2 text-center">{renderInput(row, index, 'notaAcademica', WEIGHTS.academica)}</td>
-                                    <td className="px-2 py-2 text-center">{renderInput(row, index, 'notaAcumulativa', WEIGHTS.acumulativa)}</td>
-                                    <td className="px-2 py-2 text-center">{renderInput(row, index, 'notaLaboral', WEIGHTS.laboral)}</td>
-                                    <td className="px-2 py-2 text-center">{renderInput(row, index, 'notaSocial', WEIGHTS.social)}</td>
-                                    <td className="px-2 py-2 text-center bg-gray-50/50">
-                                        <span className={`inline-block w-12 text-center font-bold text-lg ${parseFloat(row.notaDefinitiva) < 3.0 ? 'text-red-600' : 'text-gray-800'}`}>
-                                            {row.notaDefinitiva || "-"}
-                                        </span>
-                                    </td>
-                                </>
-                            ) : (
-                                <>
-                                    <td className="px-2 py-2 text-center">{renderInput(row, index, 'notaDefinitiva')}</td>
-                                    <td className="px-2 py-2 text-center">
-                                        <span className={`inline-block w-12 text-center font-bold text-lg ${parseFloat(row.notaDefinitiva) < 3.0 ? 'text-red-600' : 'text-gray-800'}`}>
-                                            {row.notaDefinitiva || "-"}
-                                        </span>
-                                    </td>
-                                </>
-                            )}
+                                {!esComportamiento ? (
+                                    <>
+                                        <td className="px-2 py-2 text-center">{renderInput(row, index, 'notaAcademica', WEIGHTS.academica)}</td>
+                                        <td className="px-2 py-2 text-center">{renderInput(row, index, 'notaAcumulativa', WEIGHTS.acumulativa)}</td>
+                                        <td className="px-2 py-2 text-center">{renderInput(row, index, 'notaLaboral', WEIGHTS.laboral)}</td>
+                                        <td className="px-2 py-2 text-center">{renderInput(row, index, 'notaSocial', WEIGHTS.social)}</td>
+                                        <td className="px-2 py-2 text-center bg-gray-50/50">
+                                            <span className={`inline-block w-12 text-center font-bold text-lg ${parseFloat(row.notaDefinitiva) < 3.0 ? 'text-red-600' : 'text-gray-800'}`}>
+                                                {row.notaDefinitiva || "-"}
+                                            </span>
+                                        </td>
+                                    </>
+                                ) : (
+                                    <>
+                                        <td className="px-2 py-2 text-center">{renderInput(row, index, 'notaDefinitiva')}</td>
+                                        <td className="px-2 py-2 text-center">
+                                            <span className={`inline-block w-12 text-center font-bold text-lg ${parseFloat(row.notaDefinitiva) < 3.0 ? 'text-red-600' : 'text-gray-800'}`}>
+                                                {row.notaDefinitiva || "-"}
+                                            </span>
+                                        </td>
+                                    </>
+                                )}
 
-                            {/* OCULTAR CELDAS DE FALLAS Y BOTÓN OBS SI ES COMPORTAMIENTO */}
-                            {!esComportamiento && (
-                                <>
-                                    <td className="px-2 py-2 text-center">
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            value={row.fallas}
-                                            onChange={(e) => handleCellChange(index, 'fallas', e.target.value)}
-                                            onBlur={() => handleBlur(index)}
-                                            disabled={row.bloqueo_notas}
-                                            className="w-12 text-center border border-gray-300 rounded text-xs py-1"
-                                        />
-                                    </td>
-                                    <td className="px-2 py-2 text-center">
-                                        <button
-                                            onClick={() => handleOpenRecommendations(row, index)}
-                                            disabled={row.bloqueo_notas}
-                                            title={row.recomendacionUno ? "Editar Recomendaciones" : "Agregar Recomendaciones"}
-                                            className={`
+                                {/* OCULTAR CELDAS DE FALLAS Y BOTÓN OBS SI ES COMPORTAMIENTO */}
+                                {!esComportamiento && (
+                                    <>
+                                        <td className="px-2 py-2 text-center">
+                                            <input type="number" min="0" value={row.fallas}
+                                                onChange={(e) => handleCellChange(index, 'fallas', e.target.value)}
+                                                onBlur={() => handleBlur(index)} disabled={row.bloqueo_notas}
+                                                className="w-12 text-center border border-gray-300 rounded text-xs py-1"
+                                            />
+                                        </td>
+                                        <td className="px-2 py-2 text-center">
+                                            <button
+                                                onClick={() => handleOpenRecommendations(row, index)}
+                                                disabled={row.bloqueo_notas}
+                                                title={row.recomendacionUno ? "Editar Recomendaciones" : "Agregar Recomendaciones"}
+                                                className={`
                                                 w-8 h-8 rounded-full flex items-center justify-center transition-colors
                                                 ${row.recomendacionUno
-                                                    ? "bg-blue-100 text-blue-600 hover:bg-blue-200"
-                                                    : "bg-gray-100 text-gray-400 hover:bg-gray-200"
-                                                }
+                                                        ? "bg-blue-100 text-blue-600 hover:bg-blue-200"
+                                                        : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                                                    }
                                                 ${row.bloqueo_notas ? "opacity-50 cursor-not-allowed" : ""}
                                             `}
+                                            >
+                                                {row.recomendacionUno ? <FontAwesomeIcon icon={faCheckCircle} /> : <FontAwesomeIcon icon={faCommentDots} />}
+                                            </button>
+                                        </td>
+                                    </>
+                                )}
+
+                                {/* --- COLUMNA ACCIONES --- */}
+                                <td className="px-2 py-2 text-center whitespace-nowrap">
+                                    {needsJustification ? (
+                                        <button
+                                            onClick={() => handleTriggerManualSave(row)}
+                                            className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-3 py-1.5 rounded shadow-sm flex items-center gap-1 animate-pulse mx-auto"
+                                            title="Guardar cambios con justificación"
                                         >
-                                            {row.recomendacionUno ? <FontAwesomeIcon icon={faCheckCircle} /> : <FontAwesomeIcon icon={faCommentDots} />}
+                                            <FontAwesomeIcon icon={faSave} />Guardar
                                         </button>
-                                    </td>
-                                </>
-                            )}
-                        </tr>
-                    ))}
+                                    ) : hasObservation ? (// Botón para VER/EDITAR lo existente
+                                        <button
+                                            onClick={() => handleTriggerManualSave(row)} // Reutilizamos el trigger, el modal detectará que ya hay datos
+                                            className="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-2 rounded-full transition"
+                                            title="Ver justificación y evidencia"
+                                        >
+                                            <FontAwesomeIcon icon={faEye} />
+                                        </button>
+                                    ) : (
+                                        row.isDirty && <span className="text-xs text-yellow-600 italic"><FontAwesomeIcon icon={faExclamationCircle} /> Sin guardar</span>
+                                    )}
+                                </td>
+                            </tr>
+                        );
+                    })}
                 </tbody>
             </table>
 
@@ -484,7 +594,7 @@ const GrillaCalificaciones = ({
                 initialRec2={currentStudent?.recomendacionDos}
                 bancoOptions={bancoRecomendaciones} // Pasamos el catálogo
             />
-        </div>
+        </div >
     );
 };
 

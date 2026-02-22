@@ -41,7 +41,14 @@ export const calificacionRepository = {
                 asignaturaId,
                 periodo,
                 vigenciaId
-            }
+            },
+            attributes: [
+                'id',
+                'estudianteId',
+                'notaAcademica', 'notaAcumulativa', 'notaLaboral', 'notaSocial', 'notaDefinitiva',
+                'fallas', 'recomendacionUno', 'recomendacionDos',
+                'observacion_cambio', 'url_evidencia_cambio', 'fecha_edicion'
+            ]
         });
     },
 

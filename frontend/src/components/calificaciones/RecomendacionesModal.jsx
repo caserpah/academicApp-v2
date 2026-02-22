@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTimes, faSave, faQuoteLeft } from "@fortawesome/free-solid-svg-icons";
+import { faTimes, faSave, faQuoteLeft, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
 
 const RecomendacionesModal = ({
     isOpen,
@@ -29,6 +29,10 @@ const RecomendacionesModal = ({
         if (!selectedText) return;
         setFunction(selectedText);
     };
+
+    // Agregar función limpiar
+    const clearRec1 = () => setRec1("");
+    const clearRec2 = () => setRec2("");
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -61,19 +65,34 @@ const RecomendacionesModal = ({
                             <option value="" disabled>-- Seleccionar del Banco de Frases --</option>
                             {bancoOptions.map((opcion) => (
                                 <option key={opcion.id} value={opcion.descripcion}>
-                                    {opcion.titulo ? `[${opcion.titulo}] ` : ''}{opcion.descripcion.substring(0, 80)}...
+                                    {/* Mostramos Categoria y Tipo para que sea útil al docente */}
+                                    [{opcion.categoria} - {opcion.tipo}] {opcion.descripcion.substring(0, 60)}...
                                 </option>
                             ))}
                         </select>
 
                         {/* Área de Texto Libre */}
-                        <textarea
-                            className="w-full border border-gray-300 rounded p-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
-                            rows="3"
-                            placeholder="Escriba aquí o seleccione una frase del banco..."
-                            value={rec1}
-                            onChange={(e) => setRec1(e.target.value)}
-                        />
+                        <div className="relative group"> {/* Contenedor relativo para posicionar el botón */}
+                            <textarea
+                                className="w-full border border-gray-300 rounded p-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all pr-10" // pr-10 para dar espacio al botón
+                                rows="3"
+                                placeholder="Seleccione una observación del banco..."
+                                value={rec1}
+                                onChange={(e) => setRec1(e.target.value)}
+                                readOnly
+                            />
+                        </div>
+                        {/* Botón Limpiar dentro del area */}
+                        {rec1 && (
+                            <button
+                                onClick={clearRec1}
+                                className="absolute top-2 right-2 text-gray-400 hover:text-red-500 bg-white p-1.5 rounded-md border border-gray-200 shadow-sm transition-all hover:bg-red-50"
+                                title="Borrar recomendación"
+                                type="button"
+                            >
+                                <FontAwesomeIcon icon={faTrashAlt} />
+                            </button>
+                        )}
                     </div>
 
                     {/* Recomendación 2 */}
@@ -87,17 +106,33 @@ const RecomendacionesModal = ({
                             <option value="" disabled>-- Seleccionar del Banco de Frases --</option>
                             {bancoOptions.map((opcion) => (
                                 <option key={opcion.id} value={opcion.descripcion}>
-                                    {opcion.titulo ? `[${opcion.titulo}] ` : ''}{opcion.descripcion.substring(0, 80)}...
+                                    {/* Mostramos Categoria y Tipo para que sea útil al docente */}
+                                    [{opcion.categoria} - {opcion.tipo}] {opcion.descripcion.substring(0, 60)}...
                                 </option>
                             ))}
                         </select>
-                        <textarea
-                            className="w-full border border-gray-300 rounded p-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
-                            rows="3"
-                            placeholder="Escriba aquí o seleccione una frase del banco..."
-                            value={rec2}
-                            onChange={(e) => setRec2(e.target.value)}
-                        />
+                        <div className="relative group"> {/* Contenedor relativo para posicionar el botón */}
+                            <textarea
+                                className="w-full border border-gray-300 rounded p-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all pr-10" // pr-10 para dar espacio al botón
+                                rows="3"
+                                placeholder="Seleccione una observación del banco..."
+                                value={rec1}
+                                onChange={(e) => setRec2(e.target.value)}
+                                readOnly
+                            />
+                        </div>
+
+                        {/* Botón Limpiar dentro del area */}
+                        {rec1 && (
+                            <button
+                                onClick={clearRec2}
+                                className="absolute top-2 right-2 text-gray-400 hover:text-red-500 bg-white p-1.5 rounded-md border border-gray-200 shadow-sm transition-all hover:bg-red-50"
+                                title="Borrar recomendación"
+                                type="button"
+                            >
+                                <FontAwesomeIcon icon={faTrashAlt} />
+                            </button>
+                        )}
                     </div>
                 </div>
 

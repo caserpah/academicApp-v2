@@ -38,7 +38,7 @@ export const VentanaCalificacion = sequelize.define("ventana_calificacion", {
     habilitada: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
-        defaultValue: false,
+        defaultValue: true,
         comment: "Indica si la ventana está abierta para los docentes.",
     },
     descripcion: {

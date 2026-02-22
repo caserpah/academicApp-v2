@@ -29,39 +29,70 @@ const DIM = {
 
 /**
  * Helper: Validar Ventana de Calificaciones
- * Retorna true si puede editar, o lanza error si no.
+ * Lógica Simplificada:
+ * 1. La ventana se define ESTRICTAMENTE por fechas.
+ * 2. Docentes: Solo pueden editar dentro de las fechas.
+ * 3. Admins: Pueden editar fuera de fecha SI justifican o es solo texto.
  */
-async function _validarVentana(periodo, vigenciaId, data) {
-    const hoy = new Date().toISOString().split('T')[0]; // Obtener fecha actual en formato YYYY-MM-DD
+async function _validarVentana(periodo, vigenciaId, data, esSoloCambioTexto = false) {
 
-    const ventana = await VentanaCalificacion.findOne({
-        where: { periodo, vigenciaId }
-    });
+    // // Si data.notaDefinitivaInput existe, es comportamiento
+    // if (data.notaDefinitivaInput !== undefined && data.notaAcademica === undefined) {
+    //      return true; // Comportamiento no pide justificación
+    // }
 
-    // Si no existe ventana definida, bloqueamos por seguridad
+    //Verificar existencia de la Ventana
+    const ventana = await VentanaCalificacion.findOne({ where: { periodo, vigenciaId } });
+
     if (!ventana) {
-        throw new Error("Para este periodo aún no se ha habilitado la ventana de calificaciones.");
+        throw new Error("Para este periodo aún no se ha creado la ventana de calificaciones. Comuníquese con el administrador del sistema.");
     }
 
+    // Verificar estado de la Ventana de calificaciones
+    const hoy = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     const estaEnFecha = hoy >= ventana.fechaInicio && hoy <= ventana.fechaFin;
-    const estaHabilitada = ventana.habilitada;
 
-    // Si está dentro de fechas o habilitada manualmente
-    if (estaEnFecha || estaHabilitada) {
-        return true;
+    // Si está dentro de fechas todos pasan (Docentes y Admins)
+    if (estaEnFecha) return true;
+
+    // Verificamos si es un usuario con privilegios administrativos
+    // Roles permitidos según BD: 'admin', 'director', 'coordinador'
+    const ROLES_ADMINISTRATIVOS = ['admin', 'director', 'coordinador'];
+    const esAdministrativo = ROLES_ADMINISTRATIVOS.includes(data.role);
+
+    // CASO DOCENTE: Si la ventana está cerrada, SE BLOQUEA SIEMPRE.
+    if (!esAdministrativo) {
+        throw new Error(`El periodo de calificaciones está cerrado (Cierre: ${ventana.fechaFin}).`);
     }
 
-    if (!data.observacion_cambio || !data.url_evidencia_cambio) {
-        throw new Error(`El periodo de calificaciones está cerrado (Cierre: ${ventana.fechaFin}). Para guardar cambios debe agregar una nota de observación y adjuntar un soporte de evidencia'.`);
+    // CASO ADMINISTRATIVO: Fuera de fecha
+    if (esAdministrativo) {
+        // Excepción 1: Es Comportamiento (No pide justificación)
+        // Detectamos comportamiento si viene el campo 'notaDefinitivaInput'
+        if (data.notaDefinitivaInput !== undefined) {
+            return true;
+        }
+
+        // Excepción 2: Es solo un cambio de recomendación/texto
+        if (esSoloCambioTexto) return true;
+
+        // Excepción 3: Cambio numérico (Académico) con justificación
+        if (data.observacion_cambio && data.observacion_cambio.trim().length > 5) {
+            return true; // Acceso concedido por excepción
+        }
     }
-    return true;
+
+    // Si falla todo lo anterior: REQ_JUSTIFICACION
+    const error = new Error("El periodo académico está cerrado. Se requiere justificación administrativa.");
+    error.code = "REQ_JUSTIFICACION";
+    throw error;
 }
 
 /**
  * Helper: Determinar el Texto del Juicio aplicando TODAS las Reglas de Negocio.
  */
 async function _obtenerJuicio(nota, rangos, context, dimensionId) {
-    // 1. Validaciones básicas
+    // Validaciones básicas
     if (nota === null || nota === undefined) return "PENDIENTE";
     if (!dimensionId) return "SIN DIMENSIÓN";
 
@@ -132,9 +163,9 @@ async function _obtenerJuicio(nota, rangos, context, dimensionId) {
             // Si NO es Preescolar, forzamos buscar el ID 5 (Rango de desempeño UNICO)
             // ignorando si sacó nota alta, baja, etc.
             if (context.nivelAcademico !== "PREESCOLAR") {
-                 whereClause.desempenoId = 5; // <--- FORZAMOS ID desempeño UNICO
+                whereClause.desempenoId = 5; // <--- FORZAMOS ID desempeño UNICO
             } else {
-                 whereClause.desempenoId = idDesempenoBusqueda; // Preescolar sí usa rangos
+                whereClause.desempenoId = idDesempenoBusqueda; // Preescolar sí usa rangos
             }
         }
 
@@ -196,12 +227,46 @@ export const calificacionService = {
         const t = await sequelize.transaction();
 
         try {
-            const { asignaturaId, periodo, vigenciaId, estudianteId, docenteId } = data;
+            const { asignaturaId, periodo, vigenciaId, estudianteId, docenteId, usuarioId } = data;
 
-            // 1. Validaciones de Negocio (Ventana)
-            await _validarVentana(periodo, vigenciaId, data);
+            // Buscamos si ya existe calificación (Necesario para comparar cambios)
+            const existingCal = await calificacionRepository.findOne(estudianteId, asignaturaId, periodo, vigenciaId, t);
 
-            // 2. Preparar Datos Auxiliares (Asignatura y Rangos)
+            let esSoloCambioTexto = false;
+
+            if (existingCal) {
+                // Función auxiliar para comparar notas
+                const hayCambioNumerico = (valDB, valInput) => {
+                    // Si el input no viene (undefined), no se está intentando cambiar ese campo
+                    if (valInput === undefined) return false;
+
+                    const numDB = parseFloat(valDB || 0);
+                    const numInput = parseFloat(valInput || 0);
+
+                    // Si son diferentes (con margen de error mínimo para decimales)
+                    return Math.abs(numDB - numInput) > 0.001;
+                };
+
+                const cambioNotas =
+                    hayCambioNumerico(existingCal.notaAcademica, data.notaAcademica) ||
+                    hayCambioNumerico(existingCal.notaAcumulativa, data.notaAcumulativa) ||
+                    hayCambioNumerico(existingCal.notaLaboral, data.notaLaboral) ||
+                    hayCambioNumerico(existingCal.notaSocial, data.notaSocial) ||
+                    hayCambioNumerico(existingCal.notaDefinitiva, data.notaDefinitivaInput);
+
+                // Si NO cambiaron las notas, asumimos que es solo recomendación/fallas
+                if (!cambioNotas) {
+                    esSoloCambioTexto = true;
+                }
+            } else {
+                // Si NO existe calificación (es un INSERT), definitivamente es un cambio numérico.
+                esSoloCambioTexto = false;
+            }
+
+            // Validaciones de Negocio (Ventana y Permisos)
+            await _validarVentana(periodo, vigenciaId, data, esSoloCambioTexto);
+
+            // Preparar Datos Auxiliares (Asignatura y Rangos)
             const asignatura = await Asignatura.findByPk(asignaturaId);
             const esComportamiento = asignatura && asignatura.nombre.trim().toUpperCase() === "COMPORTAMIENTO";
 
@@ -210,7 +275,7 @@ export const calificacionService = {
                 include: [{ model: Desempeno, as: "desempeno" }]
             });
 
-            // 3. Obtener Matrícula, Grado y Nivel Académico
+            // Obtener Matrícula, Grado y Nivel Académico
             const matricula = await Matricula.findOne({
                 where: { estudianteId, vigenciaId },
                 include: [{
@@ -226,24 +291,25 @@ export const calificacionService = {
             const gradoId = matricula.grupo.gradoId;
             const nivelAcademico = matricula.grupo.grado.nivelAcademico; // "PREESCOLAR", "PRIMARIA", etc.
 
-            // 4. Preparamos el contexto para la búsqueda de juicios
+            // Preparamos el contexto para la búsqueda de juicios
             const contextJuicio = { vigenciaId, asignaturaId, gradoId, periodo, nivelAcademico };
 
-            // 5. Preparar objeto base
+            // Preparar objeto base
             let dataToSave = {
-                estudianteId, asignaturaId, periodo, vigenciaId, docenteId,
+                estudianteId, asignaturaId, periodo, vigenciaId, docenteId, usuarioId,
                 fallas: data.fallas,
                 recomendacionUno: data.recomendacionUno,
                 recomendacionDos: data.recomendacionDos,
                 fecha_edicion: new Date()
             };
 
+            // Guardamos auditoria si viene
             if (data.observacion_cambio) {
                 dataToSave.observacion_cambio = data.observacion_cambio;
                 dataToSave.url_evidencia_cambio = data.url_evidencia_cambio;
             }
 
-            // 6. Cálculos y Búsqueda de Juicios
+            // Cálculos y Búsqueda de Juicios
             if (esComportamiento) {
                 const def = parseFloat(data.notaDefinitivaInput || 0);
                 const juicio = await _obtenerJuicio(def, rangos, contextJuicio, DIM.COMPORTAMIENTO); // Pasamos ID 999 (COMPORTAMIENTO) explícitamente
@@ -286,9 +352,7 @@ export const calificacionService = {
                 });
             }
 
-            // 7. Persistencia (Upsert)
-            const existingCal = await calificacionRepository.findOne(estudianteId, asignaturaId, periodo, vigenciaId, t);
-
+            // Persistencia (Upsert)
             let result;
             if (existingCal) {
                 result = await calificacionRepository.update(existingCal, dataToSave, t);

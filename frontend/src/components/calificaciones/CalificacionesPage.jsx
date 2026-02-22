@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faClipboardCheck, faFilter, faSpinner, faSchool, faEraser } from "@fortawesome/free-solid-svg-icons";
@@ -8,12 +6,14 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import {
     fetchCalificacionesCatalogs,
     fetchGrillaCalificaciones,
-    guardarCalificacion
+    guardarCalificacion,
+    fetchBancoRecomendaciones
 } from "../../api/calificacionesService.js";
 
-import { showError } from "../../utils/notifications.js";
+import { showSuccess, showError } from "../../utils/notifications.js";
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
 import GrillaCalificaciones from "./GrillaCalificaciones.jsx";
+import JustificacionModal from "./JustificacionModal.jsx";
 
 const CalificacionesPage = () => {
     // --- AUTH CONTEXT ---
@@ -24,6 +24,9 @@ const CalificacionesPage = () => {
     const [vigencia, setVigencia] = useState(null);
     const [sedes, setSedes] = useState([]);
     const [grupos, setGrupos] = useState([]);
+
+    // Estado para el Banco de Frases
+    const [bancoRecomendaciones, setBancoRecomendaciones] = useState([]);
 
     // Estados para lógica de filtros
     const [esAdmin, setEsAdmin] = useState(false);
@@ -47,12 +50,16 @@ const CalificacionesPage = () => {
     const [loadingCatalogs, setLoadingCatalogs] = useState(true);
     const [loadingGrilla, setLoadingGrilla] = useState(false);
 
+    // Estados para auditoria (Cambio de calificaciones extemporaneas)
+    const [showJustificacionModal, setShowJustificacionModal] = useState(false);
+    const [pendingSaveData, setPendingSaveData] = useState(null); // Guarda los datos que fallaron para reintentar
+
     // --- CARGA INICIAL DE CATÁLOGOS ---
     useEffect(() => {
         const loadInit = async () => {
             try {
                 setLoadingCatalogs(true);
-                // El servicio decide qué traer según el rol
+                // Cargamos catálogos (Sedes, Grupos, Asignaturas)
                 const data = await fetchCalificacionesCatalogs(rolUsuario);
 
                 setVigencia(data.vigencia);
@@ -61,6 +68,10 @@ const CalificacionesPage = () => {
                 setEsAdmin(data.esAdmin);
                 setCargaCompleta(data.cargaCompleta || []);
                 setAsignaturasGlobales(data.asignaturas || []);
+
+                // Cargamos el Banco de Recomendaciones
+                const bancoData = await fetchBancoRecomendaciones();
+                setBancoRecomendaciones(bancoData);
 
                 // Si solo hay una sede, seleccionarla por defecto
                 if (data.sedes.length === 1) {
@@ -74,7 +85,6 @@ const CalificacionesPage = () => {
                 setLoadingCatalogs(false);
             }
         };
-
         if (user) loadInit();
     }, [user, rolUsuario]);
 
@@ -94,7 +104,7 @@ const CalificacionesPage = () => {
         if (!grupoValido) {
             setFilters(prev => ({ ...prev, grupoId: '', asignaturaId: '' }));
         }
-    }, [filters.sedeId, grupos]);
+    }, [filters.sedeId, grupos, filters.grupoId]);
 
     // --- EFECTO CASCADA (Al cambiar Grupo -> Filtrar Asignaturas) ---
     useEffect(() => {
@@ -107,11 +117,9 @@ const CalificacionesPage = () => {
         let nuevasAsignaturas = [];
 
         if (esAdmin) {
-            // LÓGICA ADMIN: No hay cascada, muestran TODO el catálogo de asignaturas
-            nuevasAsignaturas = asignaturasGlobales;
+            nuevasAsignaturas = asignaturasGlobales; // No hay cascada, muestran TODO el catálogo de asignaturas
         } else {
-            // LÓGICA DOCENTE (Cascada Estricta):
-            // Buscamos en 'cargaCompleta' las coincidencias con este grupo
+            // Buscamos en 'cargaCompleta' las coincidencias con este grupo (Cascada Estricta)
             const filtradas = cargaCompleta
                 .filter(item => String(item.grupo.id) === String(filters.grupoId))
                 .map(item => item.asignatura);
@@ -129,7 +137,7 @@ const CalificacionesPage = () => {
             setFilters(prev => ({ ...prev, asignaturaId: '' }));
         }
 
-    }, [filters.grupoId, esAdmin, cargaCompleta, asignaturasGlobales]);
+    }, [filters.grupoId, esAdmin, cargaCompleta, asignaturasGlobales, filters.asignaturaId]);
 
     // --- CARGA DE LA GRILLA (Al completar filtros) ---
     const loadGrilla = useCallback(async () => {
@@ -179,17 +187,55 @@ const CalificacionesPage = () => {
     /**
      * Función que se pasa al hijo (Grilla) para guardar
      */
-    const handleSaveCalificacion = async (calificacionData) => {
+    const handleSaveCalificacion = async (calificacionData) => { //Guardado Automático (OnBlur)
+        return await guardarCalificacion({
+            ...calificacionData,
+            asignaturaId: filters.asignaturaId,
+            periodo: filters.periodo,
+            vigenciaId: vigencia.id
+        });
+    };
+
+    // Solicitud de Guardado Manual (Botón Naranja)
+    const handleManualSaveRequest = (calificacionData) => {
+        // Guardamos los datos pendientes y abrimos el modal
+        setPendingSaveData({
+            ...calificacionData,
+            asignaturaId: filters.asignaturaId,
+            periodo: filters.periodo,
+            vigenciaId: vigencia.id
+        });
+        setShowJustificacionModal(true);
+    };
+
+    /**
+     * Handler para cuando el usuario confirma el Modal de Justificación
+     * Recibe: (observacion, archivoEvidencia)
+     */
+    const handleConfirmJustificacion = async (observacion, archivoEvidencia) => {
+        if (!pendingSaveData) return;
+
         try {
+            setShowJustificacionModal(false); // Cerramos modal primero
+
+            // Reintentamos guardar INYECTANDO la justificación y el archivo
             await guardarCalificacion({
-                ...calificacionData,
-                asignaturaId: filters.asignaturaId,
-                periodo: filters.periodo,
-                vigenciaId: vigencia.id
+                ...pendingSaveData,
+                observacion_cambio: observacion,
+                evidencia: archivoEvidencia
             });
+
+            showSuccess("Cambio guardado con observación exitosamente.", "success");
+
+            // Limpiamos
+            setPendingSaveData(null);
+
+            // Refrescamos la grilla para asegurar consistencia
+            loadGrilla();
+
         } catch (error) {
             showError(error.message);
-            throw error;
+            // Si falla de nuevo, el usuario tendrá que intentar editar otra vez
         }
     };
 
@@ -309,10 +355,25 @@ const CalificacionesPage = () => {
                             students={studentsData}
                             loading={loadingGrilla}
                             onSave={handleSaveCalificacion}
+                            onManualSave={handleManualSaveRequest}
                             asignaturaNombre={asignaturasDisponibles.find(a => String(a.id) === String(filters.asignaturaId))?.nombre || ""}
+                            bancoRecomendaciones={bancoRecomendaciones}
                         />
                     )}
                 </div>
+
+                {/* --- MODAL JUSTIFICACIÓN CAMBIO DE CALIFICACIÓN EXTEMPORANEA --- */}
+                <JustificacionModal
+                    isOpen={showJustificacionModal}
+                    onClose={() => {
+                        setShowJustificacionModal(false);
+                        setPendingSaveData(null); // Cancelamos el intento
+                    }}
+                    onConfirm={handleConfirmJustificacion}
+                    // Pasamos los datos que guardamos en pendingSaveData
+                    initialObservacion={pendingSaveData?.observacion_cambio}
+                    initialUrl={pendingSaveData?.url_evidencia_cambio}
+                />
 
             </div>
         </div>

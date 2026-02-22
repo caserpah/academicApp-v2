@@ -138,25 +138,25 @@ const VentanasForm = ({
                             <textarea name="descripcion" value={formData.descripcion} onChange={handleChange} className={inputClasses} rows="2" placeholder="Ej: Primer periodo ordinario..."></textarea>
                         </div>
 
-                        <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
+                        {/* <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
                             <input type="checkbox" name="habilitada" id="habilitada" checked={formData.habilitada} onChange={handleChange} className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
                             <label htmlFor="habilitada" className="text-sm font-semibold text-gray-700 cursor-pointer select-none">
                                 Habilitar ventana (Permite el acceso a docentes si está en fechas)
                             </label>
-                        </div>
+                        </div> */}
                     </form>
                 </div>
 
                 {/* Footer */}
                 <div className="p-5 border-t flex justify-end gap-3">
-                    <button type="button" onClick={onCancel} className="px-5 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition">
+                    <button type="button" onClick={onCancel} className="bg-red-500 text-white px-5 py-2 rounded-lg hover:bg-red-600 transition flex items-center shadow-md">
                         Cancelar
                     </button>
                     <button
                         type="submit"
                         form="ventana-form"
                         disabled={loading}
-                        className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow-md flex items-center gap-2 disabled:opacity-50"
+                        className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-md flex items-center gap-2 disabled:opacity-50"
                     >
                         <FontAwesomeIcon icon={faSave} />
                         {selectedVentana ? "Actualizar" : "Guardar Ventana"}

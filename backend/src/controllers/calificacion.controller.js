@@ -40,14 +40,23 @@ export const calificacionController = {
     async guardar(req, res, next) {
         try {
             const vigenciaId = req.vigenciaActual.id;
-            const usuarioAuditoriaId = req.user.id; // Obtenemos el ID del usuario del Token
+            const usuarioAuditoriaId = req.user.id; // ID del usuario del Token
+            const usuarioRol = req.user.role;       // ROL del usuario (admin, coordinador, etc.)
 
             // Inyectamos la vigencia del middleware vigenciaContext al body
             const datosParaGuardar = {
                 ...req.body,
                 vigenciaId,
-                usuarioId: usuarioAuditoriaId
+                usuarioAuditoriaId,
+                role: usuarioRol
             };
+
+            // --- ASIGNAR EL ARCHIVO A LA PROPIEDAD DE BD ---
+            if (req.file) {
+                // Guardamos la ruta relativa para que sea accesible luego
+                // Ejemplo: uploads/evidencias/evidencia-123456.pdf
+                datosParaGuardar.url_evidencia_cambio = `uploads/evidencias/${req.file.filename}`;
+            }
 
             // LÓGICA DE AUDITORÍA: Resolver si el usuario es un Docente
             const usuario = await Usuario.findByPk(usuarioAuditoriaId);
@@ -59,8 +68,7 @@ export const calificacionController = {
                 if (docente) {
                     datosParaGuardar.docenteId = docente.id;
                 }
-                // Si NO es docente, NO tocamos docenteId.
-                // Se mantendrá el que ya tenía el registro (si es edición) o null.
+                // Si NO es docente (es Admin), no tocamos docenteId (se mantiene null o el anterior).
             }
 
             // Pasamos el body completo al servicio
@@ -74,6 +82,17 @@ export const calificacionController = {
             );
 
         } catch (error) {
+            // Si el servicio lanzó el error de justificación, lo interceptamos manualmante
+            // para asegurarnos de enviar el campo 'code' al frontend.
+            if (error.code === "REQ_JUSTIFICACION") {
+                return res.status(400).json({
+                    status: "error",
+                    message: error.message,
+                    code: "REQ_JUSTIFICACION"
+                });
+            }
+
+            // Si es otro error, dejamos que el manejador global se encargue
             next(error);
         }
     }

@@ -1,6 +1,7 @@
 import express from "express";
 import { protect, restrictTo } from "../middleware/auth.middleware.js";
 import { validationErrorHandler } from "../validators/validationErrorHandler.js";
+import { uploadEvidence } from "../middleware/uploadEvidence.js"
 
 import {
     ValidarGuardarCalificacion
@@ -28,6 +29,7 @@ router.post(
     "/",
     protect,
     restrictTo(["docente", "secretaria", "admin"]),
+    uploadEvidence,  // Multer procesa el archivo antes de llegar al controlador
     ValidarGuardarCalificacion,
     validationErrorHandler,
     calificacionController.guardar

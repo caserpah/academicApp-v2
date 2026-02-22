@@ -36,11 +36,21 @@ const formatGrado = (nombre) => {
 /* ------------------------------------------------ */
 const parseError = (error) => {
     const apiError = error.response?.data;
+
+    let finalError;
+
     if (apiError?.errors && Array.isArray(apiError.errors) && apiError.errors.length > 0) {
         const firstError = apiError.errors[0];
-        return new Error(firstError.message || firstError);
+        finalError = new Error(firstError.message || firstError);
+    } else {
+        finalError = new Error(apiError?.message || error.message || "Ocurrió un error en el servicio.");
     }
-    return new Error(apiError?.message || error.message || "Ocurrió un error en el servicio.");
+
+    if (apiError?.code) {
+        finalError.code = apiError.code;
+    }
+
+    return finalError;
 };
 
 /* -------------------------------------------------------------------------- */
@@ -156,10 +166,36 @@ export const fetchGrillaCalificaciones = async (params) => {
 
 /**
  * Guardar o Actualizar una calificación (Upsert)
+ * Soporta JSON (normal) y FormData (con archivo de evidencia)
  */
 export const guardarCalificacion = async (data) => {
     try {
-        const response = await apiClient.post(CALIFICACIONES_ENDPOINT, data);
+        let payload = data;
+        let config = {};
+
+        // Verificamos si hay un archivo adjunto
+        // 'evidencia' es la propiedad donde guardaremos el File
+        if (data.evidencia && data.evidencia instanceof File) {
+
+            // Convertimos a FormData
+            const formData = new FormData();
+
+            // Recorremos todas las propiedades del objeto data
+            Object.keys(data).forEach(key => {
+                // El archivo va directo, los nulos no se envían
+                if (data[key] !== null && data[key] !== undefined) {
+                    formData.append(key, data[key]);
+                }
+            });
+
+            payload = formData;
+            // Axios detecta FormData y pone el Content-Type multipart/form-data automáticamente,
+            config = {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            };
+        }
+
+        const response = await apiClient.post(CALIFICACIONES_ENDPOINT, payload, config);
         return response.data.data;
     } catch (error) {
         throw parseError(error);
@@ -171,7 +207,7 @@ export const guardarCalificacion = async (data) => {
  */
 export const fetchBancoRecomendaciones = async () => {
     try {
-        const response = await apiClient.get(`${RECOMENDACIONES_ENDPOINT}&limit=200`);
+        const response = await apiClient.get(`${RECOMENDACIONES_ENDPOINT}?limit=200`);
         return response.data.data || [];
     } catch (error) {
         console.error("Error cargando banco de recomendaciones:", error);

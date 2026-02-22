@@ -6,7 +6,8 @@ export const bancoController = {
         try {
             const recomendaciones = await BancoRecomendacion.findAll({
                 where: { activo: true },
-                order: [['titulo', 'ASC']]
+                attributes: ['id', 'categoria', 'descripcion', 'tipo', 'activo'],
+                order: [['categoria', 'ASC'], ['descripcion', 'ASC']]
             });
             return sendSuccess(res, recomendaciones);
         } catch (error) {

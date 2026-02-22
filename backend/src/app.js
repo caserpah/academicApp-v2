@@ -5,6 +5,11 @@ import cors from 'cors'; // Importa CORS para permitir solicitudes desde otros d
 import dotenv from 'dotenv'; // Importa dotenv para cargar variables de entorno
 import { syncModels } from './database/syncRelations.js'; // Importa la función para sincronizar modelos
 import { errorHandler } from "./middleware/errorHandler.js";
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Carga las variables de entorno desde el archivo .env
 dotenv.config();
@@ -34,6 +39,9 @@ app.use(cors({
 // --- Middlewares para parsear el cuerpo de las solicitudes ---
 app.use(express.json()); // Permite que Express maneje solicitudes JSON
 app.use(express.urlencoded({ extended: true })); // Permite que Express maneje solicitudes con datos codificados en URL
+
+//  Configuración para servir archivos estáticos (Evidencias)
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 // --- Función asíncrona para iniciar la aplicación ---
 async function startServer() {
