@@ -36,11 +36,6 @@ const DIM = {
  */
 async function _validarVentana(periodo, vigenciaId, data, esSoloCambioTexto = false) {
 
-    // // Si data.notaDefinitivaInput existe, es comportamiento
-    // if (data.notaDefinitivaInput !== undefined && data.notaAcademica === undefined) {
-    //      return true; // Comportamiento no pide justificación
-    // }
-
     //Verificar existencia de la Ventana
     const ventana = await VentanaCalificacion.findOne({ where: { periodo, vigenciaId } });
 
@@ -62,7 +57,7 @@ async function _validarVentana(periodo, vigenciaId, data, esSoloCambioTexto = fa
 
     // CASO DOCENTE: Si la ventana está cerrada, SE BLOQUEA SIEMPRE.
     if (!esAdministrativo) {
-        throw new Error(`El periodo de calificaciones está cerrado (Cierre: ${ventana.fechaFin}).`);
+        throw new Error(`El periodo de calificaciones está cerrado (Finalizó: ${ventana.fechaFin}).`);
     }
 
     // CASO ADMINISTRATIVO: Fuera de fecha

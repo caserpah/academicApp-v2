@@ -73,6 +73,9 @@ const GrillaCalificaciones = ({
                 recomendacionUno: cal.recomendacionUno ?? "",
                 recomendacionDos: cal.recomendacionDos ?? "",
 
+                observacion_cambio: cal.observacion_cambio || "",
+                url_evidencia_cambio: cal.url_evidencia_cambio || "",
+
                 isDirty: false
             };
         });
@@ -258,7 +261,7 @@ const GrillaCalificaciones = ({
 
     // FUNCIÓN ÚNICA DE APLICAR TODO
     const applyGlobalMassUpdate = async () => {
-        // 1. Validaciones
+        // 1. Validaciones previas
         if (!esComportamiento) {
             const { notaAcademica, notaAcumulativa, notaLaboral, notaSocial } = masterValues;
             // Validar que TODOS los campos tengan valor
@@ -280,9 +283,14 @@ const GrillaCalificaciones = ({
 
         // Iteramos sobre los datos actuales
         const habilitados = gridData.filter(r => !r.bloqueo_notas);
+
+        // Contadores
         let successCount = 0;
-        let failCount = 0;
-        let closedWindowCount = 0;
+        let adminJustificationCount = 0; // Solo para Admins (Botón Naranja)
+        let teacherBlockedCount = 0;     // Solo para Docentes (Bloqueo Rojo)
+        let otherErrorCount = 0;
+        /*let failCount = 0;
+        let closedWindowCount = 0;*/
 
         const previewData = gridData.map(row => {
             if (row.bloqueo_notas) return row;
@@ -331,26 +339,72 @@ const GrillaCalificaciones = ({
                 });
 
             } catch (err) {
-                failCount++;
-                if (err.code === 'REQ_JUSTIFICACION') {
+                /*failCount++;
+
+                // Detectamos si el error es por ventana de calificaciones cerrada
+                // El backend puede enviar 'REQ_JUSTIFICACION' o un mensaje de texto sobre "cerrado"
+                const errorMsg = err.message || "";
+                if (err.code === 'REQ_JUSTIFICACION' || errorMsg.includes("cerrado") || errorMsg.includes("fecha")) {
                     closedWindowCount++;
                     setPendingJustificationRows(prev => ({ ...prev, [row.estudianteId]: true }));
+                }*/
+               // --- LÓGICA DE CLASIFICACIÓN DE ERRORES ---
+
+               // CASO 1: ADMIN - Backend pide justificación explícita
+                if (err.code === 'REQ_JUSTIFICACION') {
+                    adminJustificationCount++;
+                    setPendingJustificationRows(prev => ({ ...prev, [row.estudianteId]: true }));
                 }
+                // CASO 2: DOCENTE - Backend dice "Cerrado" (Bloqueo total)
+                else if (err.message && (err.message.toLowerCase().includes("cerrado") || err.message.toLowerCase().includes("finalizó"))) {
+                    teacherBlockedCount++;
+                    // IMPORTANTE: NO activamos setPendingJustificationRows aquí.
+                    // El docente solo verá que falló y el mensaje final le dirá porqué.
+                }
+                // CASO 3: Otros Errores
+                else {
+                    otherErrorCount++;
+                    console.error(err);
+                }
+
             } finally {
                 setSavingIds(prev => ({ ...prev, [row.estudianteId]: false }));
             }
         }
-
+/*
         // --- ALERTAS FINALES ---
         if (successCount > 0) {
-            showSuccess(`Se actualizaron ${successCount} registros.`);
+            showSuccess(`Se actualizaron ${successCount} registros exitosamente.`);
         }
 
-        // Alerta de cierre de ventana de calificaciones
+        // Si hubo errores por Ventana Cerrada
         if (closedWindowCount > 0) {
-            showWarning(`Atención: ${closedWindowCount} estudiantes no se guardaron porque el periodo académico está cerrado.`);
-        } else if (failCount > 0) {
-            showError(`Hubo errores al guardar ${failCount} registros.`);
+            showWarning(`No se pudieron guardar las calificaciones porque el periodo académico finalizó.`);
+        }
+        // Si hubo otros errores (ej: error de servidor) y no fueron por ventana
+        else if (failCount > 0) {
+            showError(`Hubo errores técnicos al guardar ${failCount} registros.`);
+        }
+    };*/
+
+    // Éxito parcial o total
+        if (successCount > 0) {
+            showSuccess(`Se actualizaron ${successCount} registros exitosamente.`);
+        }
+
+        // Mensaje para ADMIN (Naranja)
+        if (adminJustificationCount > 0) {
+            showWarning(`Atención: ${adminJustificationCount} registros requieren justificación administrativa.`);
+        }
+
+        // Mensaje para DOCENTE (Rojo - Específico de fechas)
+        if (teacherBlockedCount > 0) {
+            showError("No se pudieron guardar las calificaciones porque el periodo académico finalizó.");
+        }
+
+        // Mensaje Genérico (Rojo)
+        if (otherErrorCount > 0) {
+            showError(`Ocurrieron errores técnicos en ${otherErrorCount} registros.`);
         }
     };
 

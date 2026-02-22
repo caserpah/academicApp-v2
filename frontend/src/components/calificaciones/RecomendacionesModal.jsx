@@ -11,10 +11,9 @@ const RecomendacionesModal = ({
     initialRec2 = "",
     bancoOptions = []
 }) => {
-    const [rec1, setRec1] = useState(initialRec1);
-    const [rec2, setRec2] = useState(initialRec2);
+    const [rec1, setRec1] = useState("");
+    const [rec2, setRec2] = useState("");
 
-    // Sincronizar estado cuando se abre el modal con nuevos datos
     useEffect(() => {
         if (isOpen) {
             setRec1(initialRec1 || "");
@@ -24,25 +23,23 @@ const RecomendacionesModal = ({
 
     if (!isOpen) return null;
 
-    const handleSelectChange = (e, setFunction) => {
-        const selectedText = e.target.value;
-        if (!selectedText) return;
-        setFunction(selectedText);
-    };
-
-    // Agregar función limpiar
+    // Funciones de Limpieza
     const clearRec1 = () => setRec1("");
     const clearRec2 = () => setRec2("");
 
+    // Manejadores de Select
+    const handleSelectRec1 = (e) => setRec1(e.target.value);
+    const handleSelectRec2 = (e) => setRec2(e.target.value);
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fade-in-up">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden">
 
                 {/* Header */}
                 <div className="flex justify-between items-center p-5 border-b border-gray-300 bg-gray-50">
                     <h3 className="text-xl font-bold text-gray-700 flex items-center gap-2">
-                        <FontAwesomeIcon icon={faQuoteLeft} />
-                        Recomendaciones: {studentName}
+                        <FontAwesomeIcon icon={faQuoteLeft} className="text-blue-500" />
+                        Observaciones: <span className="text-blue-600">{studentName}</span>
                     </h3>
                     <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">
                         <FontAwesomeIcon icon={faTimes} className="text-xl" />
@@ -52,88 +49,78 @@ const RecomendacionesModal = ({
                 {/* Body */}
                 <div className="p-6 space-y-6">
 
-                    {/* Recomendación 1 */}
+                    {/* --- RECOMENDACIÓN 1 --- */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Recomendación 1</label>
-
-                        {/* Selector del Banco */}
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Observación 1</label>
                         <select
-                            className="w-full border mb-3 border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                            onChange={(e) => handleSelectChange(e, setRec1, rec1)}
-                            defaultValue=""
+                            className="w-full border mb-2 border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none"
+                            onChange={handleSelectRec1}
+                            value="" // Siempre reset al seleccionar para permitir re-selección
                         >
-                            <option value="" disabled>-- Seleccionar del Banco de Frases --</option>
+                            <option value="" disabled>-- Seleccionar del Banco --</option>
                             {bancoOptions.map((opcion) => (
                                 <option key={opcion.id} value={opcion.descripcion}>
-                                    {/* Mostramos Categoria y Tipo para que sea útil al docente */}
-                                    [{opcion.categoria} - {opcion.tipo}] {opcion.descripcion.substring(0, 60)}...
+                                    [{opcion.categoria}] {opcion.descripcion.substring(0, 60)}...
                                 </option>
                             ))}
                         </select>
 
-                        {/* Área de Texto Libre */}
-                        <div className="relative group"> {/* Contenedor relativo para posicionar el botón */}
+                        <div className="relative">
                             <textarea
-                                className="w-full border border-gray-300 rounded p-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all pr-10" // pr-10 para dar espacio al botón
+                                className="w-full border border-gray-300 rounded p-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none pr-10 bg-gray-50"
                                 rows="3"
-                                placeholder="Seleccione una observación del banco..."
                                 value={rec1}
-                                onChange={(e) => setRec1(e.target.value)}
-                                readOnly
+                                readOnly // Solo lectura
                             />
+                            {rec1 && (
+                                <button
+                                    onClick={clearRec1}
+                                    className="absolute top-2 right-2 text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded transition-all z-10"
+                                    title="Borrar texto"
+                                    type="button"
+                                >
+                                    <FontAwesomeIcon icon={faTrashAlt} />
+                                </button>
+                            )}
                         </div>
-                        {/* Botón Limpiar dentro del area */}
-                        {rec1 && (
-                            <button
-                                onClick={clearRec1}
-                                className="absolute top-2 right-2 text-gray-400 hover:text-red-500 bg-white p-1.5 rounded-md border border-gray-200 shadow-sm transition-all hover:bg-red-50"
-                                title="Borrar recomendación"
-                                type="button"
-                            >
-                                <FontAwesomeIcon icon={faTrashAlt} />
-                            </button>
-                        )}
                     </div>
 
-                    {/* Recomendación 2 */}
+                    {/* --- RECOMENDACIÓN 2 --- */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Recomendación 2 (Opcional)</label>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Observación 2 (Opcional)</label>
                         <select
-                            className="w-full border mb-3 border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                            onChange={(e) => handleSelectChange(e, setRec2, rec2)}
-                            defaultValue=""
+                            className="w-full border mb-2 border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none"
+                            onChange={handleSelectRec2}
+                            value=""
                         >
-                            <option value="" disabled>-- Seleccionar del Banco de Frases --</option>
+                            <option value="" disabled>-- Seleccionar del Banco --</option>
                             {bancoOptions.map((opcion) => (
                                 <option key={opcion.id} value={opcion.descripcion}>
-                                    {/* Mostramos Categoria y Tipo para que sea útil al docente */}
-                                    [{opcion.categoria} - {opcion.tipo}] {opcion.descripcion.substring(0, 60)}...
+                                    [{opcion.categoria}] {opcion.descripcion.substring(0, 60)}...
                                 </option>
                             ))}
                         </select>
-                        <div className="relative group"> {/* Contenedor relativo para posicionar el botón */}
+
+                        <div className="relative">
                             <textarea
-                                className="w-full border border-gray-300 rounded p-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all pr-10" // pr-10 para dar espacio al botón
+                                className="w-full border border-gray-300 rounded p-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none pr-10 bg-gray-50"
                                 rows="3"
-                                placeholder="Seleccione una observación del banco..."
-                                value={rec1}
-                                onChange={(e) => setRec2(e.target.value)}
+                                value={rec2}
                                 readOnly
                             />
+                            {rec2 && (
+                                <button
+                                    onClick={clearRec2}
+                                    className="absolute top-2 right-2 text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded transition-all z-10"
+                                    title="Borrar texto"
+                                    type="button"
+                                >
+                                    <FontAwesomeIcon icon={faTrashAlt} />
+                                </button>
+                            )}
                         </div>
-
-                        {/* Botón Limpiar dentro del area */}
-                        {rec1 && (
-                            <button
-                                onClick={clearRec2}
-                                className="absolute top-2 right-2 text-gray-400 hover:text-red-500 bg-white p-1.5 rounded-md border border-gray-200 shadow-sm transition-all hover:bg-red-50"
-                                title="Borrar recomendación"
-                                type="button"
-                            >
-                                <FontAwesomeIcon icon={faTrashAlt} />
-                            </button>
-                        )}
                     </div>
+
                 </div>
 
                 {/* Footer */}
