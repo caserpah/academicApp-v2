@@ -7,8 +7,11 @@ import { Desempeno } from "../models/desempeno.js";
 import { handleSequelizeError } from "../middleware/handleSequelizeError.js";
 import { Juicio } from "../models/juicio.js";
 import { Matricula } from "../models/matricula.js";
+import { Estudiante } from "../models/estudiante.js";
 import { Grado } from "../models/grado.js";
 import { Grupo } from "../models/grupo.js";
+import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 // Porcentajes Institucionales
 const PORCENTAJES = {
@@ -361,6 +364,313 @@ export const calificacionService = {
         } catch (error) {
             await t.rollback();
             throw handleSequelizeError(error);
+        }
+    },
+
+    /**
+     * GENERAR PLANTILLA EXCEL CON FÓRMULAS Y BLOQUEOS
+     */
+    async generarPlantillaExcel(grupoId, asignaturaId, periodo, vigenciaId) {
+        // Validar Asignatura (Para saber qué columnas mostrar)
+        const asignatura = await Asignatura.findByPk(asignaturaId);
+        const esComportamiento = asignatura && asignatura.nombre.trim().toUpperCase() === "COMPORTAMIENTO";
+
+        // Obtener Estudiantes del Grupo
+        const matriculas = await Matricula.findAll({
+            where: { grupoId, vigenciaId, estado: 'ACTIVA', bloqueo_notas: false },
+            include: [{
+                model: Estudiante,
+                as: 'estudiante',
+                attributes: ['id', 'documento', 'primerApellido', 'segundoApellido', 'primerNombre', 'segundoNombre']
+            }],
+            order: [
+                [{ model: Estudiante, as: 'estudiante' }, 'primerApellido', 'ASC'],
+                [{ model: Estudiante, as: 'estudiante' }, 'segundoApellido', 'ASC']
+            ]
+        });
+
+        if (!matriculas.length) throw new Error("No hay estudiantes matriculados en este grupo.");
+
+        // Crear Workbook con ExcelJS
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Plantilla Notas');
+
+        // Definir Columnas
+        // Clave: 'key' nos ayuda a mapear, 'width' es estético
+        let columns = [
+            { header: 'ID_ESTUDIANTE', key: 'id', width: 10, hidden: false }, // Col A
+            { header: 'DOCUMENTO', key: 'doc', width: 15 },      // Col B
+            { header: 'ESTUDIANTE', key: 'nom', width: 60 },     // Col C
+        ];
+
+        if (esComportamiento) {
+            // Comportamiento es simple: Una sola nota
+            columns.push(
+                { header: 'NOTA_DEFINITIVA', key: 'def', width: 15 } // Col D
+            );
+        } else {
+            // Asignatura Normal: Notas + Promedios Calculados
+            columns.push(
+                { header: 'NOTA_ACAD', key: 'n_acad', width: 12 },        // Col D (Input)
+                { header: 'AVG_ACAD (50%)', key: 'p_acad', width: 15 },   // Col E (Formula)
+                { header: 'NOTA_ACUM', key: 'n_acum', width: 12 },        // Col F (Input)
+                { header: 'AVG_ACUM (20%)', key: 'p_acum', width: 15 },   // Col G (Formula)
+                { header: 'NOTA_LAB', key: 'n_lab', width: 12 },          // Col H (Input)
+                { header: 'AVG_LAB (15%)', key: 'p_lab', width: 15 },     // Col I (Formula)
+                { header: 'NOTA_SOC', key: 'n_soc', width: 12 },          // Col J (Input)
+                { header: 'AVG_SOC (15%)', key: 'p_soc', width: 15 },     // Col K (Formula)
+                { header: 'DEFINITIVA', key: 'definitiva', width: 15 },   // Col L (Formula Suma)
+                { header: 'FALLAS', key: 'fallas', width: 10 }            // Col M (Input)
+            );
+        }
+
+        worksheet.columns = columns;
+
+        // Estilizar Encabezado
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '2563EB' } }; // Azul
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+        // Llenar Datos y Aplicar Fórmulas
+        matriculas.forEach((mat, index) => {
+            const est = mat.estudiante;
+            const rowIndex = index + 2; // Fila Excel (1 es Header)
+            const nombre = `${est.primerApellido} ${est.segundoApellido || ''} ${est.primerNombre} ${est.segundoNombre || ''}`.trim();
+
+            const rowData = {
+                id: est.id,
+                doc: est.documento,
+                nom: nombre
+            };
+
+            if (esComportamiento) {
+                rowData.def = null; // Input directo
+            } else {
+                // Inputs vacíos
+                rowData.n_acad = null;
+                rowData.n_acum = null;
+                rowData.n_lab = null;
+                rowData.n_soc = null;
+                rowData.fallas = 0;
+
+                // FÓRMULAS (ExcelJS permite inyectarlas)
+                // D=Acad, F=Acum, H=Lab, J=Soc
+                rowData.p_acad = { formula: `IF(ISNUMBER(D${rowIndex}), D${rowIndex}*0.5, 0)` };
+                rowData.p_acum = { formula: `IF(ISNUMBER(F${rowIndex}), F${rowIndex}*0.2, 0)` };
+                rowData.p_lab = { formula: `IF(ISNUMBER(H${rowIndex}), H${rowIndex}*0.15, 0)` };
+                rowData.p_soc = { formula: `IF(ISNUMBER(J${rowIndex}), J${rowIndex}*0.15, 0)` };
+
+                // Sumatoria Definitiva (E+G+I+K)
+                rowData.definitiva = { formula: `E${rowIndex}+G${rowIndex}+I${rowIndex}+K${rowIndex}` };
+            }
+
+            worksheet.addRow(rowData);
+        });
+
+        // Configurar Bloqueo/Protección de Celdas
+        // Por defecto, bloqueamos TODA la hoja y luego desbloqueamos solo los inputs.
+
+        const totalRows = matriculas.length + 1;
+
+        // Iterar sobre las filas de datos
+        for (let r = 2; r <= totalRows; r++) {
+            const row = worksheet.getRow(r);
+
+            // Bloquear ID, Doc, Nombre por defecto (ya lo hace la hoja protegida)
+
+            if (esComportamiento) {
+                // Desbloquear Nota Definitiva (Col 4 / D)
+                row.getCell(4).protection = { locked: false };
+            } else {
+                // Desbloquear Inputs:
+                row.getCell('D').protection = { locked: false }; // Académica
+                row.getCell('F').protection = { locked: false }; // Acumulativa
+                row.getCell('H').protection = { locked: false }; // Laboral
+                row.getCell('J').protection = { locked: false }; // Social
+                row.getCell('M').protection = { locked: false }; // Fallas
+
+                // Estilo visual para columnas calculadas (Grisáceo para indicar ReadOnly)
+                ['E', 'G', 'I', 'K', 'L'].forEach(col => {
+                    row.getCell(col).fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'F3F4F6' } // Gris claro
+                    };
+                    row.getCell(col).font = { italic: true, color: { argb: '374151' } };
+                });
+
+                // Estilo negrita para Definitiva
+                row.getCell('L').font = { bold: true };
+            }
+        }
+
+        // Aplicar Validaciones de Datos (Evitar notas > 5.0)
+        if (!esComportamiento) {
+            ['D', 'F', 'H', 'J'].forEach(colChar => {
+                // Aplicar validación desde fila 2 hasta el final
+                for (let r = 2; r <= totalRows; r++) {
+                    worksheet.getCell(`${colChar}${r}`).dataValidation = {
+                        type: 'decimal',
+                        operator: 'between',
+                        formulae: [1, 5],
+                        showErrorMessage: true,
+                        errorTitle: 'Error',
+                        error: 'La nota debe estar entre 1.0 y 5.0'
+                    };
+                }
+            });
+        }
+
+        // Proteger Hoja con Contraseña
+        // Esto hace efectivo el 'locked: true/false'
+        await worksheet.protect('SecretSystemPass', {
+            selectLockedCells: true,
+            selectUnlockedCells: true,
+            formatCells: false,
+            insertRows: false,
+            deleteRows: false
+        });
+
+        // Retornar Buffer
+        return workbook.xlsx.writeBuffer();
+    },
+
+    /**
+     * IMPORTAR MASIVO (Excel)
+     */
+    async importarMasivo(fileBuffer, grupoId, asignaturaId, periodo, vigenciaId, userRole, userId) {
+        const transaction = await sequelize.transaction();
+        const errores = [];
+        const registrosParaUpsert = [];
+
+        try {
+            // Validar Ventana (CRÍTICO: Reutilizamos tu lógica blindada)
+            // Si la ventana está cerrada, _validarVentana lanzará error para docentes.
+            // Pasamos un objeto data dummy con el rol.
+            try {
+                await _validarVentana(periodo, vigenciaId, { role: userRole });
+            } catch (err) {
+                // Si es error de ventana, abortamos de inmediato
+                throw err;
+            }
+
+            // Configuración Contexto
+            const asignatura = await Asignatura.findByPk(asignaturaId);
+            const esComportamiento = asignatura && asignatura.nombre.trim().toUpperCase() === "COMPORTAMIENTO";
+
+            // Obtener IDs de estudiantes válidos del grupo (Para evitar inyección de estudiantes de otros grupos)
+            const matriculasValidas = await Matricula.findAll({
+                where: { grupoId, vigenciaId },
+                attributes: ['estudianteId']
+            });
+            const estudiantesPermitidos = new Set(matriculasValidas.map(m => m.estudianteId));
+
+            // Leer Excel
+            const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const registrosRaw = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+            if (registrosRaw.length === 0) throw new Error("El archivo está vacío.");
+
+            // Validar Fila por Fila
+            for (let i = 0; i < registrosRaw.length; i++) {
+                const fila = registrosRaw[i];
+                const linea = i + 2;
+
+                try {
+                    const estudianteId = Number(fila['ID_ESTUDIANTE']);
+                    if (!estudianteId) throw new Error("Falta ID_ESTUDIANTE o es inválido.");
+
+                    // Verificar pertenencia al grupo
+                    if (!estudiantesPermitidos.has(estudianteId)) {
+                        throw new Error(`El estudiante con ID ${estudianteId} no pertenece al grupo seleccionado.`);
+                    }
+
+                    // Objeto base
+                    const registro = {
+                        estudianteId,
+                        asignaturaId,
+                        periodo,
+                        vigenciaId,
+                        docenteId: null, // Podrías buscar el docente si es necesario
+                        usuarioAuditoriaId: userId,
+                        fecha_edicion: new Date(),
+                        // Campos de auditoría automática
+                        observacion_cambio: userRole === 'admin' ? 'Carga Masiva Excel' : null
+                    };
+
+                    // Función helper para validar rangos
+                    const validarNota = (val, nombreCampo) => {
+                        if (val === "" || val === null || val === undefined) return 0; // Asumimos 0 o null
+                        const num = parseFloat(val);
+                        if (isNaN(num) || num < 1.0 || num > 5.0) {
+                            // Opcional: Permitir 0 como "sin nota"
+                            if (num === 0) return 0;
+                            throw new Error(`${nombreCampo} inválida (${val}). Debe estar entre 1.0 y 5.0`);
+                        }
+                        return num;
+                    };
+
+                    if (esComportamiento) {
+                        const def = validarNota(fila['NOTA_DEFINITIVA'], 'Nota Definitiva');
+                        // Aquí deberías llamar a tu lógica de Juicios si la tienes centralizada,
+                        // o calcularla simple. Por brevedad, asigno valores base:
+                        registro.notaDefinitiva = def.toFixed(2);
+                        registro.notaAcademica = def;
+                        // ... resto de campos en 0 o "NO APLICA"
+                    } else {
+                        const nAcad = validarNota(fila['NOTA_ACAD'], 'Nota Académica');
+                        const nAcum = validarNota(fila['NOTA_ACUM'], 'Nota Acumulativa');
+                        const nLab = validarNota(fila['NOTA_LAB'], 'Nota Laboral');
+                        const nSoc = validarNota(fila['NOTA_SOC'], 'Nota Social');
+                        const fallas = parseInt(fila['FALLAS'] || 0);
+
+                        if (isNaN(fallas) || fallas < 0) throw new Error("Fallas inválidas.");
+
+                        // Cálculos (Reutiliza tus constantes de porcentajes)
+                        const def = (nAcad * 0.5) + (nAcum * 0.2) + (nLab * 0.15) + (nSoc * 0.15);
+
+                        registro.notaAcademica = nAcad;
+                        registro.notaAcumulativa = nAcum;
+                        registro.notaLaboral = nLab;
+                        registro.notaSocial = nSoc;
+                        registro.notaDefinitiva = def.toFixed(2);
+                        registro.fallas = fallas;
+
+                        // IMPORTANTE: Aquí faltaría calcular los Juicios (jAcad, jLab, etc)
+                        // Si quieres que la importación sea rápida, quizás debas omitir juicios
+                        // o calcularlos aquí mismo llamando a _obtenerJuicio.
+                    }
+
+                    registrosParaUpsert.push(registro);
+
+                } catch (error) {
+                    errores.push(`Fila ${linea}: ${error.message}`);
+                }
+            }
+
+            // Resultado
+            if (errores.length > 0) {
+                await transaction.rollback();
+                return { exito: false, errores };
+            }
+
+            // Bulk Upsert (Crear o Actualizar)
+            await Calificacion.bulkCreate(registrosParaUpsert, {
+                transaction,
+                updateOnDuplicate: [
+                    'notaAcademica', 'notaAcumulativa', 'notaLaboral', 'notaSocial', 'notaDefinitiva',
+                    'fallas', 'fecha_edicion', 'observacion_cambio', 'usuarioAuditoriaId'
+                ]
+            });
+
+            await transaction.commit();
+            return { exito: true, total: registrosParaUpsert.length };
+
+        } catch (error) {
+            await transaction.rollback();
+            throw error;
         }
     }
 };

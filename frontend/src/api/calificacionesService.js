@@ -214,3 +214,56 @@ export const fetchBancoRecomendaciones = async () => {
         return []; // Retorna vacío si falla para no romper la UI
     }
 };
+
+/* -------------------------------------------------------------------------- */
+/* Funciones de Importación Masiva                                            */
+/* -------------------------------------------------------------------------- */
+
+export const descargarPlantilla = async (grupoId, asignaturaId, periodo, nombreArchivo) => {
+    try {
+        const response = await apiClient.get(`${CALIFICACIONES_ENDPOINT}/plantilla/descargar`, {
+            params: { grupoId, asignaturaId, periodo },
+            responseType: 'blob',
+        });
+
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+
+        link.setAttribute('download', nombreArchivo || `Plantilla_Notas_P${periodo}.xlsx`);
+
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    } catch (error) {
+        throw parseError(error);
+    }
+};
+
+/**
+ * Sube el archivo Excel con los parámetros de contexto.
+ * Construye el FormData internamente para mantener limpio el componente.
+ */
+export const importarCalificaciones = async (file, grupoId, asignaturaId, periodo) => {
+    try {
+        const formData = new FormData();
+        formData.append('archivo', file);
+        formData.append('grupoId', grupoId);
+        formData.append('asignaturaId', asignaturaId);
+        formData.append('periodo', periodo);
+
+        const response = await apiClient.post(`${CALIFICACIONES_ENDPOINT}/importar`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        return response.data; // Retorna mensaje de éxito
+    } catch (error) {
+        // Si el backend envía errores detallados (array de errores), los propagamos
+        if (error.response?.data?.errors) {
+            const errorValidacion = new Error("El archivo contiene errores.");
+            errorValidacion.listaErrores = error.response.data.errors;
+            throw errorValidacion;
+        }
+        throw parseError(error);
+    }
+};

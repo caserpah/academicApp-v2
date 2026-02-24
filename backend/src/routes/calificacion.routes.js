@@ -1,4 +1,5 @@
 import express from "express";
+import multer from "multer";
 import { protect, restrictTo } from "../middleware/auth.middleware.js";
 import { validationErrorHandler } from "../validators/validationErrorHandler.js";
 import { uploadEvidence } from "../middleware/uploadEvidence.js"
@@ -8,6 +9,9 @@ import {
 } from "../validators/calificacion.validator.js";
 
 import { calificacionController } from "../controllers/calificacion.controller.js";
+
+// Usamos memoryStorage para tener acceso al buffer en el controlador
+const upload = multer({ storage: multer.memoryStorage() });
 
 const router = express.Router();
 
@@ -33,6 +37,24 @@ router.post(
     ValidarGuardarCalificacion,
     validationErrorHandler,
     calificacionController.guardar
+);
+
+// Descargar plantilla vacía para importación masiva
+router.get(
+    "/plantilla/descargar",
+    protect,
+    restrictTo(["docente", "secretaria", "admin"]),
+    calificacionController.descargarPlantilla
+);
+
+// Importar Masivo (Todo en uno)
+// Nota: 'archivo' debe coincidir con el formData del frontend
+router.post(
+    "/importar",
+    protect,
+    restrictTo(["docente", "secretaria", "admin"]),
+    upload.single("archivo"), // Middleware de multer para manejar la subida del archivo
+    calificacionController.importar
 );
 
 export default router;

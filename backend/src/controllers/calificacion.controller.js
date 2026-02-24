@@ -95,5 +95,61 @@ export const calificacionController = {
             // Si es otro error, dejamos que el manejador global se encargue
             next(error);
         }
+    },
+
+    // ========== Funciones para Importación Masiva ==========
+
+    async descargarPlantilla(req, res, next) {
+        try {
+            const { grupoId, asignaturaId, periodo } = req.query;
+            const vigenciaId = req.vigenciaActual.id;
+
+            if (!grupoId || !asignaturaId || !periodo) {
+                return res.status(400).json({ message: "Faltan parámetros (grupo, asignatura, periodo)." });
+            }
+
+            const buffer = await calificacionService.generarPlantillaExcel(grupoId, asignaturaId, periodo, vigenciaId);
+
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', `attachment; filename=Plantilla_Notas_P${periodo}.xlsx`);
+            res.send(buffer);
+
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    async importar(req, res, next) {
+        try {
+            if (!req.file) throw new Error("No se ha subido ningún archivo Excel.");
+
+            // Los datos de contexto vienen en el body (formData)
+            const { grupoId, asignaturaId, periodo } = req.body;
+            const vigenciaId = req.vigenciaActual.id;
+            const userRole = req.user.role;
+            const userId = req.user.id;
+
+            const resultado = await calificacionService.importarMasivo(
+                req.file.buffer,
+                grupoId,
+                asignaturaId,
+                periodo,
+                vigenciaId,
+                userRole,
+                userId
+            );
+
+            if (!resultado.exito) {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'Se encontraron errores en el archivo. No se importaron datos.',
+                    errors: resultado.errores
+                });
+            }
+
+            return sendSuccess(res, null, `Se importaron ${resultado.total} calificaciones correctamente.`);
+        } catch (error) {
+            next(error);
+        }
     }
 };

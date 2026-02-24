@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faClipboardCheck, faFilter, faSpinner, faSchool, faEraser } from "@fortawesome/free-solid-svg-icons";
+import {
+    faFileExcel, faClipboardCheck, faFilter,
+    faSpinner, faSchool, faEraser
+} from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../../context/AuthContext.jsx";
 
 import {
@@ -14,6 +17,7 @@ import { showSuccess, showError } from "../../utils/notifications.js";
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
 import GrillaCalificaciones from "./GrillaCalificaciones.jsx";
 import JustificacionModal from "./JustificacionModal.jsx";
+import CalificacionesImportModal from "./CalificacionesImportModal.jsx"
 
 const CalificacionesPage = () => {
     // --- AUTH CONTEXT ---
@@ -53,6 +57,9 @@ const CalificacionesPage = () => {
     // Estados para auditoria (Cambio de calificaciones extemporaneas)
     const [showJustificacionModal, setShowJustificacionModal] = useState(false);
     const [pendingSaveData, setPendingSaveData] = useState(null); // Guarda los datos que fallaron para reintentar
+
+    // Estado del modal para importar calificaciones
+    const [showImportModal, setShowImportModal] = useState(false);
 
     // --- CARGA INICIAL DE CATÁLOGOS ---
     useEffect(() => {
@@ -239,6 +246,14 @@ const CalificacionesPage = () => {
         }
     };
 
+    const limpiarNombre = (texto) => {
+        if (!texto) return "DESCONOCIDO";
+        return texto
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quitar tildes
+            .replace(/[^a-zA-Z0-9]/g, "_") // Reemplazar caracteres raros por guion bajo
+            .toUpperCase();
+    };
+
     // --- RENDER ---
     if (loadingCatalogs) return <div className="p-12 flex justify-center"><LoadingSpinner /></div>;
 
@@ -342,6 +357,21 @@ const CalificacionesPage = () => {
                     </div>
                 </div>
 
+                {/* 6. Botón para Importar */}
+                <div className="flex justify-end">
+                    {/* Solo mostramos el botón si hay contexto seleccionado para evitar errores */}
+                    {filters.grupoId && filters.asignaturaId && filters.periodo && (
+                        <button
+                            onClick={() => setShowImportModal(true)}
+                            className="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2.5 px-5 rounded-lg shadow-sm flex items-center gap-2 transition-all hover:shadow-md"
+                            title="Cargar notas masivamente desde Excel"
+                        >
+                            <FontAwesomeIcon icon={faFileExcel} />
+                            Importar Excel
+                        </button>
+                    )}
+                </div>
+
                 {/* Grilla */}
                 <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden min-h-[400px]">
                     {!filters.grupoId || !filters.asignaturaId || !filters.periodo ? (
@@ -374,6 +404,33 @@ const CalificacionesPage = () => {
                     initialObservacion={pendingSaveData?.observacion_cambio}
                     initialUrl={pendingSaveData?.url_evidencia_cambio}
                 />
+
+                {/* --- MODAL PARA EXPORTAR CALIFICACIONES --- */}
+                {showImportModal && (
+                    <CalificacionesImportModal
+                        onClose={() => setShowImportModal(false)}
+                        onSuccess={() => {
+                            loadGrilla(); // Recargar la grilla después de importar exitosamente
+                        }}
+                        contextParams={{
+                            grupoId: filters.grupoId,
+                            asignaturaId: filters.asignaturaId,
+                            periodo: filters.periodo,
+                            nombreArchivo: (() => { // Buscamos los objetos completos para obtener sus nombres
+                                const grupoObj = gruposDisponibles.find(g => String(g.id) === String(filters.grupoId));
+                                const asigObj = asignaturasDisponibles.find(a => String(a.id) === String(filters.asignaturaId));
+
+                                const nombreGrupo = grupoObj ? grupoObj.label : "GRUPO";
+                                const nombreAsig = asigObj ? asigObj.nombre : "ASIGNATURA";
+
+                                // Retornamos el nombre construido
+                                return `${limpiarNombre(nombreGrupo)}_${limpiarNombre(nombreAsig)}_P${filters.periodo}.xlsx`;
+                            })(),
+
+                            esComportamiento: asignaturasDisponibles.find(a => String(a.id) === String(filters.asignaturaId))?.nombre?.trim().toUpperCase() === "COMPORTAMIENTO"
+                        }}
+                    />
+                )}
 
             </div>
         </div>
