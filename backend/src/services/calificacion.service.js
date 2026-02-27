@@ -2,14 +2,16 @@ import { sequelize } from "../database/db.connect.js";
 import { calificacionRepository } from "../repositories/calificacion.repository.js";
 import { VentanaCalificacion } from "../models/ventana_calificacion.js";
 import { Asignatura } from "../models/asignatura.js";
+import { BancoRecomendacion } from "../models/banco_recomendacion.js";
+import { Matricula } from "../models/matricula.js";
+import { Estudiante } from "../models/estudiante.js";
+import { Carga } from "../models/carga.js";
+import { Grupo } from "../models/grupo.js";
+import { Grado } from "../models/grado.js";
 import { DesempenoRango } from "../models/desempeno_rango.js";
 import { Desempeno } from "../models/desempeno.js";
 import { handleSequelizeError } from "../middleware/handleSequelizeError.js";
 import { Juicio } from "../models/juicio.js";
-import { Matricula } from "../models/matricula.js";
-import { Estudiante } from "../models/estudiante.js";
-import { Grado } from "../models/grado.js";
-import { Grupo } from "../models/grupo.js";
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 
@@ -31,6 +33,21 @@ const DIM = {
 };
 
 /**
+ * Utilitario para limpiar nombres de hoja Excel.
+ * Reemplaza caracteres prohibidos y recorta nombres a 30 caracteres
+ */
+const _limpiarNombreHoja = (nombre) => {
+    return nombre.replace(/[\/\\\?\*\[\]\:]/g, '').substring(0, 30).toUpperCase();
+};
+
+// Helper para detectar si es comportamiento
+const _esComportamiento = (nombreAsignatura) => {
+    if (!nombreAsignatura) return false;
+    const nombre = nombreAsignatura.toUpperCase().trim();
+    return nombre.includes("COMPORTAMIENTO") || nombre.includes("DISCIPLINA") || nombre.includes("CONVIVENCIA");
+};
+
+/**
  * Helper: Validar Ventana de Calificaciones
  * Lógica Simplificada:
  * 1. La ventana se define ESTRICTAMENTE por fechas.
@@ -41,10 +58,7 @@ async function _validarVentana(periodo, vigenciaId, data, esSoloCambioTexto = fa
 
     //Verificar existencia de la Ventana
     const ventana = await VentanaCalificacion.findOne({ where: { periodo, vigenciaId } });
-
-    if (!ventana) {
-        throw new Error("Para este periodo aún no se ha creado la ventana de calificaciones. Comuníquese con el administrador del sistema.");
-    }
+    if (!ventana) throw new Error("Para este periodo aún no se ha creado la ventana de calificaciones.");
 
     // Verificar estado de la Ventana de calificaciones
     const hoy = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
@@ -56,28 +70,21 @@ async function _validarVentana(periodo, vigenciaId, data, esSoloCambioTexto = fa
     // Verificamos si es un usuario con privilegios administrativos
     // Roles permitidos según BD: 'admin', 'director', 'coordinador'
     const ROLES_ADMINISTRATIVOS = ['admin', 'director', 'coordinador'];
-    const esAdministrativo = ROLES_ADMINISTRATIVOS.includes(data.role);
+    const esAdministrativo = data.role ? ROLES_ADMINISTRATIVOS.includes(data.role) : false;
 
     // CASO DOCENTE: Si la ventana está cerrada, SE BLOQUEA SIEMPRE.
-    if (!esAdministrativo) {
-        throw new Error(`El periodo de calificaciones está cerrado (Finalizó: ${ventana.fechaFin}).`);
-    }
+    if (!esAdministrativo) throw new Error(`El periodo de calificaciones está cerrado (Finalizó: ${ventana.fechaFin}).`);
 
     // CASO ADMINISTRATIVO: Fuera de fecha
     if (esAdministrativo) {
-        // Excepción 1: Es Comportamiento (No pide justificación)
-        // Detectamos comportamiento si viene el campo 'notaDefinitivaInput'
-        if (data.notaDefinitivaInput !== undefined) {
-            return true;
-        }
+        // Excepción 1: Es Comportamiento (No pide justificación). Detectamos comportamiento si viene el campo 'notaDefinitivaInput'
+        if (data.notaDefinitivaInput !== undefined) return true;
 
         // Excepción 2: Es solo un cambio de recomendación/texto
         if (esSoloCambioTexto) return true;
 
         // Excepción 3: Cambio numérico (Académico) con justificación
-        if (data.observacion_cambio && data.observacion_cambio.trim().length > 5) {
-            return true; // Acceso concedido por excepción
-        }
+        if (data.observacion_cambio && data.observacion_cambio.trim().length > 5) return true;
     }
 
     // Si falla todo lo anterior: REQ_JUSTIFICACION
@@ -115,7 +122,7 @@ async function _obtenerJuicio(nota, rangos, context, dimensionId) {
 
         // CASO 1: COMPORTAMIENTO (ID 999)
         // Global por Asignatura: Periodo 0, Grado NULL, Asignatura ESPECÍFICA
-        if (dimensionId === 999) {
+        if (dimensionId === DIM.COMPORTAMIENTO) {
             whereClause.periodo = 0;
             whereClause.gradoId = null;
             whereClause.asignaturaId = context.asignaturaId;
@@ -124,7 +131,7 @@ async function _obtenerJuicio(nota, rangos, context, dimensionId) {
 
         // CASO 2: COMPETENCIA ACUMULATIVA (ID 4)
         // Transversal Total: Periodo 0, Grado NULL, Asignatura NULL
-        else if (dimensionId === 4) {
+        else if (dimensionId === DIM.ACUMULATIVA) {
             whereClause.periodo = 0;
             whereClause.gradoId = null;
             whereClause.asignaturaId = null;
@@ -132,7 +139,7 @@ async function _obtenerJuicio(nota, rangos, context, dimensionId) {
         }
 
         // CASO 3: COMPETENCIA SOCIAL (ID 2) O LABORAL (ID 3)
-        else if (dimensionId === 2 || dimensionId === 3) {
+        else if (dimensionId === DIM.SOCIAL || dimensionId === DIM.LABORAL) {
             // A. Intentamos PREESCOLAR (Específico)
             let juicioPreescolar = await Juicio.findOne({
                 where: {
@@ -153,7 +160,7 @@ async function _obtenerJuicio(nota, rangos, context, dimensionId) {
         }
 
         // CASO 4: COMPETENCIA ACADÉMICA (ID 1)
-        else if (dimensionId === 1) {
+        else if (dimensionId === DIM.ACADEMICA) {
             whereClause.periodo = context.periodo;
             whereClause.gradoId = context.gradoId;
             whereClause.asignaturaId = context.asignaturaId;
@@ -169,17 +176,12 @@ async function _obtenerJuicio(nota, rangos, context, dimensionId) {
 
         // --- EJECUCIÓN FINAL ---
         const juicioEncontrado = await Juicio.findOne({ where: whereClause });
-
-        if (juicioEncontrado && juicioEncontrado.texto) {
-            return juicioEncontrado.texto;
-        }
+        if (juicioEncontrado && juicioEncontrado.texto) return juicioEncontrado.texto;
 
     } catch (error) {
         console.error(`Error recuperando juicio Dimensión ${dimensionId}:`, error);
     }
-
-    // Fallback: Nombre del rango (Ej: "ALTO")
-    return rango.desempeno ? rango.desempeno.nombre : "PENDIENTE";
+    return rango.desempeno ? rango.desempeno.nombre : "PENDIENTE"; // Fallback: Nombre del rango (Ej: "ALTO")
 }
 
 export const calificacionService = {
@@ -188,9 +190,7 @@ export const calificacionService = {
      * Obtiene y arma la grilla de calificaciones optimizada
      */
     async obtenerGrilla(grupoId, asignaturaId, periodo, vigenciaId) {
-
         const matriculas = await calificacionRepository.findMatriculasPorGrupo(grupoId, vigenciaId);
-
         if (!matriculas.length) return [];
 
         const estudiantesIds = matriculas.map(m => m.estudianteId);
@@ -238,8 +238,8 @@ export const calificacionService = {
                     // Si el input no viene (undefined), no se está intentando cambiar ese campo
                     if (valInput === undefined) return false;
 
-                    const numDB = parseFloat(valDB || 0);
-                    const numInput = parseFloat(valInput || 0);
+                    const numDB = parseFloat(valDB || 1.0);
+                    const numInput = parseFloat(valInput || 1.0);
 
                     // Si son diferentes (con margen de error mínimo para decimales)
                     return Math.abs(numDB - numInput) > 0.001;
@@ -266,7 +266,7 @@ export const calificacionService = {
 
             // Preparar Datos Auxiliares (Asignatura y Rangos)
             const asignatura = await Asignatura.findByPk(asignaturaId);
-            const esComportamiento = asignatura && asignatura.nombre.trim().toUpperCase() === "COMPORTAMIENTO";
+            const esComportamiento = asignatura && _esComportamiento(asignatura.nombre);
 
             const rangos = await DesempenoRango.findAll({
                 where: { vigenciaId },
@@ -309,7 +309,7 @@ export const calificacionService = {
 
             // Cálculos y Búsqueda de Juicios
             if (esComportamiento) {
-                const def = parseFloat(data.notaDefinitivaInput || 0);
+                const def = parseFloat(data.notaDefinitivaInput || 1.0);
                 const juicio = await _obtenerJuicio(def, rangos, contextJuicio, DIM.COMPORTAMIENTO); // Pasamos ID 999 (COMPORTAMIENTO) explícitamente
 
                 Object.assign(dataToSave, {
@@ -321,10 +321,10 @@ export const calificacionService = {
                 });
 
             } else {
-                const nAcad = parseFloat(data.notaAcademica || 0);
-                const nAcum = parseFloat(data.notaAcumulativa || 0);
-                const nLab = parseFloat(data.notaLaboral || 0);
-                const nSoc = parseFloat(data.notaSocial || 0);
+                const nAcad = parseFloat(data.notaAcademica || 1.0);
+                const nAcum = parseFloat(data.notaAcumulativa || 1.0);
+                const nLab = parseFloat(data.notaLaboral || 1.0);
+                const nSoc = parseFloat(data.notaSocial || 1.0);
 
                 const pAcad = nAcad * PORCENTAJES.ACADEMICA;
                 const pAcum = nAcum * PORCENTAJES.ACUMULATIVA;
@@ -368,309 +368,470 @@ export const calificacionService = {
     },
 
     /**
-     * GENERAR PLANTILLA EXCEL CON FÓRMULAS Y BLOQUEOS
+     * GENERAR PLANTILLA DE CARGA ACADÉMICA COMPLETA
+     * Crea un libro con una hoja por cada registro en la tabla CARGA del docente.
      */
-    async generarPlantillaExcel(grupoId, asignaturaId, periodo, vigenciaId) {
-        // Validar Asignatura (Para saber qué columnas mostrar)
-        const asignatura = await Asignatura.findByPk(asignaturaId);
-        const esComportamiento = asignatura && asignatura.nombre.trim().toUpperCase() === "COMPORTAMIENTO";
+    async generarPlantillaDocente(docenteId, periodo, vigenciaId) {
 
-        // Obtener Estudiantes del Grupo
-        const matriculas = await Matricula.findAll({
-            where: { grupoId, vigenciaId, estado: 'ACTIVA', bloqueo_notas: false },
-            include: [{
-                model: Estudiante,
-                as: 'estudiante',
-                attributes: ['id', 'documento', 'primerApellido', 'segundoApellido', 'primerNombre', 'segundoNombre']
-            }],
-            order: [
-                [{ model: Estudiante, as: 'estudiante' }, 'primerApellido', 'ASC'],
-                [{ model: Estudiante, as: 'estudiante' }, 'segundoApellido', 'ASC']
+        // Consultar la Carga Académica
+        const cargas = await Carga.findAll({
+            where: { docenteId, vigenciaId },
+            include: [
+                { model: Grupo, as: 'grupo', include: [{ model: Grado, as: 'grado' }] },
+                { model: Asignatura, as: 'asignatura' }
             ]
         });
 
-        if (!matriculas.length) throw new Error("No hay estudiantes matriculados en este grupo.");
+        if (!cargas.length) throw new Error("El docente no tiene carga académica asignada.");
 
-        // Crear Workbook con ExcelJS
         const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Plantilla Notas');
 
-        // Definir Columnas
-        // Clave: 'key' nos ayuda a mapear, 'width' es estético
-        let columns = [
-            { header: 'ID_ESTUDIANTE', key: 'id', width: 10, hidden: false }, // Col A
-            { header: 'DOCUMENTO', key: 'doc', width: 15 },      // Col B
-            { header: 'ESTUDIANTE', key: 'nom', width: 60 },     // Col C
-        ];
+        // Diccionario para rastrear nombres generados
+        const hojasGeneradas = {};
 
-        if (esComportamiento) {
-            // Comportamiento es simple: Una sola nota
-            columns.push(
-                { header: 'NOTA_DEFINITIVA', key: 'def', width: 15 } // Col D
-            );
-        } else {
-            // Asignatura Normal: Notas + Promedios Calculados
-            columns.push(
-                { header: 'NOTA_ACAD', key: 'n_acad', width: 12 },        // Col D (Input)
-                { header: 'AVG_ACAD (50%)', key: 'p_acad', width: 15 },   // Col E (Formula)
-                { header: 'NOTA_ACUM', key: 'n_acum', width: 12 },        // Col F (Input)
-                { header: 'AVG_ACUM (20%)', key: 'p_acum', width: 15 },   // Col G (Formula)
-                { header: 'NOTA_LAB', key: 'n_lab', width: 12 },          // Col H (Input)
-                { header: 'AVG_LAB (15%)', key: 'p_lab', width: 15 },     // Col I (Formula)
-                { header: 'NOTA_SOC', key: 'n_soc', width: 12 },          // Col J (Input)
-                { header: 'AVG_SOC (15%)', key: 'p_soc', width: 15 },     // Col K (Formula)
-                { header: 'DEFINITIVA', key: 'definitiva', width: 15 },   // Col L (Formula Suma)
-                { header: 'FALLAS', key: 'fallas', width: 10 }            // Col M (Input)
-            );
-        }
+        // Iterar sobre cada Carga para crear su Hoja (Worksheet)
+        for (const carga of cargas) {
 
-        worksheet.columns = columns;
+            // Construir nombre de hoja: "QUIMICA 6A"
+            const codigoGrado = carga.grupo.grado.codigo ? carga.grupo.grado.codigo.trim() : "";
+            const nombreRaw = `${carga.asignatura.nombre} ${codigoGrado}${carga.grupo.nombre}`;
+            let nombreHoja = _limpiarNombreHoja(nombreRaw);
 
-        // Estilizar Encabezado
-        const headerRow = worksheet.getRow(1);
-        headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
-        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '2563EB' } }; // Azul
-        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // Llenar Datos y Aplicar Fórmulas
-        matriculas.forEach((mat, index) => {
-            const est = mat.estudiante;
-            const rowIndex = index + 2; // Fila Excel (1 es Header)
-            const nombre = `${est.primerApellido} ${est.segundoApellido || ''} ${est.primerNombre} ${est.segundoNombre || ''}`.trim();
-
-            const rowData = {
-                id: est.id,
-                doc: est.documento,
-                nom: nombre
-            };
-
-            if (esComportamiento) {
-                rowData.def = null; // Input directo
-            } else {
-                // Inputs vacíos
-                rowData.n_acad = null;
-                rowData.n_acum = null;
-                rowData.n_lab = null;
-                rowData.n_soc = null;
-                rowData.fallas = 0;
-
-                // FÓRMULAS (ExcelJS permite inyectarlas)
-                // D=Acad, F=Acum, H=Lab, J=Soc
-                rowData.p_acad = { formula: `IF(ISNUMBER(D${rowIndex}), D${rowIndex}*0.5, 0)` };
-                rowData.p_acum = { formula: `IF(ISNUMBER(F${rowIndex}), F${rowIndex}*0.2, 0)` };
-                rowData.p_lab = { formula: `IF(ISNUMBER(H${rowIndex}), H${rowIndex}*0.15, 0)` };
-                rowData.p_soc = { formula: `IF(ISNUMBER(J${rowIndex}), J${rowIndex}*0.15, 0)` };
-
-                // Sumatoria Definitiva (E+G+I+K)
-                rowData.definitiva = { formula: `E${rowIndex}+G${rowIndex}+I${rowIndex}+K${rowIndex}` };
+            // Garantizar nombre único (Contador). Si "ARITMETICA 6A" existe, prueba "ARITMETICA 6A (1)"
+            let counter = 1;
+            const originalName = nombreHoja;
+            while (workbook.getWorksheet(nombreHoja)) {
+                const sufijo = ` (${counter})`;
+                const maxLen = 31 - sufijo.length; // Excel limita nombres a 31 caracteres
+                nombreHoja = `${originalName.substring(0, maxLen)}${sufijo}`;
+                counter++;
             }
 
-            worksheet.addRow(rowData);
-        });
+            const worksheet = workbook.addWorksheet(nombreHoja); // Creamos nueva hoja
 
-        // Configurar Bloqueo/Protección de Celdas
-        // Por defecto, bloqueamos TODA la hoja y luego desbloqueamos solo los inputs.
+            const esComportamiento = _esComportamiento(carga.asignatura.nombre); // Verificar si es Comportamiento
 
-        const totalRows = matriculas.length + 1;
+            // SEGURIDAD (METADATOS OCULTOS EN A1) ---
+            // Guardamos IDs clave para saber dónde guardar los datos al importar
+            const securityMetadata = JSON.stringify({
+                gid: carga.grupoId,
+                aid: carga.asignaturaId,
+                p: parseInt(periodo),
+                v: parseInt(vigenciaId),
+                esComp: esComportamiento,
+                desc: `${carga.grupo.nombre} - ${carga.asignatura.nombre}`
+            });
+            worksheet.getCell('A1').value = securityMetadata;
+            worksheet.getRow(1).hidden = true;
 
-        // Iterar sobre las filas de datos
-        for (let r = 2; r <= totalRows; r++) {
-            const row = worksheet.getRow(r);
+            // Datos de Estudiantes
+            const matriculas = await Matricula.findAll({
+                where: {
+                    grupoId: carga.grupoId,
+                    vigenciaId: vigenciaId,
+                    estado: 'ACTIVA',
+                    bloqueo_notas: false
+                },
+                include: [{
+                    model: Estudiante, as: 'estudiante',
+                    attributes: ['documento', 'primerApellido', 'segundoApellido', 'primerNombre', 'segundoNombre']
+                }],
+                order: [
+                    [{ model: Estudiante, as: 'estudiante' }, 'primerApellido', 'ASC'],
+                    [{ model: Estudiante, as: 'estudiante' }, 'segundoApellido', 'ASC']
+                ]
+            });
 
-            // Bloquear ID, Doc, Nombre por defecto (ya lo hace la hoja protegida)
-
+            // --- CASO COMPORTAMIENTO ---
             if (esComportamiento) {
-                // Desbloquear Nota Definitiva (Col 4 / D)
-                row.getCell(4).protection = { locked: false };
-            } else {
-                // Desbloquear Inputs:
-                row.getCell('D').protection = { locked: false }; // Académica
-                row.getCell('F').protection = { locked: false }; // Acumulativa
-                row.getCell('H').protection = { locked: false }; // Laboral
-                row.getCell('J').protection = { locked: false }; // Social
-                row.getCell('M').protection = { locked: false }; // Fallas
+                // Encabezados Simples
+                worksheet.getCell('A2').value = 'ESTUDIANTE';
+                worksheet.getCell('B2').value = 'IDENTIFICACIÓN';
+                worksheet.getCell('C2').value = 'VALORACIÓN';
+                worksheet.getCell('D2').value = 'OBSERVACIONES';
 
-                // Estilo visual para columnas calculadas (Grisáceo para indicar ReadOnly)
-                ['E', 'G', 'I', 'K', 'L'].forEach(col => {
-                    row.getCell(col).fill = {
-                        type: 'pattern',
-                        pattern: 'solid',
-                        fgColor: { argb: 'F3F4F6' } // Gris claro
-                    };
-                    row.getCell(col).font = { italic: true, color: { argb: '374151' } };
+                // Estilos
+                ['A2', 'B2', 'C2', 'D2'].forEach(c => {
+                    const cell = worksheet.getCell(c);
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE699' } };
+                    cell.font = { bold: true };
+                    cell.alignment = { horizontal: 'center' };
+                    cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
                 });
 
-                // Estilo negrita para Definitiva
-                row.getCell('L').font = { bold: true };
-            }
-        }
+                // Anchos
+                worksheet.getColumn('A').width = 45;
+                worksheet.getColumn('B').width = 15;
+                worksheet.getColumn('C').width = 15;
+                worksheet.getColumn('D').width = 40;
 
-        // Aplicar Validaciones de Datos (Evitar notas > 5.0)
-        if (!esComportamiento) {
-            ['D', 'F', 'H', 'J'].forEach(colChar => {
-                // Aplicar validación desde fila 2 hasta el final
-                for (let r = 2; r <= totalRows; r++) {
-                    worksheet.getCell(`${colChar}${r}`).dataValidation = {
-                        type: 'decimal',
-                        operator: 'between',
-                        formulae: [1, 5],
-                        showErrorMessage: true,
-                        errorTitle: 'Error',
-                        error: 'La nota debe estar entre 1.0 y 5.0'
+                let currentRow = 3;
+                const dibujarFilaSimple = (estudiante, esReserva) => {
+                    const r = currentRow;
+                    const row = worksheet.getRow(r);
+                    const nombre = esReserva ? "" : `${estudiante.primerApellido} ${estudiante.segundoApellido || ''} ${estudiante.primerNombre} ${estudiante.segundoNombre || ''}`.trim();
+                    const doc = esReserva ? "" : estudiante.documento;
+
+                    row.getCell(1).value = nombre;
+                    row.getCell(2).value = doc;
+
+                    // Bloqueos
+                    row.getCell(1).protection = { locked: !esReserva };
+                    row.getCell(2).protection = { locked: !esReserva };
+                    row.getCell(3).protection = { locked: false }; // Nota desbloqueada
+                    row.getCell(4).protection = { locked: false }; // Obs desbloqueada
+
+                    if (esReserva) {
+                        row.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE0' } };
+                        row.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE0' } };
+                    }
+
+                    // Bordes
+                    [1, 2, 3, 4].forEach(c => row.getCell(c).border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } });
+                    currentRow++;
+                };
+
+                matriculas.forEach(m => dibujarFilaSimple(m.estudiante, false));
+                for (let k = 0; k < 5; k++) dibujarFilaSimple(null, true);
+
+                // Validación de datos (Solo Columna C)
+                const totalRows = currentRow - 1;
+                for(let r=3; r<currentRow; r++) {
+                    worksheet.getCell(`C${r}`).dataValidation = {
+                        type: 'decimal', operator: 'between', formulae: [1, 5],
+                        showErrorMessage: true, error: 'La nota debe estar entre 1.0 y 5.0'
                     };
                 }
+            }
+
+            // --- CASO ASIGNATURA NORMAL ---
+            else {
+                // Títulos Agrupadores
+                worksheet.mergeCells('A2:A3'); worksheet.getCell('A2').value = 'ESTUDIANTE';
+                worksheet.mergeCells('B2:B3'); worksheet.getCell('B2').value = 'IDENTIF.';
+
+                worksheet.mergeCells('C2:I2'); worksheet.getCell('C2').value = 'ACADEMICA';
+                worksheet.mergeCells('J2:J3'); worksheet.getCell('J2').value = 'EVAL.\nACUM';
+                worksheet.mergeCells('K2:O2'); worksheet.getCell('K2').value = 'LABORAL';
+                worksheet.mergeCells('P2:T2'); worksheet.getCell('P2').value = 'SOCIAL';
+
+                worksheet.mergeCells('U2:U3'); worksheet.getCell('U2').value = 'NOTA\nPRD.';
+                worksheet.mergeCells('V2:V3'); worksheet.getCell('V2').value = 'FALLAS';
+
+                worksheet.mergeCells('W2:X2'); worksheet.getCell('W2').value = 'RECOMENDACIÓN';
+                worksheet.mergeCells('Y2:Y3'); worksheet.getCell('Y2').value = 'OBSERVACIONES';
+
+                // Sub-títulos (1, 2, 3, Nota...)
+                const row3 = worksheet.getRow(3);
+
+                // Académica (6 notas + Promedio)
+                ['C', 'D', 'E', 'F', 'G', 'H'].forEach((col, i) => row3.getCell(col).value = (i + 1));
+                row3.getCell('I').value = 'NOTA'; // Promedio Acad
+
+                // Laboral (4 notas + Promedio)
+                ['K', 'L', 'M', 'N'].forEach((col, i) => row3.getCell(col).value = (i + 1));
+                row3.getCell('O').value = 'NOTA'; // Promedio Lab
+
+                // Social (4 notas + Promedio)
+                ['P', 'Q', 'R', 'S'].forEach((col, i) => row3.getCell(col).value = (i + 1));
+                row3.getCell('T').value = 'NOTA'; // Promedio Soc
+
+                // Reconmendaciones
+                row3.getCell('W').value = '1';
+                row3.getCell('X').value = '2';
+
+                // Estilos
+                const centerStyle = { vertical: 'middle', horizontal: 'center', wrapText: true };
+                const borderStyle = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+
+                ['A2', 'B2', 'J2', 'U2', 'V2', 'Y2'].forEach(c => {
+                    const cell = worksheet.getCell(c);
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D9E1F2' } };
+                    cell.alignment = centerStyle;
+                    cell.font = { bold: true, size: 9 };
+                    cell.border = borderStyle;
+                });
+
+                // Colores por dimensión
+                worksheet.getCell('C2').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D9E1F2' } }; // Azul
+                worksheet.getCell('K2').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2CC' } }; // Naranja
+                worksheet.getCell('P2').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E2EFDA' } }; // Verde
+                worksheet.getCell('W2').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FCE4D6' } }; // Rojo
+
+                row3.font = { bold: true, size: 9 };
+                row3.alignment = centerStyle;
+
+                // Anchos de Columna
+                worksheet.getColumn('A').width = 45; // Nombre Largo
+                worksheet.getColumn('B').width = 15; // Documento
+                ['C', 'D', 'E', 'F', 'G', 'H', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S'].forEach(c => worksheet.getColumn(c).width = 4); // Inputs
+                ['I', 'O', 'T'].forEach(c => worksheet.getColumn(c).width = 6); // Promedios
+                worksheet.getColumn('J').width = 6; // Acum
+                worksheet.getColumn('U').width = 7; // Definitiva
+                worksheet.getColumn('V').width = 7; // Fallas
+                worksheet.getColumn('Y').width = 60; // Obs
+
+                let currentRow = 4; // Los datos empiezan en la fila 4
+
+                // Función Helper para dibujar filas
+                const dibujarFila = (estudiante, esFilaReserva) => {
+                    const r = currentRow;
+                    const row = worksheet.getRow(r);
+
+                    const nombreCompleto = esFilaReserva ? "" : `${estudiante.primerApellido} ${estudiante.segundoApellido || ''} ${estudiante.primerNombre} ${estudiante.segundoNombre || ''}`.trim();
+                    const documento = esFilaReserva ? "" : estudiante.documento;
+
+                    // Set Values
+                    row.getCell('A').value = nombreCompleto;
+                    row.getCell('B').value = documento;
+
+                    // --- Formulas para calcular los promedios (Académica, Laboral y Social) y la nota definitiva
+                    row.getCell('I').value = { formula: `IFERROR(ROUND(AVERAGE(C${r}:H${r}), 2), 0)` };
+                    row.getCell('O').value = { formula: `IFERROR(ROUND(AVERAGE(K${r}:N${r}), 2), 0)` };
+                    row.getCell('T').value = { formula: `IFERROR(ROUND(AVERAGE(P${r}:S${r}), 2), 0)` };
+                    row.getCell('U').value = { formula: `ROUND((I${r}*0.5) + (IF(ISNUMBER(J${r}),J${r},0)*0.2) + (O${r}*0.15) + (T${r}*0.15), 2)` };
+
+                    // Nombre y Documento: Bloqueados si es estudiante existente, Desbloqueados si es Reserva
+                    row.getCell('A').protection = { locked: !esFilaReserva };
+                    row.getCell('B').protection = { locked: !esFilaReserva };
+
+                    // Si es reserva, coloreamos suavemente para indicar "Escriba aquí"
+                    if (esFilaReserva) {
+                        row.getCell('A').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE0' } };
+                        row.getCell('B').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE0' } };
+                    }
+
+                    // Inputs de Notas: SIEMPRE DESBLOQUEADOS
+                    const inputCols = ['C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'V', 'W', 'X', 'Y'];
+                    inputCols.forEach(col => row.getCell(col).protection = { locked: false });
+
+                    ['J'].forEach(col => {
+                        const cell = row.getCell(col);
+                        cell.font = { bold: true };
+                    });
+
+                    // Celdas Calculadas (Promedios): BLOQUEADAS y Grisáceas
+                    ['I', 'O', 'T', 'U'].forEach(col => {
+                        const cell = row.getCell(col);
+                        cell.protection = { locked: true };
+                        cell.font = { bold: true };
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F2F2F2' } };
+                    });
+
+                    // Bordes a toda la fila (hasta col Y=25)
+                    for (let i = 1; i <= 25; i++) row.getCell(i).border = borderStyle;
+                    currentRow++;
+                };
+
+                // Dibujar Estudiantes Matriculados
+                matriculas.forEach(m => dibujarFila(m.estudiante, false));
+                for (let k = 0; k < 5; k++) dibujarFila(null, true); // Dibujar 5 Filas de Reserva (Para estudiantes nuevos)
+
+                // Rango 1.0 a 5.0
+                const notasCols = ['C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S'];
+                notasCols.forEach(col => {
+                    for(let r=4; r<currentRow; r++) {
+                        worksheet.getCell(`${col}${r}`).dataValidation = {
+                            type: 'decimal', operator: 'between', formulae: [1, 5],
+                            showErrorMessage: true, error: 'La nota debe estar entre 1.0 y 5.0'
+                        };
+                    }
+                });
+                // IDs de Recomendación (Enteros positivos)
+                ['W', 'X'].forEach(col => {
+                    for(let r=4; r<currentRow; r++) {
+                        worksheet.getCell(`${col}${r}`).dataValidation = {
+                            type: 'whole', operator: 'greaterThanOrEqual', formulae: [1],
+                            showErrorMessage: true, error: 'ID Recomendación'
+                        };
+                    }
+                });
+            }
+
+            // Proteger Hoja
+            worksheet.protect('SecretSystemPass', {
+                selectLockedCells: true, selectUnlockedCells: true, formatCells: false, insertRows: false
             });
         }
 
-        // Proteger Hoja con Contraseña
-        // Esto hace efectivo el 'locked: true/false'
-        await worksheet.protect('SecretSystemPass', {
-            selectLockedCells: true,
-            selectUnlockedCells: true,
-            formatCells: false,
-            insertRows: false,
-            deleteRows: false
-        });
-
-        // Retornar Buffer
         return workbook.xlsx.writeBuffer();
     },
 
     /**
-     * IMPORTAR MASIVO (Excel)
+     * IMPORTAR ARCHIVO EXCEL DEL DOCENTE
+     * Lee todas las hojas, valida seguridad por hoja y busca estudiantes por Documento.
      */
-    async importarMasivo(fileBuffer, grupoId, asignaturaId, periodo, vigenciaId, userRole, userId) {
+    async importarArchivoDocente(fileBuffer, docenteId, userId, userRole) {
         const transaction = await sequelize.transaction();
-        const errores = [];
-        const registrosParaUpsert = [];
+        const reporte = { procesados: 0, errores: [], hojasIgnoradas: 0 };
+        const recomendacionesCache = new Map();
+        // Variables de contexto para validar ventana una vez por archivo
+        let ventanaValidada = false;
+        let contextoVigencia = null;
+        let contextoPeriodo = null;
 
         try {
-            // Validar Ventana (CRÍTICO: Reutilizamos tu lógica blindada)
-            // Si la ventana está cerrada, _validarVentana lanzará error para docentes.
-            // Pasamos un objeto data dummy con el rol.
-            try {
-                await _validarVentana(periodo, vigenciaId, { role: userRole });
-            } catch (err) {
-                // Si es error de ventana, abortamos de inmediato
-                throw err;
-            }
-
-            // Configuración Contexto
-            const asignatura = await Asignatura.findByPk(asignaturaId);
-            const esComportamiento = asignatura && asignatura.nombre.trim().toUpperCase() === "COMPORTAMIENTO";
-
-            // Obtener IDs de estudiantes válidos del grupo (Para evitar inyección de estudiantes de otros grupos)
-            const matriculasValidas = await Matricula.findAll({
-                where: { grupoId, vigenciaId },
-                attributes: ['estudianteId']
-            });
-            const estudiantesPermitidos = new Set(matriculasValidas.map(m => m.estudianteId));
+            // Precargar Recomendaciones para no consultar DB por cada celda
+            const recs = await BancoRecomendacion.findAll({ where: { activo: true } });
+            recs.forEach(r => recomendacionesCache.set(r.id, r.descripcion));
+            let rangosCache = null;
 
             // Leer Excel
             const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const registrosRaw = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-            if (registrosRaw.length === 0) throw new Error("El archivo está vacío.");
+            // Iterar hojas
+            for (const sheetName of workbook.SheetNames) {
+                const sheet = workbook.Sheets[sheetName];
 
-            // Validar Fila por Fila
-            for (let i = 0; i < registrosRaw.length; i++) {
-                const fila = registrosRaw[i];
-                const linea = i + 2;
+                // LEER METADATA (Celda A1)
+                const metaCell = sheet['A1'] ? sheet['A1'].v : null;
+                if (!metaCell) { reporte.hojasIgnoradas++; continue; } // Hoja sin firma digital, ignorar
 
-                try {
-                    const estudianteId = Number(fila['ID_ESTUDIANTE']);
-                    if (!estudianteId) throw new Error("Falta ID_ESTUDIANTE o es inválido.");
+                let meta; // metaCell tiene: { gid, aid, p, v, desc }
+                try { meta = JSON.parse(metaCell); } catch (e) { reporte.hojasIgnoradas++; continue; }
 
-                    // Verificar pertenencia al grupo
-                    if (!estudiantesPermitidos.has(estudianteId)) {
-                        throw new Error(`El estudiante con ID ${estudianteId} no pertenece al grupo seleccionado.`);
+
+                // Validamos ventana de calificaciones (Solo la primera vez que detectamos el contexto)
+                if (!ventanaValidada) {
+                    // Preparamos datos para validación de permisos. userRole debe venir desde el controller
+                    const dataPermisos = { role: userRole };
+                    await _validarVentana(meta.p, meta.v, dataPermisos);
+                    ventanaValidada = true;
+                    contextoVigencia = meta.v;
+                    contextoPeriodo = meta.p;
+                } else {
+                    // Safety check: Si por alguna razón mezclan hojas de periodos diferentes (hacking), bloqueamos.
+                    if (meta.p !== contextoPeriodo || meta.v !== contextoVigencia) {
+                        reporte.errores.push(`Hoja "${sheetName}" ignorada: Pertenece a un periodo y/o vigencia diferente al validado inicialmente.`);
+                        continue;
+                    }
+                }
+
+                // Cargar Rangos si no se han cargado (usando la vigencia de la metadata)
+                if (!rangosCache) {
+                    rangosCache = await DesempenoRango.findAll({
+                        where: { vigenciaId: meta.v },
+                        include: [{ model: Desempeno, as: "desempeno" }]
+                    });
+                }
+
+                // LEER DATOS (A partir de Fila 4)
+
+                const range = XLSX.utils.decode_range(sheet['!ref']);
+                const startRow = meta.esComp ? 2 : 3;
+
+                for (let R = startRow; R <= range.e.r; ++R) {
+                    // Función local para obtener valor seguro
+                    const v = (colIndex) => {
+                        const cell = sheet[XLSX.utils.encode_cell({ c: colIndex, r: R })];
+                        return cell ? cell.v : undefined;
+                    };
+
+                    const documento = v(1); // Col B (Indice 1) es IDENTIF.
+
+                    // Si no hay documento, saltamos (fila vacía o fila de reserva no usada)
+                    if (!documento) continue;
+
+                    // VALIDAR ESTUDIANTE
+                    // Buscamos en MATRICULA usando el documento y el grupoId de la metadata (meta.gid)
+                    // Esto valida tanto las filas precargadas como las filas de reserva escritas manualmente.
+                    const matricula = await Matricula.findOne({
+                        where: { grupoId: meta.gid, vigenciaId: meta.v },
+                        include: [{ model: Estudiante, as: 'estudiante', where: { documento: String(documento) } },
+                        { model: Grupo, as: 'grupo', include: [{ model: Grado, as: 'grado' }] }],
+                        transaction
+                    });
+
+                    if (!matricula) {
+                        reporte.errores.push(`Hoja "${sheetName}" Fila ${R + 1}: Documento ${documento} no matriculado en este grupo.`);
+                        continue;
                     }
 
-                    // Objeto base
-                    const registro = {
-                        estudianteId,
-                        asignaturaId,
-                        periodo,
-                        vigenciaId,
-                        docenteId: null, // Podrías buscar el docente si es necesario
-                        usuarioAuditoriaId: userId,
-                        fecha_edicion: new Date(),
-                        // Campos de auditoría automática
-                        observacion_cambio: userRole === 'admin' ? 'Carga Masiva Excel' : null
+                    // Contexto para Juicios
+                    const contextJuicio = {
+                        vigenciaId: meta.v, asignaturaId: meta.aid, gradoId: matricula.grupo.gradoId,
+                        periodo: meta.p, nivelAcademico: matricula.grupo.grado.nivelAcademico
                     };
 
-                    // Función helper para validar rangos
-                    const validarNota = (val, nombreCampo) => {
-                        if (val === "" || val === null || val === undefined) return 0; // Asumimos 0 o null
-                        const num = parseFloat(val);
-                        if (isNaN(num) || num < 1.0 || num > 5.0) {
-                            // Opcional: Permitir 0 como "sin nota"
-                            if (num === 0) return 0;
-                            throw new Error(`${nombreCampo} inválida (${val}). Debe estar entre 1.0 y 5.0`);
-                        }
-                        return num;
+                    let dataToSave = {
+                        estudianteId: matricula.estudiante.id, asignaturaId: meta.aid, periodo: meta.p,
+                        vigenciaId: meta.v, docenteId: docenteId, usuarioId: userId, fecha_edicion: new Date()
                     };
 
-                    if (esComportamiento) {
-                        const def = validarNota(fila['NOTA_DEFINITIVA'], 'Nota Definitiva');
-                        // Aquí deberías llamar a tu lógica de Juicios si la tienes centralizada,
-                        // o calcularla simple. Por brevedad, asigno valores base:
-                        registro.notaDefinitiva = def.toFixed(2);
-                        registro.notaAcademica = def;
-                        // ... resto de campos en 0 o "NO APLICA"
+                    // --- LOGICA CONDICIONAL DE LECTURA ---
+                    if (meta.esComp) {
+                        const notaVal = parseFloat(v(2) || 1.0); // Col C (Index 2) es la NOTA
+                        const juicio = await _obtenerJuicio(notaVal, rangosCache, contextJuicio, DIM.COMPORTAMIENTO);
+
+                        dataToSave = {
+                            ...dataToSave,
+                            notaDefinitiva: notaVal.toFixed(2),
+
+                            // REUTILIZACIÓN DE CAMPOS (Espejo de procesarGuardado)
+                            notaAcademica: notaVal.toFixed(2), // Guardamos la nota también aquí
+                            promedioAcademica: 0,              // Promedio en 0 para no afectar cálculos globales si los hubiera
+                            juicioAcademica: juicio, notaAcumulativa: 0,
+                            promedioAcumulativa: 0, juicioAcumulativa: "NO APLICA",
+                            notaLaboral: 0, promedioLaboral: 0, juicioLaboral: "NO APLICA",
+                            notaSocial: 0, promedioSocial: 0, juicioSocial: "NO APLICA",
+                            fallas: 0
+                        };
+
                     } else {
-                        const nAcad = validarNota(fila['NOTA_ACAD'], 'Nota Académica');
-                        const nAcum = validarNota(fila['NOTA_ACUM'], 'Nota Acumulativa');
-                        const nLab = validarNota(fila['NOTA_LAB'], 'Nota Laboral');
-                        const nSoc = validarNota(fila['NOTA_SOC'], 'Nota Social');
-                        const fallas = parseInt(fila['FALLAS'] || 0);
+                        // --- CASO ASIGNATURA NORMAL ---
+                        // Extraer notas (Promedios calculados por Excel)
+                        const pAcad = parseFloat(v(8) || 1.0);
+                        const nAcum = parseFloat(v(9) || 1.0);
+                        const pLab = parseFloat(v(14) || 1.0);
+                        const pSoc = parseFloat(v(19) || 1.0);
+                        const fallas = parseInt(v(21) || 0); // Fallas
 
-                        if (isNaN(fallas) || fallas < 0) throw new Error("Fallas inválidas.");
+                        // Cálculo nota definitiva
+                        const def = (pAcad * 0.50) + (nAcum * 0.20) + (pLab * 0.15) + (pSoc * 0.15);
 
-                        // Cálculos (Reutiliza tus constantes de porcentajes)
-                        const def = (nAcad * 0.5) + (nAcum * 0.2) + (nLab * 0.15) + (nSoc * 0.15);
+                        // Calcular juicios (Promise.all para velocidad)
+                        const [jAcad, jAcum, jLab, jSoc] = await Promise.all([
+                            _obtenerJuicio(pAcad, rangosCache, contextJuicio, DIM.ACADEMICA),
+                            _obtenerJuicio(nAcum, rangosCache, contextJuicio, DIM.ACUMULATIVA),
+                            _obtenerJuicio(pLab, rangosCache, contextJuicio, DIM.LABORAL),
+                            _obtenerJuicio(pSoc, rangosCache, contextJuicio, DIM.SOCIAL)
+                        ]);
 
-                        registro.notaAcademica = nAcad;
-                        registro.notaAcumulativa = nAcum;
-                        registro.notaLaboral = nLab;
-                        registro.notaSocial = nSoc;
-                        registro.notaDefinitiva = def.toFixed(2);
-                        registro.fallas = fallas;
-
-                        // IMPORTANTE: Aquí faltaría calcular los Juicios (jAcad, jLab, etc)
-                        // Si quieres que la importación sea rápida, quizás debas omitir juicios
-                        // o calcularlos aquí mismo llamando a _obtenerJuicio.
+                        dataToSave = {
+                            ...dataToSave,
+                            notaAcademica: pAcad.toFixed(2), promedioAcademica: (pAcad * 0.5).toFixed(2), juicioAcademica: jAcad,
+                            notaAcumulativa: nAcum.toFixed(2), promedioAcumulativa: (nAcum * 0.2).toFixed(2), juicioAcumulativa: jAcum,
+                            notaLaboral: pLab.toFixed(2), promedioLaboral: (pLab * 0.15).toFixed(2), juicioLaboral: jLab,
+                            notaSocial: pSoc.toFixed(2), promedioSocial: (pSoc * 0.15).toFixed(2), juicioSocial: jSoc,
+                            notaDefinitiva: def.toFixed(2),
+                            fallas: fallas,
+                            recomendacionUno: v(22) ? recomendacionesCache.get(v(22)) : null,
+                            recomendacionDos: v(23) ? recomendacionesCache.get(v(23)) : null
+                        };
                     }
 
-                    registrosParaUpsert.push(registro);
+                    // PERSISTENCIA
+                    const existingCal = await calificacionRepository.findOne(
+                        matricula.estudiante.id, meta.aid, meta.p, meta.v, transaction
+                    );
 
-                } catch (error) {
-                    errores.push(`Fila ${linea}: ${error.message}`);
+                    if (existingCal) {
+                        await calificacionRepository.update(existingCal, dataToSave, transaction);
+                    } else {
+                        await calificacionRepository.create(dataToSave, transaction);
+                    }
+                    reporte.procesados++;
                 }
             }
 
-            // Resultado
-            if (errores.length > 0) {
-                await transaction.rollback();
-                return { exito: false, errores };
-            }
-
-            // Bulk Upsert (Crear o Actualizar)
-            await Calificacion.bulkCreate(registrosParaUpsert, {
-                transaction,
-                updateOnDuplicate: [
-                    'notaAcademica', 'notaAcumulativa', 'notaLaboral', 'notaSocial', 'notaDefinitiva',
-                    'fallas', 'fecha_edicion', 'observacion_cambio', 'usuarioAuditoriaId'
-                ]
-            });
-
+            // Archivo vacío o sin hojas válidas
+            if (reporte.procesados === 0 && reporte.errores.length === 0) throw new Error("El archivo no contiene hojas válidas generadas por el sistema.");
             await transaction.commit();
-            return { exito: true, total: registrosParaUpsert.length };
-
+            return { exito: true, reporte };
         } catch (error) {
             await transaction.rollback();
             throw error;
         }
-    }
+    },
+
 };

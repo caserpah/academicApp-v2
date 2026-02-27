@@ -18,7 +18,7 @@ const generarJWT = (usuario) => {
     return jwt.sign(
         payload,
         process.env.JWT_SECRET, // Se recomienda usar una clave secreta fuerte y rotarla
-        { expiresIn: '1h' }    // El token expira en 1 hora
+        { expiresIn: '2h' }    // El token expira en 2 hora
     );
 };
 

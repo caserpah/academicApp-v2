@@ -7,8 +7,8 @@ export const BancoRecomendacion = sequelize.define("banco_recomendacion", {
         primaryKey: true,
         autoIncrement: true
     },
-    titulo: { // Ej: "Felicitación", "Atención"
-        type: DataTypes.STRING,
+    categoria: {
+        type: DataTypes.ENUM("ACADEMICO", "DISCIPLINAR", "GENERAL"),
         allowNull: true
     },
     descripcion: {
@@ -18,6 +18,10 @@ export const BancoRecomendacion = sequelize.define("banco_recomendacion", {
     activo: {
         type: DataTypes.BOOLEAN,
         defaultValue: true
+    },
+    tipo: {
+        type: DataTypes.ENUM("FORTALEZA", "MEJORA"),
+        allowNull: true
     }
 }, {
     tableName: "banco_recomendaciones",

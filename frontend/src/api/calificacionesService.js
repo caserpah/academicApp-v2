@@ -219,10 +219,11 @@ export const fetchBancoRecomendaciones = async () => {
 /* Funciones de Importación Masiva                                            */
 /* -------------------------------------------------------------------------- */
 
-export const descargarPlantilla = async (grupoId, asignaturaId, periodo, nombreArchivo) => {
+// Descarga la planilla GLOBAL del docente para un periodo específico.
+export const descargarPlantillaDocente = async (periodo) => {
     try {
         const response = await apiClient.get(`${CALIFICACIONES_ENDPOINT}/plantilla/descargar`, {
-            params: { grupoId, asignaturaId, periodo },
+            params: { periodo },
             responseType: 'blob',
         });
 
@@ -230,7 +231,7 @@ export const descargarPlantilla = async (grupoId, asignaturaId, periodo, nombreA
         const link = document.createElement('a');
         link.href = url;
 
-        link.setAttribute('download', nombreArchivo || `Plantilla_Notas_P${periodo}.xlsx`);
+        link.setAttribute('download', `Planilla_Notas_Periodo_${periodo}.xlsx`);
 
         document.body.appendChild(link);
         link.click();
@@ -241,26 +242,23 @@ export const descargarPlantilla = async (grupoId, asignaturaId, periodo, nombreA
 };
 
 /**
- * Sube el archivo Excel con los parámetros de contexto.
- * Construye el FormData internamente para mantener limpio el componente.
+ * Sube el archivo Excel GLOBAL del docente.
  */
-export const importarCalificaciones = async (file, grupoId, asignaturaId, periodo) => {
+export const importarArchivoDocente = async (file) => {
     try {
         const formData = new FormData();
         formData.append('archivo', file);
-        formData.append('grupoId', grupoId);
-        formData.append('asignaturaId', asignaturaId);
-        formData.append('periodo', periodo);
 
         const response = await apiClient.post(`${CALIFICACIONES_ENDPOINT}/importar`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
 
-        return response.data; // Retorna mensaje de éxito
+        // Retornamos response.data completo, ya que puede traer status 'warning' y un objeto 'data' con el reporte
+        return response.data;
     } catch (error) {
-        // Si el backend envía errores detallados (array de errores), los propagamos
+        // Manejo específico si el backend rechaza con 400 y array de errores
         if (error.response?.data?.errors) {
-            const errorValidacion = new Error("El archivo contiene errores.");
+            const errorValidacion = new Error("El archivo contiene errores críticos.");
             errorValidacion.listaErrores = error.response.data.errors;
             throw errorValidacion;
         }

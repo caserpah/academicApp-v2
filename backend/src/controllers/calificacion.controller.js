@@ -22,11 +22,7 @@ export const calificacionController = {
 
             const grilla = await calificacionService.obtenerGrilla(grupoId, asignaturaId, periodo, vigenciaId);
 
-            return sendSuccess(
-                res,
-                grilla,
-                "Grilla de calificaciones cargada exitosamente."
-            );
+            return sendSuccess(res, grilla, "Grilla de calificaciones cargada exitosamente.");
 
         } catch (error) {
             console.error("Error en getPorGrupo:", error);
@@ -40,14 +36,14 @@ export const calificacionController = {
     async guardar(req, res, next) {
         try {
             const vigenciaId = req.vigenciaActual.id;
-            const usuarioAuditoriaId = req.user.id; // ID del usuario del Token
+            const usuarioId = req.user.id; // ID del usuario del Token
             const usuarioRol = req.user.role;       // ROL del usuario (admin, coordinador, etc.)
 
             // Inyectamos la vigencia del middleware vigenciaContext al body
             const datosParaGuardar = {
                 ...req.body,
                 vigenciaId,
-                usuarioAuditoriaId,
+                usuarioId: usuarioId,
                 role: usuarioRol
             };
 
@@ -59,7 +55,7 @@ export const calificacionController = {
             }
 
             // LÓGICA DE AUDITORÍA: Resolver si el usuario es un Docente
-            const usuario = await Usuario.findByPk(usuarioAuditoriaId);
+            const usuario = await Usuario.findByPk(usuarioId);
             if (usuario && usuario.numeroDocumento) {
                 const docente = await Docente.findOne({
                     where: { documento: usuario.numeroDocumento }
@@ -101,17 +97,30 @@ export const calificacionController = {
 
     async descargarPlantilla(req, res, next) {
         try {
-            const { grupoId, asignaturaId, periodo } = req.query;
+            const { periodo } = req.query;
             const vigenciaId = req.vigenciaActual.id;
 
-            if (!grupoId || !asignaturaId || !periodo) {
-                return res.status(400).json({ message: "Faltan parámetros (grupo, asignatura, periodo)." });
+            // Buscar datos completos del usuario (si el token no tiene el documento)
+            const usuario = await Usuario.findByPk(req.user.id);
+            if (!usuario) throw new Error("Usuario no encontrado.");
+
+            // Buscar Docente usando el documento del usuario
+            const docente = await Docente.findOne({
+                where: { documento: usuario.numeroDocumento }
+            });
+
+            if (!docente) {
+                return res.status(403).json({
+                    message: "El usuario actual no tiene un perfil de docente asociado (No coincide documento)."
+                });
             }
 
-            const buffer = await calificacionService.generarPlantillaExcel(grupoId, asignaturaId, periodo, vigenciaId);
+            if (!periodo) return res.status(400).json({ message: "Falta el periodo." });
+
+            const buffer = await calificacionService.generarPlantillaDocente(docente.id, periodo, vigenciaId);
 
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            res.setHeader('Content-Disposition', `attachment; filename=Plantilla_Notas_P${periodo}.xlsx`);
+            res.setHeader('Content-Disposition', `attachment; filename=Planilla_Notas_Periodo_${periodo}.xlsx`);
             res.send(buffer);
 
         } catch (error) {
@@ -121,33 +130,34 @@ export const calificacionController = {
 
     async importar(req, res, next) {
         try {
-            if (!req.file) throw new Error("No se ha subido ningún archivo Excel.");
+            if (!req.file) throw new Error("No se ha subido ningún archivo.");
 
-            // Los datos de contexto vienen en el body (formData)
-            const { grupoId, asignaturaId, periodo } = req.body;
-            const vigenciaId = req.vigenciaActual.id;
-            const userRole = req.user.role;
-            const userId = req.user.id;
+            const usuario = await Usuario.findByPk(req.user.id);
+            if (!usuario) throw new Error("Usuario no encontrado.");
 
-            const resultado = await calificacionService.importarMasivo(
-                req.file.buffer,
-                grupoId,
-                asignaturaId,
-                periodo,
-                vigenciaId,
-                userRole,
-                userId
+            const docente = await Docente.findOne({
+                where: { documento: usuario.numeroDocumento }
+            });
+
+            if (!docente) throw new Error("No se encontró perfil docente para este usuario.");
+
+            const resultado = await calificacionService.importarArchivoDocente(
+                req.file.buffer,    // 1. Buffer
+                docente.id,         // 2. Docente ID
+                req.user.id,        // 3. Usuario ID (Auditoría)
+                req.user.role       // 4. Rol (Necesario para validar Ventana)
             );
 
-            if (!resultado.exito) {
-                return res.status(400).json({
-                    status: 'error',
-                    message: 'Se encontraron errores en el archivo. No se importaron datos.',
-                    errors: resultado.errores
+            // Respuesta matizada
+            if (!resultado.exito || resultado.reporte.errores.length > 0) {
+                return res.status(200).json({
+                    status: 'warning',
+                    message: `Proceso finalizado con observaciones.`,
+                    data: resultado.reporte // Frontend mostrará la lista de errores
                 });
             }
 
-            return sendSuccess(res, null, `Se importaron ${resultado.total} calificaciones correctamente.`);
+            return sendSuccess(res, resultado.reporte, "Importación completada exitosamente.");
         } catch (error) {
             next(error);
         }

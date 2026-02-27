@@ -2,22 +2,21 @@ import React, { useState, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faFileExcel, faUpload, faCheckCircle, faExclamationTriangle,
-    faTimes, faSpinner, faDownload, faUndo
+    faTimes, faSpinner, faUndo, faInfoCircle
 } from "@fortawesome/free-solid-svg-icons";
 import { showSuccess, showError, showWarning } from "../../utils/notifications.js";
 
-import { descargarPlantilla, importarCalificaciones } from "../../api/calificacionesService.js"
+import { importarArchivoDocente } from "../../api/calificacionesService.js"
 
 const CalificacionesImportModal = ({
     onClose,
-    onSuccess,
-    contextParams // { grupoId, asignaturaId, periodo }
+    onSuccess
 }) => {
     // --- ESTADOS ---
     const [file, setFile] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    // Estado para mostrar errores SI la importación falla
+    // Estado para mostrar errores SI la importación falla o tiene advertencias
     const [erroresCarga, setErroresCarga] = useState([]);
 
     const fileInputRef = useRef(null);
@@ -35,49 +34,43 @@ const CalificacionesImportModal = ({
         }
     };
 
-    const handleDownloadTemplate = async () => {
-        try {
-            await descargarPlantilla(
-                contextParams.grupoId,
-                contextParams.asignaturaId,
-                contextParams.periodo,
-                contextParams.nombreArchivo
-            );
-        } catch (err) {
-            console.error(err);
-            showError("Error descargando la plantilla.");
-        }
-    };
-
     const handleImportar = async () => {
         if (!file) return;
         setLoading(true);
         setErroresCarga([]);
 
         try {
-            // Enviamos el archivo. El backend valida y guarda en una sola transacción.
-            const response = await importarCalificaciones(
-                file,
-                contextParams.grupoId,
-                contextParams.asignaturaId,
-                contextParams.periodo
-            );
+            // Llamamos al servicio global
+            const response = await importarArchivoDocente(file);
 
-            // Si llegamos aquí, fue exitoso (200 OK)
-            showSuccess(response.message || "Importación masiva completada exitosamente.");
-            onSuccess(); // Recargar tabla
-            onClose();   // Cerrar modal
+            // El backend puede responder 200 OK incluso con advertencias (status: 'warning')
+            // La estructura esperada de response es: { status, message, data: { procesados, errores: [] } }
+            const reporte = response.data || {};
+            const listaErrores = reporte.errores || [];
+
+            if (listaErrores.length > 0) {
+                // Caso: Importación parcial o fallida con reporte detallado
+                setErroresCarga(listaErrores);
+                showWarning(response.message || "El archivo se procesó con observaciones.");
+
+                // Si hubo procesados, notificamos al padre para refrescar
+                if (reporte.procesados > 0) {
+                    onSuccess();
+                }
+            } else {
+                // Caso: Éxito total
+                showSuccess(response.message || `Importación exitosa. Procesados: ${reporte.procesados}`);
+                onSuccess(); // Recargar tabla
+                onClose();   // Cerrar modal
+            }
 
         } catch (error) {
-
-            // Manejo de Errores
-            const apiError = error.response?.data;
-            if (apiError?.errors && Array.isArray(apiError.errors)) {
-                setErroresCarga(apiError.errors);
-                showWarning("Revisa la lista de errores.");
+            // Manejo de Errores Críticos (400/500)
+            if (error.listaErrores) {
+                // Si el servicio wrapper capturó un array de errores
+                setErroresCarga(error.listaErrores);
             } else {
-                // Si es error de Ventana Cerrada, vendrá aquí
-                showError(apiError?.message || error.message || "Error al procesar el archivo.");
+                showError(error.message || "Error al procesar el archivo.");
             }
         } finally {
             setLoading(false);
@@ -92,54 +85,51 @@ const CalificacionesImportModal = ({
 
     // --- RENDERIZADO ---
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
 
             {/* OVERLAY DE CARGA: Se muestra SOLO si loading es true */}
             {loading && (
                 <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-white/80 backdrop-blur-[2px] rounded-xl transition-all">
                     <FontAwesomeIcon icon={faSpinner} spin size="4x" className="text-blue-600 mb-4" />
-                    <h3 className="text-xl font-bold text-gray-700 animate-pulse">Procesando archivo...</h3>
-                    <p className="text-sm text-gray-500 mt-2">Por favor espera, esto puede tardar unos minutos.</p>
+                    <h3 className="text-xl font-bold text-gray-700 animate-pulse">Analizando Planilla...</h3>
+                    <p className="text-sm text-gray-500 mt-2">Validando estudiantes, firmas y notas.</p>
                 </div>
             )}
 
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden relative">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden relative">
                 {/* HEADER */}
-                <div className="flex justify-between items-center p-5 border-b border-gray-100">
-                    <h3 className="text-xl font-bold text-gray-700 flex items-center gap-2">
+                <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50">
+                    <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                         <FontAwesomeIcon icon={faFileExcel} className="text-green-600" />
-                        Importación Masiva de Calificaciones
+                        Subir Planilla de Calificaciones
                     </h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition p-2 hover:bg-gray-200 rounded-full">
                         <FontAwesomeIcon icon={faTimes} size="lg" />
                     </button>
                 </div>
 
-                {/* BODY (SCROLLABLE) */}
-                <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+                {/* BODY */}
+                <div className="flex-1 overflow-y-auto p-8">
 
-                    {/* VISTA 1: CARGA DE ARCHIVO (Si no hay errores mostrándose) */}
+                    {/* VISTA 1: CARGA DE ARCHIVO */}
                     {erroresCarga.length === 0 && (
-                        <div className="flex flex-col items-center justify-center space-y-6 py-4">
+                        <div className="flex flex-col items-center justify-center space-y-6">
 
-                            {/* Botón Descargar Plantilla */}
-                            <div className="w-full max-w-md bg-blue-50 border border-blue-100 p-4 rounded-lg flex justify-between items-center">
+                            <div className="bg-blue-50 text-blue-800 px-4 py-3 rounded-lg text-sm flex items-start gap-3 max-w-lg">
+                                <FontAwesomeIcon icon={faInfoCircle} className="mt-1" />
                                 <div>
-                                    <p className="font-bold text-blue-800 text-sm">¿No tienes el formato?</p>
-                                    <p className="text-xs text-blue-600">Descarga la plantilla oficial para ingresar las notas.</p>
+                                    <p className="font-bold">Instrucciones:</p>
+                                    <ul className="list-disc pl-4 mt-1 space-y-1 text-xs text-blue-700">
+                                        <li>Cargue el archivo Excel <strong>descargado previamente</strong> desde la plataforma.</li>
+                                        <li>El sistema detectará automáticamente a qué grupo y asignatura corresponde cada hoja.</li>
+                                        <li>Puede subir un libro con múltiples hojas (varios grupos).</li>
+                                    </ul>
                                 </div>
-                                <button
-                                    onClick={handleDownloadTemplate}
-                                    className="bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 px-3 py-2 rounded text-sm font-semibold transition"
-                                >
-                                    <FontAwesomeIcon icon={faDownload} className="mr-2" />
-                                    Descargar
-                                </button>
                             </div>
 
-                            {/* Área de Carga */}
+                            {/* Área de Drop/Input */}
                             <div
-                                className="w-full max-w-md border-2 border-dashed border-gray-300 rounded-xl p-10 text-center hover:border-blue-400 hover:bg-blue-50 transition cursor-pointer bg-white"
+                                className="w-full max-w-lg border-2 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer group bg-white"
                                 onClick={() => fileInputRef.current.click()}
                             >
                                 <input
@@ -147,66 +137,62 @@ const CalificacionesImportModal = ({
                                     ref={fileInputRef}
                                     onChange={handleFileChange}
                                     className="hidden"
-                                    accept=".xlsx,.xls,.csv"
+                                    accept=".xlsx,.xls"
                                 />
-                                <FontAwesomeIcon icon={faUpload} className="text-4xl text-gray-300 mb-4" />
-                                <p className="text-gray-600 font-medium">
-                                    {file ? file.name : "Haz clic para seleccionar el archivo"}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-2">Soporta Excel (.xlsx)</p>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* VISTA 2: LISTA DE ERRORES (Solo si falló la carga) */}
-                    {erroresCarga.length > 0 && (
-                        <div className="bg-white rounded-lg shadow border border-red-100 overflow-hidden animate-fade-in">
-                            <div className="bg-red-100 px-4 py-3 border-b border-red-200 flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-600" />
-                                    <div>
-                                        <h4 className="font-bold text-red-800 text-sm">La importación falló</h4>
-                                        <p className="text-xs text-red-600">Corrige los siguientes errores y vuelve a intentarlo.</p>
-                                    </div>
+                                <div className="mb-4 transform group-hover:scale-110 transition-transform duration-300">
+                                    <FontAwesomeIcon icon={faUpload} className="text-5xl text-gray-300 group-hover:text-blue-500" />
                                 </div>
-                                <button
-                                    onClick={handleReset}
-                                    className="text-red-700 hover:bg-red-200 px-3 py-1 rounded text-xs font-bold transition"
-                                >
-                                    <FontAwesomeIcon icon={faUndo} className="mr-1" />
-                                    Subir otro archivo
-                                </button>
-                            </div>
-
-                            <div className="max-h-80 overflow-y-auto">
-                                <table className="min-w-full text-sm">
-                                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase sticky top-0">
-                                        <tr>
-                                            <th className="px-4 py-2 text-center w-16">
-                                                <FontAwesomeIcon icon={faExclamationTriangle} />
-                                            </th>
-                                            <th className="px-4 py-2 text-left">Detalle del Error</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {erroresCarga.map((err, idx) => (
-                                            <tr key={idx} className="hover:bg-red-50">
-                                                {/* Asumiendo que el error es un string tipo "Fila 5: Mensaje" o un objeto */}
-                                                <td className="px-4 py-2 font-mono font-bold text-red-600 w-20">
-                                                    {/* Ajusta esto según cómo venga tu string de error */}
-                                                    <FontAwesomeIcon icon={faTimes} className="mr-2" />
-                                                </td>
-                                                <td className="px-4 py-2 text-red-700">
-                                                    {typeof err === 'string' ? err : err.message}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                <p className="text-gray-700 font-semibold text-lg">
+                                    {file ? file.name : "Haz clic para seleccionar tu planilla"}
+                                </p>
+                                <p className="text-xs text-gray-400 mt-2">Soporta archivos .xlsx</p>
                             </div>
                         </div>
                     )}
 
+                    {/* VISTA 2: REPORTE DE ERRORES */}
+                    {erroresCarga.length > 0 && (
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+                            <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden shadow-sm">
+                                <div className="px-4 py-3 border-b border-red-200 flex items-center justify-between bg-red-100">
+                                    <div className="flex items-center gap-2">
+                                        <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-600" />
+                                        <div>
+                                            <h4 className="font-bold text-red-800 text-sm">Observaciones encontradas</h4>
+                                            <p className="text-xs text-red-700">Algunas filas no pudieron procesarse:</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={handleReset}
+                                        className="text-red-700 hover:bg-red-200 px-3 py-1 rounded text-xs font-bold transition flex items-center gap-1"
+                                    >
+                                        <FontAwesomeIcon icon={faUndo} /> Intentar de nuevo
+                                    </button>
+                                </div>
+
+                                <div className="max-h-60 overflow-y-auto p-0">
+                                    <table className="min-w-full text-sm">
+                                        <tbody className="divide-y divide-red-100">
+                                            {erroresCarga.map((err, idx) => (
+                                                <tr key={idx} className="hover:bg-red-50 transition-colors">
+                                                    <td className="px-4 py-2 text-red-600 w-8 text-center">
+                                                        <FontAwesomeIcon icon={faTimes} />
+                                                    </td>
+                                                    <td className="px-4 py-2 text-red-800 text-xs font-mono">
+                                                        {typeof err === 'string' ? err : JSON.stringify(err)}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <p className="text-center text-gray-500 text-xs mt-4">
+                                Revise el archivo Excel, corrija los errores indicados y vuelva a cargarlo.
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 {/* FOOTER */}
@@ -223,12 +209,14 @@ const CalificacionesImportModal = ({
                         <button
                             onClick={handleImportar}
                             disabled={loading || !file}
-                            className={`px-6 py-2 rounded-lg shadow transition flex items-center gap-2 text-white
-                                    ${loading || !file ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}
-                                `}
+                            className={`px-6 py-2 rounded-lg shadow-md transition flex items-center gap-2 text-white font-bold
+                                ${loading || !file
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'bg-green-600 hover:bg-green-700 hover:shadow-lg transform hover:-translate-y-0.5'}
+                            `}
                         >
                             {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faCheckCircle} />}
-                            {loading ? "Procesando..." : "Importar Datos"}
+                            {loading ? "Procesando..." : "Importar Notas"}
                         </button>
                     )}
                 </div>

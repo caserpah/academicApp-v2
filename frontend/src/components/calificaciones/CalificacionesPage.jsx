@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faFileExcel, faClipboardCheck, faFilter,
-    faSpinner, faSchool, faEraser
+    faFileExcel, faClipboardCheck, faFilter, faUpload,
+    faSpinner, faSchool, faEraser, faDownload
 } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../../context/AuthContext.jsx";
 
@@ -10,10 +10,11 @@ import {
     fetchCalificacionesCatalogs,
     fetchGrillaCalificaciones,
     guardarCalificacion,
-    fetchBancoRecomendaciones
+    fetchBancoRecomendaciones,
+    descargarPlantillaDocente
 } from "../../api/calificacionesService.js";
 
-import { showSuccess, showError } from "../../utils/notifications.js";
+import { showSuccess, showError, showWarning } from "../../utils/notifications.js";
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
 import GrillaCalificaciones from "./GrillaCalificaciones.jsx";
 import JustificacionModal from "./JustificacionModal.jsx";
@@ -182,7 +183,6 @@ const CalificacionesPage = () => {
      */
     const clearFilters = () => {
         setFilters(prev => ({
-            // Si solo hay una sede, la mantenemos, si hay varias, limpiamos todo
             sedeId: sedes.length === 1 ? prev.sedeId : '',
             grupoId: '',
             asignaturaId: '',
@@ -246,12 +246,21 @@ const CalificacionesPage = () => {
         }
     };
 
-    const limpiarNombre = (texto) => {
-        if (!texto) return "DESCONOCIDO";
-        return texto
-            .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quitar tildes
-            .replace(/[^a-zA-Z0-9]/g, "_") // Reemplazar caracteres raros por guion bajo
-            .toUpperCase();
+    // --- HANDLER: DESCARGA GLOBAL DOCENTE ---
+    const handleDescargarPlantilla = async () => {
+        if (!filters.periodo) {
+            showWarning("Por favor selecciona un periodo para descargar la planilla.");
+            return;
+        }
+
+        try {
+            // Llama al nuevo servicio que descarga TODO el libro del docente para ese periodo
+            await descargarPlantillaDocente(filters.periodo);
+            showSuccess("Descarga iniciada. Revisa tus descargas.");
+        } catch (error) {
+            console.log(error)
+            showError("Error al generar la plantilla. Verifica tu carga académica.");
+        }
     };
 
     // --- RENDER ---
@@ -357,19 +366,37 @@ const CalificacionesPage = () => {
                     </div>
                 </div>
 
-                {/* 6. Botón para Importar */}
-                <div className="flex justify-end">
-                    {/* Solo mostramos el botón si hay contexto seleccionado para evitar errores */}
-                    {filters.grupoId && filters.asignaturaId && filters.periodo && (
-                        <button
-                            onClick={() => setShowImportModal(true)}
-                            className="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2.5 px-5 rounded-lg shadow-sm flex items-center gap-2 transition-all hover:shadow-md"
-                            title="Cargar notas masivamente desde Excel"
-                        >
-                            <FontAwesomeIcon icon={faFileExcel} />
-                            Importar Excel
-                        </button>
-                    )}
+                {/* --- 6. ACCIONES GLOBALES (DESCARGAR / IMPORTAR) --- */}
+                <div className="flex flex-wrap justify-end gap-3 p-2 bg-blue-50/50 rounded-lg border border-blue-100">
+                    <div className="flex items-center gap-2 mr-auto text-sm text-blue-800 px-2">
+                        <FontAwesomeIcon icon={faFileExcel} />
+                        <span className="font-semibold">Gestión Masiva de Notas (Excel)</span>
+                    </div>
+
+                    {/* Botón Descargar (Requiere periodo) */}
+                    <button
+                        onClick={handleDescargarPlantilla}
+                        disabled={!filters.periodo}
+                        className={`px-4 py-2 rounded-lg shadow-sm text-sm font-bold flex items-center gap-2 transition-all
+                            ${!filters.periodo
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                : 'bg-white text-blue-700 border border-blue-200 hover:bg-blue-50 hover:shadow-md'
+                            }`}
+                        title={!filters.periodo ? "Selecciona un periodo primero" : "Descargar planilla completa con todas tus asignaturas"}
+                    >
+                        <FontAwesomeIcon icon={faDownload} />
+                        Descargar Mi Planilla
+                    </button>
+
+                    {/* Botón Importar (Global) */}
+                    <button
+                        onClick={() => setShowImportModal(true)}
+                        className="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-5 rounded-lg shadow-sm flex items-center gap-2 transition-all hover:shadow-md"
+                        title="Subir archivo con múltiples hojas"
+                    >
+                        <FontAwesomeIcon icon={faUpload} />
+                        Subir Planilla
+                    </button>
                 </div>
 
                 {/* Grilla */}
@@ -400,7 +427,6 @@ const CalificacionesPage = () => {
                         setPendingSaveData(null); // Cancelamos el intento
                     }}
                     onConfirm={handleConfirmJustificacion}
-                    // Pasamos los datos que guardamos en pendingSaveData
                     initialObservacion={pendingSaveData?.observacion_cambio}
                     initialUrl={pendingSaveData?.url_evidencia_cambio}
                 />
@@ -410,24 +436,10 @@ const CalificacionesPage = () => {
                     <CalificacionesImportModal
                         onClose={() => setShowImportModal(false)}
                         onSuccess={() => {
-                            loadGrilla(); // Recargar la grilla después de importar exitosamente
-                        }}
-                        contextParams={{
-                            grupoId: filters.grupoId,
-                            asignaturaId: filters.asignaturaId,
-                            periodo: filters.periodo,
-                            nombreArchivo: (() => { // Buscamos los objetos completos para obtener sus nombres
-                                const grupoObj = gruposDisponibles.find(g => String(g.id) === String(filters.grupoId));
-                                const asigObj = asignaturasDisponibles.find(a => String(a.id) === String(filters.asignaturaId));
-
-                                const nombreGrupo = grupoObj ? grupoObj.label : "GRUPO";
-                                const nombreAsig = asigObj ? asigObj.nombre : "ASIGNATURA";
-
-                                // Retornamos el nombre construido
-                                return `${limpiarNombre(nombreGrupo)}_${limpiarNombre(nombreAsig)}_P${filters.periodo}.xlsx`;
-                            })(),
-
-                            esComportamiento: asignaturasDisponibles.find(a => String(a.id) === String(filters.asignaturaId))?.nombre?.trim().toUpperCase() === "COMPORTAMIENTO"
+                            // Si el usuario tiene filtros activos, recargamos la grilla para ver los cambios
+                            if (filters.grupoId && filters.asignaturaId && filters.periodo) {
+                                loadGrilla();
+                            }
                         }}
                     />
                 )}
