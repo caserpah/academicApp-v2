@@ -56,9 +56,9 @@ export const calificacionController = {
 
             // LÓGICA DE AUDITORÍA: Resolver si el usuario es un Docente
             const usuario = await Usuario.findByPk(usuarioId);
-            if (usuario && usuario.numeroDocumento) {
+            if (usuario && usuario.documento) {
                 const docente = await Docente.findOne({
-                    where: { documento: usuario.numeroDocumento }
+                    where: { documento: usuario.documento }
                 });
 
                 if (docente) {
@@ -106,7 +106,7 @@ export const calificacionController = {
 
             // Buscar Docente usando el documento del usuario
             const docente = await Docente.findOne({
-                where: { documento: usuario.numeroDocumento }
+                where: { documento: usuario.documento }
             });
 
             if (!docente) {
@@ -136,7 +136,7 @@ export const calificacionController = {
             if (!usuario) throw new Error("Usuario no encontrado.");
 
             const docente = await Docente.findOne({
-                where: { documento: usuario.numeroDocumento }
+                where: { documento: usuario.documento }
             });
 
             if (!docente) throw new Error("No se encontró perfil docente para este usuario.");
@@ -161,5 +161,77 @@ export const calificacionController = {
         } catch (error) {
             next(error);
         }
-    }
+    },
+
+    // ========== Funciones para Reporte de estudiante con notas pendiente ==========
+/* Estas funciones se mantienen comentadas porque aún no se ha definido la ruta en el frontend,
+pero la lógica ya está implementada en el servicio. */
+
+/*
+    async checkPendientes(req, res, next) {
+        try {
+            // Validamos que el rol sea docente
+            if (req.user.role !== 'docente') {
+                return res.status(403).json({
+                    success: false,
+                    message: "Esta funcionalidad es exclusiva para docentes."
+                });
+            }
+
+            const userId = req.user.id;
+            const { vigenciaId } = req.query;
+
+            // Paso A: Buscamos al USUARIO para obtener su Documento/Cédula
+            const usuario = await Usuario.findByPk(userId);
+
+            if (!usuario) {
+                return res.status(404).json({ success: false, message: "Usuario no encontrado." });
+            }
+
+            const docente = await Docente.findOne({ where: { documento: usuario.documento } });
+
+            if (!docente) {
+                return res.status(404).json({
+                    success: false,
+                    message: "No se encontró un perfil docente asociado al documento de este usuario."
+                });
+            }
+
+            // Ejecutamos el servicio con el ID real del docente
+            const result = await calificacionService.detectarPendientes(docente.id, vigenciaId, true);
+
+            res.json({
+                success: true,
+                data: result
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    // Descarga del reporte
+    async descargarReportePendientes(req, res, next) {
+        try {
+            if (req.user.role !== 'docente') throw new Error("Acceso denegado.");
+
+            const userId = req.user.id;
+            const { vigenciaId } = req.query;
+
+            // Misma lógica de puente: Usuario -> Documento -> Docente
+            const usuario = await Usuario.findByPk(userId);
+            if (!usuario) throw new Error("Usuario no válido.");
+
+            const docente = await Docente.findOne({ where: { documento: usuario.documento } });
+            if (!docente) throw new Error("Perfil de docente no encontrado.");
+
+            const buffer = await calificacionService.generarReportePendientes(docente.id, vigenciaId);
+
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', 'attachment; filename=Reporte_Pendientes_Academicos.xlsx');
+            res.send(buffer);
+        } catch (error) {
+            next(error);
+        }
+    }*/
+
 };

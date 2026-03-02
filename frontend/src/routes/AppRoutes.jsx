@@ -5,11 +5,13 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import DashboardLayout from '../layouts/DashboardLayout.jsx';
 import Bienvenida from '../pages/Bienvenida/Bienvenida.jsx';
 import Login from '../pages/Auth/login.jsx';
+import RecuperarPassword from '../pages/Auth/RecuperarPassword.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
 
 // Componentes Existentes
 import Colegios from '../components/colegios/Colegios.jsx';
 import Sedes from '../components/sedes/Sedes.jsx';
+import Usuarios from '../components/usuarios/Usuarios.jsx';
 import Grupos from '../components/grupos/Grupos.jsx';
 import Areas from '../components/areas/Areas.jsx';
 import Asignaturas from '../components/asignaturas/Asignaturas.jsx';
@@ -40,6 +42,7 @@ const AppRoutes = () => {
         <Routes>
             {/* RUTA PÚBLICA */}
             <Route path="/login" element={<Login />} />
+            <Route path="/recuperar-password" element={<RecuperarPassword />} />
 
             {/* RUTAS PROTEGIDAS */}
             <Route element={<ProtectedRoute />}>
@@ -51,6 +54,7 @@ const AppRoutes = () => {
                     {/* === INSTITUCIONAL === */}
                     <Route path="colegios" element={<ProtectedRoute requiredRole={["admin", "secretaria"]}><Colegios /></ProtectedRoute>} />
                     <Route path="sedes" element={<ProtectedRoute requiredRole={["admin", "secretaria"]}><Sedes /></ProtectedRoute>} />
+                    <Route path="usuarios" element={<ProtectedRoute requiredRole={["admin"]}><Usuarios /></ProtectedRoute>} />
                     <Route path="coordinadores" element={<ProtectedRoute requiredRole={["admin", "secretaria"]}><Coordinadores /></ProtectedRoute>} />
                     <Route path="vigencias" element={<ProtectedRoute requiredRole={["admin", "secretaria"]}><Vigencias /></ProtectedRoute>} />
 

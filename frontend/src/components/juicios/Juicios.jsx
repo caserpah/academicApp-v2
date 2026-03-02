@@ -315,9 +315,9 @@ const Juicios = () => {
             <div className="max-w-7xl mx-auto space-y-8">
 
                 {/* Título Principal */}
-                <div className="flex flex-col md:flex-row justify-between items-center border-b pb-4">
-                    <h1 className="text-2xl font-semibold text-gray-800 flex items-center mb-4 md:mb-0">
-                        <FontAwesomeIcon icon={faScaleBalanced} className="w-6 h-6 mr-3 text-[#2c3e50]" />
+                <div className="flex flex-col md:flex-row justify-between items-center pb-4">
+                    <h1 className="text-2xl font-bold flex items-center text-slate-800">
+                        <FontAwesomeIcon icon={faScaleBalanced} className="w-6 h-6 mr-3 text-blue-600" />
                         Gestión de Juicios
                     </h1>
 

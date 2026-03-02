@@ -114,9 +114,9 @@ const Colegios = () => {
 
     return (
         <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-            <div className="flex justify-between items-center mb-6 border-b pb-4">
-                <h1 className="text-2xl font-semibold text-[#2c3e50] flex items-center mb-2 md:mb-0">
-                    <FontAwesomeIcon icon="fa-school" className="w-6 h-6 mr-3 text-[#2c3e50]" />
+            <div className="flex justify-between items-center mb-6 pb-4">
+                <h1 className="text-2xl font-bold flex items-center text-slate-800">
+                    <FontAwesomeIcon icon="fa-school" className="mr-3 text-blue-600" />
                     Gestión de la Institución Principal
                 </h1>
 

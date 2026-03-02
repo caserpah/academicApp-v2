@@ -75,7 +75,7 @@ const AsignarSedeModal = ({
                     <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
                         <p className="text-sm text-gray-600 mb-1">Coordinador seleccionado:</p>
                         <p className="font-medium text-gray-800">{coordinador.nombres}</p>
-                        <p className="text-sm text-gray-600">Documento: {coordinador.numeroDocumento}</p>
+                        <p className="text-sm text-gray-600">Documento: {coordinador.documento}</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4">

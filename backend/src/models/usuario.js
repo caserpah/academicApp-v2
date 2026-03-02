@@ -26,12 +26,12 @@ export const Usuario = sequelize.define(
                 },
             },
         },
-        numeroDocumento: {
+        documento: {
             type: DataTypes.STRING(20),
             allowNull: false,
             unique: true,
             set(value) {
-                this.setDataValue("numeroDocumento", value?.trim());
+                this.setDataValue("documento", value?.trim());
             },
             validate: {
                 notEmpty: { msg: "El número de documento es obligatorio." },
@@ -91,6 +91,15 @@ export const Usuario = sequelize.define(
             type: DataTypes.BOOLEAN,
             allowNull: false,
             defaultValue: true,
+        },
+        otpCode: {
+            type: DataTypes.STRING(100), // Almacenamos el hash del OTP
+            allowNull: true,
+            comment: "Código OTP para autenticación de dos factores (2FA), almacenado como hash por seguridad.",
+        },
+        otpExpires: {
+            type: DataTypes.DATE,
+            allowNull: true,
         }
     }, {
     tableName: 'usuarios',
@@ -125,5 +134,7 @@ Usuario.prototype.validarPassword = async function (password) {
 Usuario.prototype.toJSON = function () {
     const values = { ...this.get() };
     delete values.password;
+    delete values.otpCode;     // Ocultamos el OTP también
+    delete values.otpExpires;  // Ocultamos la expiración
     return values;
 };

@@ -87,7 +87,7 @@ export const cargaController = {
 
             // Buscar al Docente usando el documento del usuario como puente
             const docente = await Docente.findOne({
-                where: { documento: usuario.numeroDocumento }
+                where: { documento: usuario.documento }
             });
 
             if (!docente) {

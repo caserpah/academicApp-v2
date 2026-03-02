@@ -74,5 +74,65 @@ export const calificacionRepository = {
      */
     async update(instancia, data, transaction = null) {
         return instancia.update(data, { transaction });
+    },
+
+    /**
+     * Obtiene la Carga Académica del docente incluyendo los grupos y sus estudiantes ACTIVOS.
+     * Define el "DEBER SER" (a quiénes debería haber calificado).
+     */
+    async findCargasConEstudiantes(docenteId, vigenciaId) {
+        return Carga.findAll({
+            where: { docenteId, vigenciaId },
+            include: [
+                {
+                    model: Asignatura,
+                    as: 'asignatura',
+                    attributes: ['id', 'nombre']
+                },
+                {
+                    model: Grupo,
+                    as: 'grupo',
+                    attributes: ['id', 'nombre'],
+                    include: [
+                        {
+                            model: Grado,
+                            as: 'grado',
+                            attributes: ['nombre']
+                        },
+                        {
+                            model: Matricula,
+                            as: 'matriculas', // Relación confirmada
+                            where: {
+                                vigenciaId,
+                                // Solo estudiantes ACTIVOS. No pedimos notas a retirados.
+                                estado: { [Op.notIn]: ['RETIRADO', 'DESERTADO', 'PREMATRICULADO', 'CANCELADO', 'GRADUADO'] }
+                            },
+                            required: false, // Left Join (trae el grupo aunque no tenga alumnos aún)
+                            include: [{
+                                model: Estudiante,
+                                as: 'estudiante',
+                                attributes: ['id', 'documento', 'primerApellido', 'segundoApellido', 'primerNombre', 'segundoNombre']
+                            }]
+                        }
+                    ]
+                }
+            ]
+        });
+    },
+
+    /**
+     * Trae SOLO las llaves (IDs) de las calificaciones que YA existen.
+     * Consulta ultra-ligera para hacer el cruce en memoria.
+     */
+    async findLlavesCalificacionesDocente(docenteId, vigenciaId, periodos) {
+        return Calificacion.findAll({
+            where: {
+                docenteId,
+                vigenciaId,
+                periodo: { [Op.in]: periodos }
+            },
+            attributes: ['estudianteId', 'asignaturaId', 'periodo'],
+            raw: true // Retorna JSON plano sin overhead de Sequelize
+        });
     }
 };

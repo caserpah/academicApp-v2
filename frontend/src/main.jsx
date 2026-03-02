@@ -35,7 +35,8 @@ import {
   faSchool,           // Colegios
   faBuilding,         // Sedes
   faUserTie,          // Coordinadores
-  faCalendarAlt,      // Calendario
+  faCalendarAlt,      // Calendario,
+  faUserShield,      // Usuarios del Sistema
 
   // Iconos de Gestión Académica
   faLayerGroup,       // Áreas
@@ -64,7 +65,7 @@ faBars, faSearch, faHome, faSignOutAlt, faChevronDown, faStar,
 faChevronRight,faSave, faXmark, faEdit, faPenToSquare, faChartSimple,
 faTrash, faSpinner, faInfoCircle,faUserCircle, faCirclePlus, faGavel,
 faTimesCircle, faTimes, faAnglesLeft,faAngleLeft, faAngleRight,
-faAnglesRight, faSchool, faBuilding, faUserTie, faCalendarAlt,
+faAnglesRight, faSchool, faBuilding, faUserTie, faCalendarAlt, faUserShield,
 faLayerGroup, faBookOpen, faUsersRectangle, faChalkboardUser,
 faEnvelope, faFilePen, faUsers, faHandsHoldingChild, faPersonChalkboard
 );

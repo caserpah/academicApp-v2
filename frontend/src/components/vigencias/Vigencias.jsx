@@ -125,8 +125,8 @@ const Vigencias = () => {
     return (
         <div className="min-h-full bg-[#f7f9fc] p-4 md:p-8 rounded-xl font-inter">
             <div className="max-w-7xl mx-auto space-y-8">
-                <h1 className="text-2xl font-semibold text-gray-800 flex items-center border-b pb-4">
-                    <FontAwesomeIcon icon={faCalendarAlt} className="mr-3 text-[#2c3e50]" />
+                <h1 className="text-2xl font-bold flex items-center text-slate-800">
+                    <FontAwesomeIcon icon={faCalendarAlt} className="mr-3 text-blue-600" />
                     Configuración de Años Lectivos (Vigencias)
                 </h1>
 

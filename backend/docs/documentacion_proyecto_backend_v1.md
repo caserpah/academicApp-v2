@@ -239,7 +239,7 @@ Campos:
 - Incluye roles, autenticación y control de acceso.
 
 Campos clave:
-- `nombreCompleto`, `numeroDocumento`, `email` (único)
+- `nombreCompleto`, `documento`, `email` (único)
 - `password` (encriptado con `bcrypt`)
 - `role` (ENUM: admin, director, coordinador, profesor, acudiente)
 - `activo`

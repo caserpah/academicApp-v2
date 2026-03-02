@@ -19,11 +19,11 @@ const router = express.Router();
 /* ============================================================
     🔐 AUTENTICACIÓN Y USUARIOS
    ============================================================ */
-import autenticacionRoutes from "../routes/autenticacion.route.js"
-//import usuarioRoutes from "./usuarios.route.js";
+import authRoutes from "../routes/auth.routes.js"
+import usuarioRoutes from "./usuarios.routes.js";
 
-router.use("/auth", autenticacionRoutes);
-//router.use("/usuarios", usuarioRoutes);
+router.use("/auth", authRoutes);
+router.use("/usuarios", usuarioRoutes);
 
 /* ============================================================
     🏫 INSTITUCIÓN EDUCATIVA

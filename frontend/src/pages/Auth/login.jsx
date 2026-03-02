@@ -1,115 +1,175 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEnvelope, faLock, faArrowRight, faShieldAlt, faCheckCircle } from "@fortawesome/free-solid-svg-icons";
 import Swal from 'sweetalert2';
 import { useAuth } from '../../context/AuthContext.jsx';
 
 const Login = () => {
+    const [step, setStep] = useState(1); // 1: Credenciales, 2: OTP
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [otp, setOtp] = useState('');
     const [loading, setLoading] = useState(false);
-    const { login } = useAuth();
+
+    const { login, verifyOtp } = useAuth();
     const navigate = useNavigate();
 
-    const handleSubmit = async (e) => {
+    // Paso 1: Enviar credenciales
+    const handleCredentialsSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-
         try {
-            const userData = await login(email, password);
+            const response = await login(email, password);
 
-            // Redirigir al usuario al dashboard o ruta protegida
-            navigate('/');
-
+            if (response.requireOTP) {
+                setStep(2); // Cambiamos al formulario de OTP
+                const Toast = Swal.mixin({
+                    toast: true, position: 'top-end', showConfirmButton: false, timer: 3000
+                });
+                Toast.fire({ icon: 'success', title: 'Credenciales válidas. Revisa tu correo.' });
+            } else {
+                // Si en el futuro desactivamos OTP
+                navigate('/bienvenida');
+            }
         } catch (error) {
-            setLoading(false);
-            // Mostrar error con SweetAlert2
             Swal.fire({
                 icon: 'error',
-                title: 'Error de Autenticación',
-                text: error.message || 'Ocurrió un error al intentar iniciar sesión. Inténtelo de nuevo.',
+                title: 'Error de acceso',
+                text: error.message || 'Credenciales inválidas.',
+                confirmButtonColor: '#1e293b'
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Paso 2: Enviar OTP
+    const handleOtpSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            await verifyOtp(email, otp);
+            // Si no hay error, el contexto actualiza el estado y redirigimos
+            navigate('/bienvenida');
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Código Incorrecto',
+                text: error.message || 'El código no es válido.',
                 confirmButtonColor: '#ef4444'
             });
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        // Contenedor centrado y limitado (max-w-md, similar a una tarjeta flotante)
-        <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
-            <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-2xl">
+        <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-inter">
+            <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
 
-                <div className="text-center mb-6">
-                    <FontAwesomeIcon icon="fa-lock" className="text-blue-500 text-4xl mb-3" />
-                    <h2 className="text-3xl font-extrabold text-gray-900">
-                        academicApp
-                    </h2>
-                    <p className="mt-2 text-sm text-gray-600">
-                        Completa tus datos para ingresar.
-                    </p>
-                    <FontAwesomeIcon
-                        icon="user-circle" // El icono de usuario
-                        className="text-gray-400 text-6xl mt-4 mb-4" // Clases de estilo
-                    />
+                {/* Cabecera */}
+                <div className="bg-white p-8 pb-4 text-center">
+                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600 shadow-sm">
+                        <FontAwesomeIcon icon={faShieldAlt} size="2x" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-800 tracking-tight">AcademicApp</h2>
+                    <p className="text-slate-500 text-sm mt-2">Sistema de Gestión Académica</p>
                 </div>
 
-                <form className="space-y-6" onSubmit={handleSubmit}>
+                <div className="p-8 pt-2">
+                    {step === 1 ? (
+                        /* --- FORMULARIO PASO 1 --- */
+                        <form onSubmit={handleCredentialsSubmit} className="space-y-5">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1">Correo electrónico</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-3 text-slate-400"><FontAwesomeIcon icon={faEnvelope} /></span>
+                                    <input
+                                        type="email"
+                                        className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-slate-50 focus:bg-white"
+                                        placeholder="usuario@institucion.edu.co"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                        disabled={loading}
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1">Contraseña</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-3 text-slate-400"><FontAwesomeIcon icon={faLock} /></span>
+                                    <input
+                                        type="password"
+                                        className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-slate-50 focus:bg-white"
+                                        placeholder="••••••••"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                        disabled={loading}
+                                    />
+                                </div>
+                            </div>
+                            <div className="text-right mt-1 mb-4">
+                                <Link to="/recuperar-password" className="text-sm text-blue-600 hover:underline">
+                                    ¿Olvidaste tu contraseña?
+                                </Link>
+                            </div>
 
-                    <div>
-                        <label
-                            htmlFor="email"
-                            className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                            Correo Electrónico
-                        </label>
-                        <input
-                            id="email"
-                            name="email"
-                            type="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            disabled={loading}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 shadow-sm transition duration-150 disabled:bg-gray-100"
-                        />
-                    </div>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full bg-blue-700 hover:bg-blue-900 text-white font-semibold py-3 rounded-lg transition duration-200 flex justify-center items-center shadow-md hover:shadow-lg transform active:scale-[0.98]"
+                            >
+                                {loading ? "Verificando..." : (
+                                    <>Continuar <FontAwesomeIcon icon={faArrowRight} className="ml-2" /></>
+                                )}
+                            </button>
+                        </form>
+                    ) : (
+                        /* --- FORMULARIO PASO 2 (OTP) --- */
+                        <form onSubmit={handleOtpSubmit} className="space-y-6 animate-fade-in-up">
+                            <div className="text-center bg-blue-50 p-3 rounded-lg border border-blue-100">
+                                <p className="text-sm text-blue-800">
+                                    Hemos enviado un código a: <br />
+                                    <span className="font-bold">{email}</span>
+                                </p>
+                            </div>
 
-                    <div>
-                        <label
-                            htmlFor="password"
-                            className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                            Contraseña
-                        </label>
-                        <input
-                            id="password"
-                            name="password"
-                            type="password"
-                            required
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            disabled={loading}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 shadow-sm transition duration-150 disabled:bg-gray-100"
-                        />
-                    </div>
+                            <div>
+                                <label className="block text-center text-sm font-semibold text-slate-700 mb-2">Código de Verificación</label>
+                                <input
+                                    type="text"
+                                    maxLength="6"
+                                    className="w-full text-center text-3xl tracking-[0.5em] py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition uppercase font-mono text-slate-800"
+                                    placeholder="000000"
+                                    value={otp}
+                                    onChange={(e) => setOtp(e.target.value)}
+                                    autoFocus
+                                    disabled={loading}
+                                />
+                            </div>
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 disabled:bg-blue-400 cursor-pointer"
-                    >
-                        {loading ? (
-                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                        ) : (
-                            <>
-                                <FontAwesomeIcon icon="fa-sign-in-alt" className="mr-2 mt-0.5" />
-                                Inicia sesión
-                            </>
-                        )}
-                    </button>
-                </form>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-200 flex justify-center items-center shadow-md hover:shadow-lg"
+                            >
+                                {loading ? "Validando..." : (
+                                    <><FontAwesomeIcon icon={faCheckCircle} className="mr-2" /> Verificar Ingreso</>
+                                )}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setStep(1)}
+                                className="w-full text-sm text-slate-500 hover:text-slate-700 text-center hover:underline"
+                            >
+                                ¿Correo incorrecto? Volver atrás
+                            </button>
+                        </form>
+                    )}
+                </div>
             </div>
         </div>
     );

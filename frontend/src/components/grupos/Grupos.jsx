@@ -232,8 +232,8 @@ const Grupos = () => {
             <div className="max-w-7xl mx-auto space-y-8">
 
                 {/* Header Principal */}
-                <h1 className="text-2xl font-semibold text-gray-800 mb-6 border-b pb-2 flex items-center">
-                    <FontAwesomeIcon icon={faUsersRectangle} className="w-6 h-6 mr-3 text-[#2c3e50]" />
+                <h1 className="text-2xl font-bold flex items-center text-slate-800">
+                    <FontAwesomeIcon icon={faUsersRectangle} className="w-6 h-6 mr-3 text-blue-600" />
                     Gestión de Grupos Académicos
                 </h1>
 

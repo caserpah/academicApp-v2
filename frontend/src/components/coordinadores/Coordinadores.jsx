@@ -152,11 +152,10 @@ const Coordinadores = () => {
     return (
         <div className="min-h-full bg-[#f7f9fc] p-4 md:p-8 font-inter rounded-xl">
             <div className="max-w-7xl mx-auto space-y-8">
-
-                <div className="flex items-center border-b pb-4">
-                    <FontAwesomeIcon icon={faUserTie} className="text-2xl text-[#2c3e50] mr-3" />
-                    <h1 className="text-2xl font-semibold text-gray-800">Gestión de Coordinadores</h1>
-                </div>
+                <h1 className="text-2xl font-bold flex items-center text-slate-800">
+                    <FontAwesomeIcon icon={faUserTie} className="text-2xl text-blue-600 mr-3" />
+                    Gestión de Coordinadores
+                </h1>
 
                 {/* FORMULARIO */}
                 <div ref={formRef}>

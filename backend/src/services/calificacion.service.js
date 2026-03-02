@@ -496,7 +496,7 @@ export const calificacionService = {
 
                 // Validación de datos (Solo Columna C)
                 const totalRows = currentRow - 1;
-                for(let r=3; r<currentRow; r++) {
+                for (let r = 3; r < currentRow; r++) {
                     worksheet.getCell(`C${r}`).dataValidation = {
                         type: 'decimal', operator: 'between', formulae: [1, 5],
                         showErrorMessage: true, error: 'La nota debe estar entre 1.0 y 5.0'
@@ -630,7 +630,7 @@ export const calificacionService = {
                 // Rango 1.0 a 5.0
                 const notasCols = ['C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S'];
                 notasCols.forEach(col => {
-                    for(let r=4; r<currentRow; r++) {
+                    for (let r = 4; r < currentRow; r++) {
                         worksheet.getCell(`${col}${r}`).dataValidation = {
                             type: 'decimal', operator: 'between', formulae: [1, 5],
                             showErrorMessage: true, error: 'La nota debe estar entre 1.0 y 5.0'
@@ -639,7 +639,7 @@ export const calificacionService = {
                 });
                 // IDs de Recomendación (Enteros positivos)
                 ['W', 'X'].forEach(col => {
-                    for(let r=4; r<currentRow; r++) {
+                    for (let r = 4; r < currentRow; r++) {
                         worksheet.getCell(`${col}${r}`).dataValidation = {
                             type: 'whole', operator: 'greaterThanOrEqual', formulae: [1],
                             showErrorMessage: true, error: 'ID Recomendación'
@@ -833,5 +833,125 @@ export const calificacionService = {
             throw error;
         }
     },
+
+    /**
+     * LÓGICA CORE: Detectar Pendientes
+     * 1. Identifica periodos ya cerrados.
+     * 2. Cruza Estudiantes vs Notas Existentes.
+     * 3. Retorna lista de faltantes.
+     */
+    /*async detectarPendientes(docenteId, vigenciaId, soloConteo = true) {
+        // 1. Obtener Periodos Cerrados (Fecha Fin < Hoy)
+        const hoy = new Date().toISOString().split('T')[0];
+
+        const ventanas = await VentanaCalificacion.findAll({
+            where: { vigenciaId },
+            attributes: ['periodo', 'fechaFin'],
+            order: [['periodo', 'ASC']]
+        });
+
+        // Filtramos solo los periodos que YA pasaron.
+        const periodosCerrados = ventanas
+            .filter(v => v.fechaFin < hoy)
+            .map(v => v.periodo);
+
+        // Si no hay periodos cerrados, no hay pendientes históricos.
+        if (periodosCerrados.length === 0) {
+            return { hayPendientes: false, total: 0, detalles: [] };
+        }
+
+        // 2. Obtener UNIVERSO ESPERADO (Cargas + Estudiantes)
+        const cargas = await calificacionRepository.findCargasConEstudiantes(docenteId, vigenciaId);
+
+        // 3. Obtener UNIVERSO EXISTENTE (Notas en BD)
+        // Traemos todas las notas de esos periodos para optimizar (una sola consulta)
+        const notasExistentes = await calificacionRepository.findLlavesCalificacionesDocente(docenteId, vigenciaId, periodosCerrados);
+
+        // Creamos un Set para búsqueda instantánea O(1).
+        // Clave única: "ESTUDIANTE_ID - ASIGNATURA_ID - PERIODO"
+        const mapaNotas = new Set(notasExistentes.map(n => `${n.estudianteId}-${n.asignaturaId}-${n.periodo}`));
+
+        const pendientes = [];
+
+        // 4. CRUCE DE INFORMACIÓN (Diferencia de Conjuntos)
+        for (const carga of cargas) {
+            // Si el grupo no tiene matrículas, saltamos
+            if (!carga.grupo || !carga.grupo.matriculas) continue;
+
+            const asignaturaId = carga.asignatura.id;
+            const nombreAsignatura = carga.asignatura.nombre;
+            // Formato: "6-A" o "11-B" (Grado + Grupo)
+            const nombreGrupo = `${carga.grupo.grado.nombre} ${carga.grupo.nombre}`;
+
+            for (const matricula of carga.grupo.matriculas) {
+                const est = matricula.estudiante;
+
+                // Verificamos CADA periodo cerrado para este estudiante
+                for (const periodo of periodosCerrados) {
+                    const llaveBusqueda = `${est.id}-${asignaturaId}-${periodo}`;
+
+                    // ¿Existe la nota?
+                    if (!mapaNotas.has(llaveBusqueda)) {
+
+                        // ¡NO EXISTE! Es un pendiente.
+                        pendientes.push({
+                            estudiante: `${est.primerApellido} ${est.segundoApellido || ''} ${est.primerNombre} ${est.segundoNombre || ''}`.trim(),
+                            gradoGrupo: nombreGrupo,
+                            asignatura: nombreAsignatura,
+                            periodo: periodo
+                        });
+                    }
+                }
+            }
+        }
+
+        return {
+            hayPendientes: pendientes.length > 0,
+            total: pendientes.length,
+            detalles: pendientes // Array con el detalle (vacío si no hay)
+        };
+    },*/
+
+    /**
+     * Generar Excel de Pendientes
+     * Reutiliza la lógica de detección y lo plasma en un archivo.
+     */
+    /*async generarReportePendientes(docenteId, vigenciaId) {
+        // Forzamos soloConteo = false para obtener los detalles
+        const { detalles } = await this.detectarPendientes(docenteId, vigenciaId, false);
+
+        if (detalles.length === 0) throw new Error("¡Felicidades! No tienes calificaciones pendientes.");
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Pendientes Acumulados');
+
+        // Definir Columnas
+        worksheet.columns = [
+            { header: 'Periodo', key: 'periodo', width: 10 },
+            { header: 'Grado y Grupo', key: 'gradoGrupo', width: 25 },
+            { header: 'Asignatura', key: 'asignatura', width: 30 },
+            { header: 'Estudiante', key: 'estudiante', width: 40 },
+        ];
+
+        // Estilos del Encabezado (Rojo Alerta)
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'DC2626' } }; // Rojo
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+        // Agregar Datos
+        detalles.forEach(d => {
+            worksheet.addRow(d);
+        });
+
+        // Bordes simples
+        worksheet.eachRow((row, rowNumber) => {
+            row.eachCell((cell) => {
+                cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+            });
+        });
+
+        return workbook.xlsx.writeBuffer();
+    }*/
 
 };

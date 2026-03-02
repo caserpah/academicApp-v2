@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faFileExcel, faClipboardCheck, faFilter, faUpload,
-    faSpinner, faSchool, faEraser, faDownload
+    faFileExcel, faClipboardCheck, faFilter, faDownload,
+    faUpload, faSpinner, faSchool, faEraser
 } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../../context/AuthContext.jsx";
 
@@ -11,7 +11,9 @@ import {
     fetchGrillaCalificaciones,
     guardarCalificacion,
     fetchBancoRecomendaciones,
-    descargarPlantillaDocente
+    descargarPlantillaDocente,
+    //checkPendientesDocente,
+    //descargarReportePendientes
 } from "../../api/calificacionesService.js";
 
 import { showSuccess, showError, showWarning } from "../../utils/notifications.js";
@@ -62,6 +64,9 @@ const CalificacionesPage = () => {
     // Estado del modal para importar calificaciones
     const [showImportModal, setShowImportModal] = useState(false);
 
+    /*/ Estado para alerta de estudiantes con Calificaciones Pendientes
+    const [alertaPendientes, setAlertaPendientes] = useState({ show: false, count: 0 });*/
+
     // --- CARGA INICIAL DE CATÁLOGOS ---
     useEffect(() => {
         const loadInit = async () => {
@@ -85,6 +90,18 @@ const CalificacionesPage = () => {
                 if (data.sedes.length === 1) {
                     setFilters(prev => ({ ...prev, sedeId: data.sedes[0].id }));
                 }
+
+                /* Esta lógica se mantiene comentada porque aún no se ha definido la ruta en el frontend,
+                pero la función ya está implementada en el servicio. */
+
+                // Check para docentes: ¿Tienes estudiantes con notas pendientes de calificar?
+                /*if (rolUsuario === 'docente' && data.vigencia) {
+                    // Hacemos el ping ligero
+                    const status = await checkPendientesDocente(data.vigencia.id);
+                    if (status.hayPendientes) {
+                        setAlertaPendientes({ show: true, count: status.total });
+                    }
+                }*/
 
             } catch (err) {
                 showError("No se pudieron cargar los datos iniciales.");
@@ -263,6 +280,19 @@ const CalificacionesPage = () => {
         }
     };
 
+    // HANDLER PARA DESCARGAR EL REPORTE DE PENDIENTES (Docentes)
+    /*const handleDownloadReportePendientes = async () => {
+        try {
+            if (!vigencia?.id) return;
+            // Podrías poner un loading aquí si quieres
+            await descargarReportePendientes(vigencia.id);
+            showSuccess("Reporte descargado correctamente.");
+        } catch (error) {
+            console.log(error)
+            showError("No se encontraron pendientes para descargar.");
+        }
+    };*/
+
     // --- RENDER ---
     if (loadingCatalogs) return <div className="p-12 flex justify-center"><LoadingSpinner /></div>;
 
@@ -271,8 +301,8 @@ const CalificacionesPage = () => {
             <div className="max-w-full mx-auto space-y-6">
 
                 {/* Header */}
-                <div className="flex justify-between items-center border-b pb-4">
-                    <h1 className="text-2xl font-semibold text-gray-800 flex items-center gap-3">
+                <div className="flex justify-between items-center pb-4">
+                    <h1 className="text-2xl font-bold flex items-center text-slate-800">
                         <FontAwesomeIcon icon={faClipboardCheck} className="text-blue-600" />
                         Registro de Calificaciones
                     </h1>
@@ -282,6 +312,33 @@ const CalificacionesPage = () => {
                         </span>
                     )}
                 </div>
+
+                {/* ========================================================== */}
+                {/* COMPONENTE VISUAL: ALERTA DE CALIFICACIONES PENDIENTES.
+                    NO SE MUESTRA POR AHORA, PERO LA LÓGICA YA ESTÁ IMPLEMENTADA EN EL BACKEND Y SE PUEDE ACTIVAR CUANDO SE DESEE.*/}
+                {/* ========================================================== */}
+                {/* {alertaPendientes.show && (
+                    <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in">
+                        <div className="flex items-center gap-3">
+                            <FontAwesomeIcon icon={faExclamationCircle} className="text-red-500 text-2xl" />
+                            <div>
+                                <p className="text-sm font-bold text-red-800">
+                                    Notas Pendientes de Periodos Anteriores
+                                </p>
+                                <p className="text-sm text-red-700 mt-1">
+                                    El sistema ha detectado <span className="font-bold underline">{alertaPendientes.count} estudiantes</span> matriculados sin calificación en periodos ya cerrados.
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleDownloadReportePendientes}
+                            className="whitespace-nowrap bg-white hover:bg-red-50 text-red-700 text-xs font-bold py-2 px-4 rounded border border-red-200 shadow-sm transition-colors flex items-center gap-2"
+                        >
+                            <FontAwesomeIcon icon={faDownload} />
+                            Descargar Informe Detallado
+                        </button>
+                    </div>
+                )} */}
 
                 {/* Filtros: Ahora son 4 Columnas */}
                 <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">

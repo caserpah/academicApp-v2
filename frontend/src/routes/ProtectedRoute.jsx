@@ -9,33 +9,35 @@ import Swal from 'sweetalert2';
  * @param {object} props - Propiedades de la ruta.
  */
 const ProtectedRoute = ({ requiredRole, children }) => {
-    const { isAuthenticated, hasRole, user } = useAuth();
+    // Obtenemos el estado del contexto
+    const { isAuthenticated, hasRole, user, loading } = useAuth();
 
-    // Verificación 1: Usuario no autenticado (Aplica para todas las rutas protegidas)
-    if (!isAuthenticated) {
+    // 1. Si está cargando la sesión (leyendo localStorage), mostramos un spinner o nada
+    if (loading) {
+        return <div className="p-10 text-center text-gray-500">Cargando...</div>;
+    }
+
+    // 2. Verificación Básica: Autenticación y existencia de Usuario
+    // IMPORTANTE: Verificamos 'user' para evitar el error "reading 'role' of undefined"
+    if (!isAuthenticated || !user) {
         return <Navigate to="/login" replace />;
     }
 
-    // Verificación 2: Si se requiere un rol y si el usuario lo tiene
+    // 3. Verificación de Rol
     if (requiredRole && !hasRole(requiredRole)) {
-        // Alerta de acceso denegado
         Swal.fire({
             icon: 'warning',
             title: 'Acceso Denegado',
             text: `Tu rol (${user.role}) no tiene permiso para acceder a esta sección.`,
             confirmButtonColor: '#ff9800'
         });
-
-        // Redirige al Dashboard/Bienvenida
         return <Navigate to="/bienvenida" replace />;
     }
 
-    // Si se usa como envoltorio (con children), renderiza el contenido
+    // 4. Renderizado
     if (children) {
         return children;
     }
-
-    // Permite el acceso al componente hijo (la página)
     return <Outlet />;
 };
 

@@ -209,7 +209,7 @@ const CalificacionesImportModal = ({
                         <button
                             onClick={handleImportar}
                             disabled={loading || !file}
-                            className={`px-6 py-2 rounded-lg shadow-md transition flex items-center gap-2 text-white font-bold
+                            className={`px-6 py-2 rounded-lg shadow-md transition flex items-center gap-2 text-white
                                 ${loading || !file
                                     ? 'bg-gray-400 cursor-not-allowed'
                                     : 'bg-green-600 hover:bg-green-700 hover:shadow-lg transform hover:-translate-y-0.5'}

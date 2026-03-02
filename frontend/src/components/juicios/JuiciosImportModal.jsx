@@ -81,7 +81,7 @@ const JuiciosImportModal = ({ onClose, onSuccess }) => {
 
     // --- RENDERIZADO ---
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
 
             {/* OVERLAY DE CARGA: Se muestra SOLO si loading es true */}
             {loading && (
@@ -92,9 +92,9 @@ const JuiciosImportModal = ({ onClose, onSuccess }) => {
                 </div>
             )}
 
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden relative">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden relative">
                 {/* HEADER */}
-                <div className="flex justify-between items-center p-5 border-b border-gray-100">
+                <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50">
                     <h3 className="text-xl font-bold text-gray-700 flex items-center gap-2">
                         <FontAwesomeIcon icon={faFileExcel} className="text-green-600" />
                         Importación Masiva de Juicios
@@ -105,7 +105,7 @@ const JuiciosImportModal = ({ onClose, onSuccess }) => {
                 </div>
 
                 {/* BODY (SCROLLABLE) */}
-                <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+                <div className="flex-1 overflow-y-auto p-8">
 
                     {/* VISTA 1: CARGA DE ARCHIVO (Si no hay errores mostrándose) */}
                     {erroresCarga.length === 0 && (
@@ -128,7 +128,7 @@ const JuiciosImportModal = ({ onClose, onSuccess }) => {
 
                             {/* Área de Carga */}
                             <div
-                                className="w-full max-w-md border-2 border-dashed border-gray-300 rounded-xl p-10 text-center hover:border-blue-400 hover:bg-blue-50 transition cursor-pointer bg-white"
+                                className="w-full max-w-lg border-2 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer group bg-white"
                                 onClick={() => fileInputRef.current.click()}
                             >
                                 <input
@@ -138,8 +138,10 @@ const JuiciosImportModal = ({ onClose, onSuccess }) => {
                                     className="hidden"
                                     accept=".xlsx,.xls,.csv"
                                 />
-                                <FontAwesomeIcon icon={faUpload} className="text-4xl text-gray-300 mb-4" />
-                                <p className="text-gray-600 font-medium">
+                                <div className="mb-4 transform group-hover:scale-110 transition-transform duration-300">
+                                    <FontAwesomeIcon icon={faUpload} className="text-5xl text-gray-300 group-hover:text-blue-500" />
+                                </div>
+                                <p className="text-gray-700 font-semibold text-lg">
                                     {file ? file.name : "Haz clic para seleccionar el archivo"}
                                 </p>
                                 <p className="text-xs text-gray-400 mt-2">Soporta Excel (.xlsx)</p>
@@ -217,7 +219,7 @@ const JuiciosImportModal = ({ onClose, onSuccess }) => {
                             `}
                         >
                             {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faCheckCircle} />}
-                            {loading ? "Procesando..." : "Importar Datos"}
+                            {loading ? "Procesando..." : "Importar Juicios"}
                         </button>
                     )}
                 </div>

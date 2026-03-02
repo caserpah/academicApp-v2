@@ -62,3 +62,38 @@ export const getCurrentUser = () => {
     }
     return null;
 };
+
+/**
+ * Función para solicitar un nuevo OTP para restablecer la contraseña.
+ * @param {string} email - Correo electrónico del usuario.
+ * @returns {Promise<string>} El correo al que se envió el OTP (para pre-llenar el formulario).
+ * Nota: El backend siempre responde con éxito para evitar revelar si el email existe o no.
+ */
+export const requestPasswordReset = async (email) => {
+    try {
+        const response = await axios.post(`${LOGIN_API_URL}/forgot-password`, { email });
+        return response.data.email; // Devuelve el email para pre-llenar el formulario (opcional)
+    }
+    catch (error) {
+        const errorMessage = error.response?.data?.message || 'Error al solicitar el restablecimiento de contraseña.';
+        throw new Error(errorMessage);
+    }
+};
+
+/**
+ * Función para restablecer la contraseña utilizando el OTP.
+ * @param {string} email - Correo electrónico del usuario.
+ * @param {string} otp - Código OTP recibido por correo.
+ */
+export const confirmPasswordReset = async (email, otp, newPassword) => {
+    try {
+        await axios.post(`${LOGIN_API_URL}/reset-password`, {
+            email,
+            otp,
+            newPassword
+        });
+    }   catch (error) {
+        const errorMessage = error.response?.data?.message || 'Error al restablecer la contraseña.';
+        throw new Error(errorMessage);
+    }
+};

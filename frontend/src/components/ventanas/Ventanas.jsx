@@ -103,14 +103,14 @@ const Ventanas = () => {
             <div className="max-w-7xl mx-auto space-y-6">
 
                 {/* Header */}
-                <div className="flex justify-between items-center border-b pb-4">
+                <div className="flex justify-between items-center pb-4">
                     <div className="flex items-center">
-                        <FontAwesomeIcon icon={faCalendarAlt} className="text-2xl text-[#2c3e50] mr-3" />
-                        <h1 className="text-2xl font-semibold text-gray-800">Ventanas de Calificaciones</h1>
+                        <FontAwesomeIcon icon={faCalendarAlt} className="text-2xl text-blue-600 mr-3" />
+                        <h1 className="text-2xl font-bold text-slate-800">Ventanas de Calificaciones</h1>
                     </div>
                     <button
                         onClick={() => { setSelectedVentana(null); setMode("agregar"); }}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition flex items-center shadow-sm text-sm font-medium"
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition flex items-center shadow-sm text-sm font-medium"
                     >
                         <FontAwesomeIcon icon={faPlus} className="mr-2" />
                         Nueva Ventana

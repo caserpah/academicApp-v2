@@ -209,11 +209,11 @@ const Docentes = () => {
         <div className="min-h-full bg-[#f7f9fc] p-4 md:p-8 font-inter rounded-xl">
             <div className="max-w-7xl mx-auto space-y-6">
 
-                {/* Título Principal */}
-                <div className="flex items-center border-b pb-4">
-                    <FontAwesomeIcon icon={faPersonChalkboard} className="text-2xl text-[#2c3e50] mr-3" />
-                    <h1 className="text-2xl font-semibold text-gray-800">Gestión de Docentes</h1>
-                </div>
+                {/* HEADER */}
+                <h1 className="text-2xl font-bold flex items-center text-slate-800">
+                    <FontAwesomeIcon icon={faPersonChalkboard} className="text-2xl text-blue-600 mr-3" />
+                    Gestión de Docentes
+                </h1>
 
                 {/* Formulario */}
                 <div ref={formRef}>

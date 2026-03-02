@@ -260,12 +260,10 @@ const Asignaturas = () => {
             <div className="max-w-7xl mx-auto space-y-8">
 
                 {/* HEADER */}
-                <div className="flex flex-col md:flex-row justify-between items-center border-b pb-4">
-                    <h1 className="text-2xl font-semibold text-gray-800 flex items-center mb-4 md:mb-0">
-                        <FontAwesomeIcon icon={faBookOpen} className="w-6 h-6 mr-3 text-[#2c3e50]" />
-                        Gestión de Asignaturas
-                    </h1>
-                </div>
+                <h1 className="text-2xl font-bold flex items-center text-slate-800">
+                    <FontAwesomeIcon icon={faBookOpen} className="w-6 h-6 mr-3 text-blue-600" />
+                    Gestión de Asignaturas
+                </h1>
 
                 <div ref={formContainerRef}>
                     <AsignaturasForm

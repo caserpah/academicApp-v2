@@ -108,8 +108,8 @@ const Estudiantes = () => {
             {/* ENCABEZADO */}
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                 <div>
-                    <h1 className="text-2xl font-semibold text-gray-800 flex items-center mb-4 md:mb-0">
-                        <FontAwesomeIcon icon={faUsers} className="w-6 h-6 mr-3 text-[#2c3e50]" />
+                    <h1 className="text-2xl font-bold flex items-center text-slate-800">
+                        <FontAwesomeIcon icon={faUsers} className="w-6 h-6 mr-3 text-blue-600" />
                         Gestión de Estudiantes
                     </h1>
                     <p className="text-gray-500 text-sm">Gestión de información personal y académica</p>

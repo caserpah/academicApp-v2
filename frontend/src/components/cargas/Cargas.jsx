@@ -136,10 +136,10 @@ const Cargas = () => {
             <div className="max-w-7xl mx-auto space-y-6">
 
                 {/* 1. Título y Botón Agregar (Siempre visibles) */}
-                <div className="flex justify-between items-center border-b pb-4">
+                <div className="flex justify-between items-center pb-4">
                     <div className="flex items-center">
-                        <FontAwesomeIcon icon={faChalkboardTeacher} className="text-2xl text-[#2c3e50] mr-3" />
-                        <h1 className="text-2xl font-semibold text-gray-800">Gestión de Cargas Académica</h1>
+                        <FontAwesomeIcon icon={faChalkboardTeacher} className="text-2xl text-blue-600 mr-3" />
+                        <h1 className="text-2xl font-bold flex items-center text-slate-800">Gestión de Cargas Académicas</h1>
                     </div>
                     <button
                         onClick={() => { setSelectedCarga(null); setMode("agregar"); }}

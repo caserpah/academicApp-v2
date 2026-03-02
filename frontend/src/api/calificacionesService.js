@@ -265,3 +265,43 @@ export const importarArchivoDocente = async (file) => {
         throw parseError(error);
     }
 };
+
+/* -------------------------------------------------------------------------- */
+/* Funciones para Reporte de estudiante con notas pendiente                   */
+/* -------------------------------------------------------------------------- */
+/* Estas funciones se mantienen comentadas porque aún no se ha definido la ruta en el frontend,
+pero la lógica ya está implementada en el servicio. */
+/*
+// Verificar pendientes (Ping)
+export const checkPendientesDocente = async (vigenciaId) => {
+    try {
+        const response = await apiClient.get(`${CALIFICACIONES_ENDPOINT}/pendientes/check`, {
+            params: { vigenciaId }
+        });
+        return response.data.data; // { hayPendientes: true/false, total: N }
+    } catch (error) {
+        console.error("No se pudo verificar pendientes:", error);
+        return { hayPendientes: false, total: 0 }; // Fallback silencioso
+    }
+};
+
+// Descargar Reporte
+export const descargarReportePendientes = async (vigenciaId) => {
+    try {
+        const response = await apiClient.get(`${CALIFICACIONES_ENDPOINT}/pendientes/reporte`, {
+            params: { vigenciaId },
+            responseType: 'blob'
+        });
+
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'Informe_Pendientes.xlsx');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        throw parseError(error);
+    }
+};*/
