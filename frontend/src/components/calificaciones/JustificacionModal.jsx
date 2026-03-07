@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faExclamationTriangle, faSave, faTimes, faFileUpload, faFilePdf, faEye } from "@fortawesome/free-solid-svg-icons";
-
-// URL base para descargar archivos
-const API_URL = "http://localhost:3001/";
+import { API_BASE_URL } from "../../api/apiClient.js";
 
 const JustificacionModal = ({
     isOpen,
@@ -91,7 +89,7 @@ const JustificacionModal = ({
                         <div className="bg-blue-50 p-3 rounded border border-blue-200 flex justify-between items-center">
                             <span className="text-xs text-blue-800 font-bold">Evidencia Actual Cargada</span>
                             <a
-                                href={`${API_URL}${initialUrl}`}
+                                href={`${API_BASE_URL}${initialUrl}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition flex items-center gap-2"

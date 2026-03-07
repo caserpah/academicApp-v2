@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import LoadingSpinner from "../common/LoadingSpinner.jsx";
 import {
     faSave, faTimes, faSearch, faEye, faIdCard, faUser, faMapMarkerAlt, faPhone,
     faTrash, faLock, faFileAlt, faCalendarAlt, faInfoCircle
@@ -317,8 +318,9 @@ const MatriculasForm = ({
                                 <option value="PREMATRICULADO">Prematriculado</option>
                                 <option value="ACTIVA">Activa</option>
                                 <option value="RETIRADO">Retirado</option>
-                                <option value="PROMOVIDO">Promovido</option>
+                                <option value="ANULADO">Anulado</option>
                                 <option value="DESERTADO">Desertado</option>
+                                <option value="PROMOVIDO">Promovido</option>
                             </select>
                         </div>
 
@@ -362,31 +364,45 @@ const MatriculasForm = ({
                         </div>
                     </div>
 
-                    <div className="pt-4 flex justify-center space-x-3 border-t border-[#eee] mt-6">
+                    {/* --- SECCIÓN DE BOTONES --- */}
+                    <div className="flex justify-between items-center mt-8 pt-5 border-t border-gray-200">
 
-                        {/* BOTÓN GUARDAR */}
-                        <button type="submit" disabled={loading} className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition flex items-center shadow-md">
-                            <FontAwesomeIcon icon={faSave} className="mr-2" /> {mode === "agregar" ? "Guardar" : "Guardar Cambios"}
-                        </button>
+                        {/* IZQUIERDA: Zona de peligro (Eliminar) - Solo visible en modo edición */}
+                        <div>
+                            {mode === "editar" && (
+                                <button
+                                    type="button"
+                                    onClick={onDelete}
+                                    className="text-red-500 hover:text-red-700 text-sm font-medium flex items-center transition-colors"
+                                    title="Eliminar esta matrícula de la base de datos"
+                                >
+                                    {/* Asegúrate de importar faTrash si usas FontAwesome */}
+                                    <FontAwesomeIcon icon={faTrash} className="mr-2" />
+                                    Anular / Eliminar registro
+                                </button>
+                            )}
+                        </div>
 
-                        {/* BOTÓN ELIMINAR (Solo en modo Editar) */}
-                        {mode === "editar" && (
+                        {/* DERECHA: Acciones principales (Guardar / Cancelar) */}
+                        <div className="flex gap-3">
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition flex items-center shadow-md"
+                            >
+                                {loading && <LoadingSpinner size="sm" color="text-white" />}
+                                <FontAwesomeIcon icon={faSave} className="mr-2" />
+                                {mode === "agregar" ? "Guardar Matrícula" : "Actualizar Cambios"}
+                            </button>
+
                             <button
                                 type="button"
-                                onClick={onDelete} // Llama a la función del padre
-                                disabled={loading}
-                                className="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition flex items-center shadow-md border border-red-700"
-                                title="Eliminar matrícula permanentemente"
+                                onClick={resetForm}
+                                className="bg-red-500 text-white px-5 py-2 rounded-lg hover:bg-red-600 transition flex items-center shadow-md"
                             >
-                                <FontAwesomeIcon icon={faTrash} className="mr-2" /> Eliminar
+                                Cancelar
                             </button>
-                        )}
-
-
-                        {/* BOTÓN CANCELAR */}
-                        <button type="button" onClick={resetForm} disabled={loading} className="bg-red-500 text-white px-5 py-2 rounded-lg hover:bg-red-600 transition flex items-center shadow-md">
-                            <FontAwesomeIcon icon={faTimes} className="mr-2" /> Cancelar
-                        </button>
+                        </div>
                     </div>
                 </div>
             </form>
@@ -398,7 +414,7 @@ const MatriculasForm = ({
                         {/* Header del Modal */}
                         <div className="bg-gray-50 px-6 py-4 flex border-b border-gray-400 justify-between items-center">
                             <h3 className="text-gray-800 text-lg font-bold flex items-center gap-2">
-                                <FontAwesomeIcon icon={faUser} /> Información del Estudiante
+                                <FontAwesomeIcon icon={faUser} className="w-6 h-6 mr-3 text-blue-600" /> Información del Estudiante
                             </h3>
                             <button onClick={() => setMostrarDetalle(false)} className="text-gray-400 hover:text-red-500 transition">
                                 <FontAwesomeIcon icon={faTimes} size="lg" />
@@ -458,7 +474,7 @@ const MatriculasForm = ({
                         <div className="bg-gray-50 px-6 py-3 flex justify-end border-t border-gray-300">
                             <button
                                 onClick={() => setMostrarDetalle(false)}
-                                className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 hover:text-white text-sm font-medium"
+                                className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-red-600 hover:text-white text-sm font-medium"
                             >
                                 <FontAwesomeIcon icon={faTimes} className="mr-2" /> Cerrar
                             </button>

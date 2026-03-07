@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faKey, faArrowLeft, faUnlockAlt } from "@fortawesome/free-solid-svg-icons";
+import { API_BASE_URL } from "../../api/apiClient.js";
+
 import Swal from 'sweetalert2';
 import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
 
 const RecuperarPassword = () => {
     const [step, setStep] = useState(1); // 1: Pedir Email, 2: Nueva Clave
@@ -20,7 +20,7 @@ const RecuperarPassword = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            await axios.post(`${API_URL}/api/auth/forgot-password`, { email });
+            await axios.post(`${API_BASE_URL}/api/auth/forgot-password`, { email });
             // Siempre avanzamos al paso 2 por seguridad (para no revelar si existe el email)
             setStep(2);
             Swal.fire({
@@ -42,7 +42,7 @@ const RecuperarPassword = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            await axios.post(`${API_URL}/api/auth/reset-password`, {
+            await axios.post(`${API_BASE_URL}/api/auth/reset-password`, {
                 email, otp, newPassword
             });
 

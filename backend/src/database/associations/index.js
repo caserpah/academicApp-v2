@@ -108,15 +108,15 @@ export const definirAsociaciones = () => {
     Docente.hasMany(Calificacion, { foreignKey: "docenteId", as: "calificacionesRegistradas" });
     Calificacion.belongsTo(Docente, { foreignKey: "docenteId", as: "docenteResponsable" });
 
-    /** Nivelación ↔ Matriculas / Asignaturas / Vigencia */
+    /** Nivelación ↔ Matrículas / Asignaturas / Docentes */
     Matricula.hasMany(Nivelacion, { foreignKey: "matriculaId", as: "nivelaciones" });
     Nivelacion.belongsTo(Matricula, { foreignKey: "matriculaId", as: "matricula" });
 
     Asignatura.hasMany(Nivelacion, { foreignKey: "asignaturaId", as: "nivelaciones" });
     Nivelacion.belongsTo(Asignatura, { foreignKey: "asignaturaId", as: "asignatura" });
 
-    Vigencia.hasMany(Nivelacion, { foreignKey: "vigenciaId", as: "nivelaciones" });
-    Nivelacion.belongsTo(Vigencia, { foreignKey: "vigenciaId", as: "vigencia" });
+    Docente.hasMany(Nivelacion, { foreignKey: "docenteId", as: "nivelaciones_realizadas" });
+    Nivelacion.belongsTo(Docente, { foreignKey: "docenteId", as: "docente" });
 
     /** 🏢 Sede ↔ Grupo / Carga / Matrícula */
     Sede.hasMany(Grupo, { foreignKey: "sedeId", as: "grupos" });

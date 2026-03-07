@@ -36,6 +36,7 @@ export const Matricula = sequelize.define("matricula", {
             "RETIRADO",
             "DESERTADO",
             "REPROBADO",
+            "ANULADO",
             "PROMOVIDO"
         ),
         allowNull: false,

@@ -163,52 +163,32 @@ export const calificacionController = {
         }
     },
 
-    // ========== Funciones para Reporte de estudiante con notas pendiente ==========
-/* Estas funciones se mantienen comentadas porque aún no se ha definido la ruta en el frontend,
-pero la lógica ya está implementada en el servicio. */
-
-/*
+    /**
+     * Funciones para Reporte de estudiante con notas pendiente
+     */
     async checkPendientes(req, res, next) {
         try {
-            // Validamos que el rol sea docente
-            if (req.user.role !== 'docente') {
-                return res.status(403).json({
-                    success: false,
-                    message: "Esta funcionalidad es exclusiva para docentes."
-                });
+            const { grupoId, asignaturaId, periodo } = req.query;
+            const vigenciaId = req.vigenciaActual.id;
+
+            if (!grupoId || !asignaturaId || !periodo) {
+                return res.status(400).json({ message: "Faltan parámetros." });
             }
 
-            const userId = req.user.id;
-            const { vigenciaId } = req.query;
+            const resultado = await calificacionService.auditarNotasPendientesAnteriores(
+                parseInt(grupoId),
+                parseInt(asignaturaId),
+                parseInt(periodo),
+                vigenciaId
+            );
+            return sendSuccess(res, resultado, "Auditoría completada");
 
-            // Paso A: Buscamos al USUARIO para obtener su Documento/Cédula
-            const usuario = await Usuario.findByPk(userId);
-
-            if (!usuario) {
-                return res.status(404).json({ success: false, message: "Usuario no encontrado." });
-            }
-
-            const docente = await Docente.findOne({ where: { documento: usuario.documento } });
-
-            if (!docente) {
-                return res.status(404).json({
-                    success: false,
-                    message: "No se encontró un perfil docente asociado al documento de este usuario."
-                });
-            }
-
-            // Ejecutamos el servicio con el ID real del docente
-            const result = await calificacionService.detectarPendientes(docente.id, vigenciaId, true);
-
-            res.json({
-                success: true,
-                data: result
-            });
         } catch (error) {
             next(error);
         }
     },
 
+    /*
     // Descarga del reporte
     async descargarReportePendientes(req, res, next) {
         try {
@@ -232,6 +212,6 @@ pero la lógica ya está implementada en el servicio. */
         } catch (error) {
             next(error);
         }
-    }*/
-
+    }
+    */
 };

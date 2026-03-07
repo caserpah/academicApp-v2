@@ -25,7 +25,11 @@ export const useMatriculas = () => {
             console.log("📥 Hook: Respuesta recibida:", respuesta);
 
             const items = respuesta.items || respuesta.data || [];
+            // Si el backend no envía total, usamos la longitud del array
             const total = respuesta.total || items.length || 0;
+
+            // Extraemos totalPages (o lo calculamos como fallback si fallara)
+            const totalPages = respuesta.totalPages || Math.ceil(total / (filtros.limit || 20)) || 1;
 
             setMatriculas(items);
 
@@ -33,7 +37,8 @@ export const useMatriculas = () => {
             setPaginacion(prev => ({
                 ...prev,
                 total,
-                page: filtros.page || prev.page
+                page: filtros.page || prev.page,
+                totalPages: totalPages
             }));
 
         } catch (err) {

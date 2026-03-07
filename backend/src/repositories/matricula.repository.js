@@ -18,22 +18,38 @@ export const matriculaRepository = {
         grupoId,
         gradoId,
         estado,
-        busqueda, // Para buscar por documento o nombres
+        busqueda,
         orderBy = "estudiante.primerApellido",
         order = "ASC",
+        bloqueo_notas, es_nuevo, es_repitente, situacion_ano_anterior
     } = {}) {
         const where = {};
         const include = [];
 
         // Filtro obligatorio de vigencia (Contexto)
-        if (vigenciaId) {
-            where.vigenciaId = vigenciaId;
-        }
+        if (vigenciaId) where.vigenciaId = vigenciaId;
 
         // Filtros directos
         if (sedeId) where.sedeId = sedeId;
         if (grupoId) where.grupoId = grupoId;
         if (estado) where.estado = estado;
+
+        // LÓGICA DE FILTROS BOOLEANOS/ENUM
+        // Nota: Desde el query params todo llega como string ("true", "false", "REPROBO")
+
+        if (bloqueo_notas !== undefined && bloqueo_notas !== null && bloqueo_notas !== "") {
+            where.bloqueo_notas = (String(bloqueo_notas) === 'true');
+        }
+
+        if (es_nuevo !== undefined && es_nuevo !== null && es_nuevo !== "") {
+            where.es_nuevo = (String(es_nuevo) === 'true');
+        }
+        if (es_repitente !== undefined && es_repitente !== null && es_repitente !== "") {
+            where.es_repitente = (String(es_repitente) === 'true');
+        }
+        if (situacion_ano_anterior !== undefined && situacion_ano_anterior !== null && situacion_ano_anterior !== "") {
+            where.situacion_ano_anterior = situacion_ano_anterior;
+        }
 
         // Filtro y relación de Estudiante (Búsqueda corregida)
         const whereEstudiante = {};
@@ -50,7 +66,7 @@ export const matriculaRepository = {
         include.push({
             model: Estudiante,
             as: "estudiante",
-            where: Object.keys(whereEstudiante).length > 0 ? whereEstudiante : undefined,
+            where: busqueda ? whereEstudiante : undefined,
             attributes: [
                 "id", "tipoDocumento", "documento",
                 "primerNombre", "segundoNombre",
@@ -114,6 +130,7 @@ export const matriculaRepository = {
             total: count,
             page: Number(page),
             limit: Number(limit),
+            totalPages: Math.ceil(count / Number(limit))
         };
     },
 

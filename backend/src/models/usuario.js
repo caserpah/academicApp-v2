@@ -44,13 +44,9 @@ export const Usuario = sequelize.define(
         contacto: {
             type: DataTypes.STRING(12),
             allowNull: true,
-            validate: {
-                isNumeric: { msg: "El contacto solo debe contener números." },
-                len: {
-                    args: [10, 12],
-                    msg: "El contacto debe tener entre 10 y 12 dígitos.",
-                },
-            },
+            set(value) {
+                this.setDataValue("contacto", value?.trim());
+            }
         },
         // Credenciales y Roles
         email: {

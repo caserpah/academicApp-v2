@@ -2,6 +2,7 @@ import { sequelize } from "../database/db.connect.js";
 import { matriculaRepository } from "../repositories/matricula.repository.js";
 import { HistorialMatriculas } from "../models/historial_matriculas.js";
 import { Grupo } from "../models/grupo.js";
+import { Calificacion } from "../models/calificacion.js";
 import { formatearErrorForaneo } from "../utils/dbUtils.js";
 import { handleSequelizeError } from "../middleware/handleSequelizeError.js";
 
@@ -229,6 +230,21 @@ export const matriculaService = {
                 throw err;
             }
 
+            // Buscar si el estudiante tiene calificaciones asociadas a esta vigencia/grupo
+            const notasExistentes = await Calificacion.count({
+                where: {
+                    estudianteId: registro.estudianteId,
+                    vigenciaId: registro.vigenciaId
+                }
+            });
+
+            if (notasExistentes > 0) {
+                const err = new Error("No se puede eliminar: El estudiante ya tiene calificaciones registradas. Debe cambiar el estado de la matrícula a 'ANULADO' o 'RETIRADO'.");
+                err.status = 409;
+                throw err;
+            }
+
+            // Si pasa la validación (no tiene notas), se elimina de la base de datos
             await matriculaRepository.delete(id);
             return true;
         } catch (error) {

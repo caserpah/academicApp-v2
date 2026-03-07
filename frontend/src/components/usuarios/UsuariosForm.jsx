@@ -22,7 +22,10 @@ const UsuariosForm = ({ formData, mode, loading, handleChange, handleSubmit, res
 
                 {/* Nombre Completo */}
                 <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-1">Nombre Completo *</label>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">
+                        Nombre Completo  {" "}
+                        <span className="text-[#e74c3c] font-semibold">*</span>
+                    </label>
                     <input
                         type="text"
                         name="nombreCompleto"
@@ -37,7 +40,10 @@ const UsuariosForm = ({ formData, mode, loading, handleChange, handleSubmit, res
 
                 {/* Documento */}
                 <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-1">No. Documento *</label>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">
+                        Número de documento  {" "}
+                        <span className="text-[#e74c3c] font-semibold">*</span>
+                    </label>
                     <input
                         type="text"
                         name="documento"
@@ -51,7 +57,10 @@ const UsuariosForm = ({ formData, mode, loading, handleChange, handleSubmit, res
 
                 {/* Email */}
                 <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-1">Correo Electrónico *</label>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">
+                        Correo Electrónico {" "}
+                        <span className="text-[#e74c3c] font-semibold">*</span>
+                    </label>
                     <input
                         type="email"
                         name="email"
@@ -65,7 +74,10 @@ const UsuariosForm = ({ formData, mode, loading, handleChange, handleSubmit, res
 
                 {/* Rol */}
                 <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-1">Rol del Sistema *</label>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">
+                        Rol del Sistema{" "}
+                        <span className="text-[#e74c3c] font-semibold">*</span>
+                    </label>
                     <select
                         name="role"
                         value={formData.role}

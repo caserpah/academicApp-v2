@@ -2,6 +2,7 @@ import { Op } from "sequelize";
 import { Calificacion } from "../models/calificacion.js";
 import { Matricula } from "../models/matricula.js";
 import { Estudiante } from "../models/estudiante.js";
+import { Asignatura } from "../models/asignatura.js";
 
 export const calificacionRepository = {
 
@@ -34,21 +35,27 @@ export const calificacionRepository = {
     /**
      * Busca las calificaciones existentes para un listado de estudiantes en una materia/periodo.
      */
-    async findCalificacionesPorEstudiantes(estudiantesIds, asignaturaId, periodo, vigenciaId) {
+    async findCalificacionesPorEstudiantes(estudiantesIds, asignaturaId, periodos, vigenciaId) {
+
+        // Si 'periodos' no es un array (ej: viene un 3 desde la grilla), lo envolvemos en un array [3]
+        const periodosArray = Array.isArray(periodos) ? periodos : [periodos];
+
         return Calificacion.findAll({
             where: {
                 estudianteId: { [Op.in]: estudiantesIds },
                 asignaturaId,
-                periodo,
+                periodo: { [Op.in]: periodosArray },
                 vigenciaId
             },
             attributes: [
                 'id',
+                'periodo',
                 'estudianteId',
                 'notaAcademica', 'notaAcumulativa', 'notaLaboral', 'notaSocial', 'notaDefinitiva',
                 'fallas', 'recomendacionUno', 'recomendacionDos',
                 'observacion_cambio', 'url_evidencia_cambio', 'fecha_edicion'
-            ]
+            ],
+            raw: true
         });
     },
 
@@ -133,6 +140,32 @@ export const calificacionRepository = {
             },
             attributes: ['estudianteId', 'asignaturaId', 'periodo'],
             raw: true // Retorna JSON plano sin overhead de Sequelize
+        });
+    },
+
+    /**
+     * Trae TODAS las notas de un grupo de estudiantes para los periodos permitidos,
+     * excluyendo la asignatura 'COMPORTAMIENTO'. (Uso exclusivo para Cierre de Año)
+     */
+    async findCalificacionesParaConsolidado(estudiantesIds, vigenciaId, periodosPermitidos) {
+        return Calificacion.findAll({
+            where: {
+                estudianteId: { [Op.in]: estudiantesIds },
+                vigenciaId: vigenciaId,
+                periodo: { [Op.in]: periodosPermitidos }
+            },
+            include: [
+                {
+                    model: Asignatura,
+                    as: 'asignatura',
+                    where: {
+                        nombre: { [Op.ne]: 'COMPORTAMIENTO' } // Ignorar Comportamiento
+                    },
+                    attributes: ['id', 'nombre']
+                }
+            ],
+            raw: true,
+            nest: true
         });
     }
 };

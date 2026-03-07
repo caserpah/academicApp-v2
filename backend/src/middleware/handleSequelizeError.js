@@ -114,8 +114,8 @@ export const handleSequelizeError = (error) => {
             return err;
         }
 
-        // Caso 12: Nivelaciones (Matricula + Asignatura)
-        if (indexName === "idx_unique_nivelacion_matricula_asignatura") {
+        // Caso 12: Nivelaciones (Estudiante + Asignatura + Vigencia)
+        if (indexName === "idx_unique_nivelacion_estudiante_asignatura") {
             const err = new Error("Este estudiante ya tiene una nivelación registrada para esta asignatura.");
             err.status = 409;
             return err;

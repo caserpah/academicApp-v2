@@ -176,8 +176,8 @@ const CargasForm = ({
 
                 {/* Encabezado */}
                 <div className="flex justify-between items-center p-5 border-b border-gray-300 bg-gray-50 rounded-t-lg">
-                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                        <FontAwesomeIcon icon={selectedCarga ? faEdit : faSave} className="mr-2 text-gray-800" />
+                    <h2 className="text-xl font-bold flex items-center text-slate-800">
+                        <FontAwesomeIcon icon={selectedCarga ? faEdit : faSave} className="mr-2 text-blue-600" />
                         {selectedCarga ? "Editar Carga Académica" : "Nueva Asignación de Carga"}
                     </h2>
                     <button onClick={onCancel} className="text-gray-400 hover:text-red-500 transition">

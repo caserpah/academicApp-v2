@@ -28,12 +28,15 @@ export const matriculaController = {
                 estado: req.query.estado,
                 busqueda: req.query.busqueda,
                 orderBy: req.query.orderBy,
-                order: req.query.order
+                order: req.query.order,
+                bloqueo_notas: req.query.bloqueo_notas,
+                es_nuevo: req.query.es_nuevo,
+                es_repitente: req.query.es_repitente,
+                situacion_ano_anterior: req.query.situacion_ano_anterior
             };
 
             // Llamar al servicio
             const resultado = await matriculaService.listar(filtros);
-
             return sendSuccess(res, resultado);
 
         } catch (error) {

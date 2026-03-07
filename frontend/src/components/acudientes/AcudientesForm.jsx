@@ -80,8 +80,8 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
 
                 {/* Encabezado */}
                 <div className="flex justify-between items-center p-5 border-b border-gray-300 bg-gray-50 rounded-t-lg">
-                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                        <FontAwesomeIcon icon={faUserCheck} className="text-gray-800" />
+                    <h2 className="text-xl font-bold flex items-center text-slate-800 gap-2">
+                        <FontAwesomeIcon icon={faUserCheck} className="text-blue-600" />
                         {registro ? "Editar Acudiente" : "Registrar Nuevo Acudiente"}
                     </h2>
                     <button

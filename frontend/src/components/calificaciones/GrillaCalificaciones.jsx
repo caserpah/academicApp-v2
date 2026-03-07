@@ -371,23 +371,8 @@ const GrillaCalificaciones = ({
                 setSavingIds(prev => ({ ...prev, [row.estudianteId]: false }));
             }
         }
-/*
+
         // --- ALERTAS FINALES ---
-        if (successCount > 0) {
-            showSuccess(`Se actualizaron ${successCount} registros exitosamente.`);
-        }
-
-        // Si hubo errores por Ventana Cerrada
-        if (closedWindowCount > 0) {
-            showWarning(`No se pudieron guardar las calificaciones porque el periodo académico finalizó.`);
-        }
-        // Si hubo otros errores (ej: error de servidor) y no fueron por ventana
-        else if (failCount > 0) {
-            showError(`Hubo errores técnicos al guardar ${failCount} registros.`);
-        }
-    };*/
-
-    // Éxito parcial o total
         if (successCount > 0) {
             showSuccess(`Se actualizaron ${successCount} registros exitosamente.`);
         }

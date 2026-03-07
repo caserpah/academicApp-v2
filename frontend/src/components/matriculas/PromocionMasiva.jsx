@@ -145,9 +145,9 @@ const PromocionMasiva = () => {
             <div className="max-w-7xl mx-auto space-y-6">
 
                 {/* HEADER (Estilo idéntico a Matriculas.jsx) */}
-                <div className="flex justify-between items-center border-b pb-4">
-                    <h1 className="text-2xl font-semibold text-gray-800 flex items-center">
-                        <FontAwesomeIcon icon={faUsers} className="w-6 h-6 mr-3 text-[#2c3e50]" />
+                <div className="flex justify-between items-center pb-4">
+                    <h1 className="text-2xl font-bold flex items-center text-slate-800">
+                        <FontAwesomeIcon icon={faUsers} className="w-6 h-6 mr-3 text-blue-600" />
                         Promoción y Matrícula Masiva
                     </h1>
                     <Link to="/matriculas" className="text-sm text-blue-600 hover:text-blue-700 flex items-center font-medium">
@@ -317,7 +317,7 @@ const PromocionMasiva = () => {
                         <button
                             onClick={handleSubmit}
                             disabled={loading || seleccionados.length === 0 || !destino.grupoId}
-                            className={`flex items-center px-6 py-2.5 rounded-lg shadow-sm text-white font-medium transition
+                            className={`flex items-center px-6 py-2.5 rounded-lg shadow-sm text-white transition
                                 ${loading || seleccionados.length === 0 || !destino.grupoId
                                     ? "bg-gray-300 cursor-not-allowed text-gray-500"
                                     : "bg-green-600 hover:bg-green-700 active:scale-95"

@@ -52,6 +52,7 @@ import {
 
   // Iconos de Evaluación
   faStar,             // Calificaciones
+  faBalanceScale,     // Recuperaciones
   faChartSimple,      // Indicadores
   faGavel,             // Juicios
 
@@ -64,7 +65,7 @@ library.add(
 faBars, faSearch, faHome, faSignOutAlt, faChevronDown, faStar,
 faChevronRight,faSave, faXmark, faEdit, faPenToSquare, faChartSimple,
 faTrash, faSpinner, faInfoCircle,faUserCircle, faCirclePlus, faGavel,
-faTimesCircle, faTimes, faAnglesLeft,faAngleLeft, faAngleRight,
+faTimesCircle, faTimes, faAnglesLeft,faAngleLeft, faAngleRight, faBalanceScale,
 faAnglesRight, faSchool, faBuilding, faUserTie, faCalendarAlt, faUserShield,
 faLayerGroup, faBookOpen, faUsersRectangle, faChalkboardUser,
 faEnvelope, faFilePen, faUsers, faHandsHoldingChild, faPersonChalkboard

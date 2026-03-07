@@ -17,24 +17,24 @@ export const Calificacion = sequelize.define("calificacion", {
         allowNull: false
     },
     // --- INSUMOS ---
-    notaAcademica: { type: DataTypes.FLOAT, allowNull: false },
-    promedioAcademica: { type: DataTypes.FLOAT, allowNull: false },
-    juicioAcademica: { type: DataTypes.TEXT, allowNull: false },
+    notaAcademica: { type: DataTypes.FLOAT, allowNull: true },
+    promedioAcademica: { type: DataTypes.FLOAT, allowNull: true },
+    juicioAcademica: { type: DataTypes.TEXT, allowNull: true },
 
-    notaAcumulativa: { type: DataTypes.FLOAT, allowNull: false },
-    promedioAcumulativa: { type: DataTypes.FLOAT, allowNull: false },
-    juicioAcumulativa: { type: DataTypes.TEXT, allowNull: false },
+    notaAcumulativa: { type: DataTypes.FLOAT, allowNull: true },
+    promedioAcumulativa: { type: DataTypes.FLOAT, allowNull: true },
+    juicioAcumulativa: { type: DataTypes.TEXT, allowNull: true },
 
-    notaLaboral: { type: DataTypes.FLOAT, allowNull: false },
-    promedioLaboral: { type: DataTypes.FLOAT, allowNull: false },
-    juicioLaboral: { type: DataTypes.TEXT, allowNull: false },
+    notaLaboral: { type: DataTypes.FLOAT, allowNull: true },
+    promedioLaboral: { type: DataTypes.FLOAT, allowNull: true },
+    juicioLaboral: { type: DataTypes.TEXT, allowNull: true },
 
-    notaSocial: { type: DataTypes.FLOAT, allowNull: false },
-    promedioSocial: { type: DataTypes.FLOAT, allowNull: false },
-    juicioSocial: { type: DataTypes.TEXT, allowNull: false },
+    notaSocial: { type: DataTypes.FLOAT, allowNull: true },
+    promedioSocial: { type: DataTypes.FLOAT, allowNull: true },
+    juicioSocial: { type: DataTypes.TEXT, allowNull: true },
 
     // --- DEFINITIVA ---
-    notaDefinitiva: { type: DataTypes.FLOAT, allowNull: false },
+    notaDefinitiva: { type: DataTypes.FLOAT, allowNull: true },
 
     // --- RECOMENDACIONES (Texto Histórico) ---
     recomendacionUno: { type: DataTypes.TEXT, allowNull: true },

@@ -36,7 +36,6 @@ const formatGrado = (nombre) => {
 /* ------------------------------------------------ */
 const parseError = (error) => {
     const apiError = error.response?.data;
-
     let finalError;
 
     if (apiError?.errors && Array.isArray(apiError.errors) && apiError.errors.length > 0) {
@@ -45,10 +44,7 @@ const parseError = (error) => {
     } else {
         finalError = new Error(apiError?.message || error.message || "Ocurrió un error en el servicio.");
     }
-
-    if (apiError?.code) {
-        finalError.code = apiError.code;
-    }
+    if (apiError?.code) finalError.code = apiError.code;
 
     return finalError;
 };
@@ -269,22 +265,13 @@ export const importarArchivoDocente = async (file) => {
 /* -------------------------------------------------------------------------- */
 /* Funciones para Reporte de estudiante con notas pendiente                   */
 /* -------------------------------------------------------------------------- */
-/* Estas funciones se mantienen comentadas porque aún no se ha definido la ruta en el frontend,
-pero la lógica ya está implementada en el servicio. */
-/*
 // Verificar pendientes (Ping)
-export const checkPendientesDocente = async (vigenciaId) => {
-    try {
-        const response = await apiClient.get(`${CALIFICACIONES_ENDPOINT}/pendientes/check`, {
-            params: { vigenciaId }
-        });
-        return response.data.data; // { hayPendientes: true/false, total: N }
-    } catch (error) {
-        console.error("No se pudo verificar pendientes:", error);
-        return { hayPendientes: false, total: 0 }; // Fallback silencioso
-    }
+export const checkPendientesDocente = async (params) => {
+    const response = await apiClient.get(`${CALIFICACIONES_ENDPOINT}/pendientes/check`, { params });
+    return response.data.data;
 };
 
+/*
 // Descargar Reporte
 export const descargarReportePendientes = async (vigenciaId) => {
     try {

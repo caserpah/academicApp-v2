@@ -20,6 +20,7 @@ import Docentes from '../components/docentes/Docentes.jsx';
 import Cargas from '../components/cargas/Cargas.jsx';
 import Juicios from '../components/juicios/Juicios.jsx';
 import Calificaciones from '../components/calificaciones/CalificacionesPage.jsx';
+import Nivelaciones from '../components/nivelaciones/NivelacionesPage.jsx';
 import Estudiantes from '../components/estudiantes/Estudiantes.jsx';
 import Acudientes from '../components/acudientes/Acudientes.jsx';
 import AsignarAcudientes from '../components/estudiantes/AcudientesTab.jsx';
@@ -77,6 +78,7 @@ const AppRoutes = () => {
                     {/* === EVALUACIÓN === */}
                     <Route path="juicios" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador", "docente"]}><Juicios /></ProtectedRoute>} />
                     <Route path="calificaciones" element={<ProtectedRoute requiredRole={["admin", "secretaria", "docente"]}><Calificaciones /></ProtectedRoute>} />
+                    <Route path="nivelaciones" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador", "docente"]}><Nivelaciones /></ProtectedRoute>} />
                     <Route path="ventanas" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador"]}><Ventanas /></ProtectedRoute>} />
 
                 </Route>

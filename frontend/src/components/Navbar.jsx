@@ -13,6 +13,7 @@ const Navbar = ({ toggleSidebar }) => {
         '/sedes': 'Institucional / Sedes',
         '/coordinadores': 'Institucional / Coordinadores',
         '/vigencias': 'Institucional / Años Lectivos',
+        '/usuarios': 'Institucional / Usuarios',
         '/areas': 'Académico / Áreas',
         '/asignaturas': 'Académico / Asignaturas',
         '/grupos': 'Académico / Grupos',
@@ -22,8 +23,9 @@ const Navbar = ({ toggleSidebar }) => {
         '/estudiantes': 'Estudiantes / Listado',
         '/acudientes': 'Estudiantes / Acudientes',
         '/calificaciones': 'Evaluación / Calificaciones',
-        '/indicadores': 'Evaluación / Indicadores',
+        '/nivelaciones': 'Evaluación / Recuperaciones',
         '/juicios': 'Evaluación / Juicios',
+        '/ventanas': 'Evaluación / Ventanas',
     };
 
     // Obtenemos el título actual o un defecto

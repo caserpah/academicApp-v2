@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom"; // Importamos Link para la navegación
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faFilePen, faEdit, faChevronLeft, faChevronRight, faUsers, faSearch
+    faFilePen, faEdit, faChevronLeft, faChevronRight, faUsers, faSearch, faLock, faFilter
 } from "@fortawesome/free-solid-svg-icons";
 
 // Hooks y Servicios
@@ -40,7 +40,16 @@ const Matriculas = () => {
     // Estados de filtros y tabla
     const [busqueda, setBusqueda] = useState("");
     const [page, setPage] = useState(1);
-    // const [totalPages, setTotalPages] = useState(1);
+
+    // Estado para filtros avanzados
+    const [filtros, setFiltros] = useState({
+        sedeId: "",
+        estado: "",
+        bloqueo_notas: "",
+        es_nuevo: "",
+        es_repitente: "",
+        situacion_ano_anterior: ""
+    });
 
     // Estado de vigencia activa
     const [vigenciaActiva, setVigenciaActiva] = useState(null);
@@ -92,7 +101,6 @@ const Matriculas = () => {
                 showWarning("No se pudieron cargar algunas listas desplegables.");
             }
         };
-
         cargarDatosMaestros();
     }, []);
 
@@ -100,12 +108,16 @@ const Matriculas = () => {
     // EFECTO: CARGA DE TABLA (Al montar y al cambiar filtros)
     // ----------------------------------------------------------------
     useEffect(() => {
-        // Configuramos un temporizador para no llamar a la API en cada tecla
         const timer = setTimeout(() => {
-            cargarMatriculas({ page, limit: 10, busqueda });
+            cargarMatriculas({
+                page,
+                limit: 20,
+                busqueda,
+                ...filtros // Esparcimos los filtros avanzados
+            });
         }, 500);
         return () => clearTimeout(timer);
-    }, [page, busqueda, cargarMatriculas]);
+    }, [page, busqueda, filtros, cargarMatriculas]); // Agregamos 'filtros' a dependencias
 
     // ----------------------------------------------------------------
     // EFECTO: CARGA DE GRUPOS (Cascada al cambiar Sede)
@@ -130,10 +142,16 @@ const Matriculas = () => {
         cargarGrupos();
     }, [formData.sedeId]);
 
-
     // ----------------------------------------------------------------
     // MANEJADORES
     // ----------------------------------------------------------------
+
+    const handleFiltroChange = (e) => {
+        const { name, value } = e.target;
+        setFiltros(prev => ({ ...prev, [name]: value }));
+        setPage(1); // Resetear a página 1 al filtrar
+    };
+
     const handleBuscarEstudiante = async (termino) => {
         if (!termino || termino.trim().length < 3) {
             showWarning("Ingrese al menos 3 caracteres.");
@@ -164,9 +182,7 @@ const Matriculas = () => {
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-
-        // Para checkboxes, el valor final es el estado checked (true/false)
-        const valorFinal = type === 'checkbox' ? checked : value;
+        const valorFinal = type === 'checkbox' ? checked : value; // Para checkboxes, el valor final es el estado checked (true/false)
 
         if (name === "sedeId") {
             setFormData(prev => ({ ...prev, sedeId: valorFinal, grupoId: "" }));
@@ -191,7 +207,7 @@ const Matriculas = () => {
                 showSuccess("Matrícula actualizada.");
             }
             resetForm();
-            cargarMatriculas({ page, limit: 10, busqueda });
+            cargarMatriculas({ page, limit: 20, busqueda, ...filtros }); // Recargar manteniendo filtros actuales
         } catch (err) {
             showError(err.message || "Error al procesar.");
         }
@@ -230,7 +246,7 @@ const Matriculas = () => {
 
                 showSuccess("Matrícula eliminada exitosamente.");
                 resetForm();
-                cargarMatriculas({ page, limit: 10, busqueda });
+                cargarMatriculas({ page, limit: 20, busqueda, ...filtros });
 
             } catch (err) {
                 showError(err.message || "No se pudo eliminar la matrícula, porque tiene registros asociados.");
@@ -329,21 +345,93 @@ const Matriculas = () => {
                     />
                 </div>
 
-                {/* TABLA */}
+                {/* TABLA Y FILTROS */}
                 <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-lg p-6">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-xl font-semibold text-gray-700 mb-4 pb-3">Matrículas registradas ({paginacion.total})</h2>
+                        <h2 className="text-xl font-semibold text-gray-700 pb-3">
+                            Matrículas registradas ({paginacion.total})
+                        </h2>
+
+                        {/* Buscador General */}
                         <div className="relative w-64">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                                 <FontAwesomeIcon icon={faSearch} />
                             </div>
                             <input
                                 type="text"
-                                placeholder="Buscar..."
+                                placeholder="Buscar estudiante..."
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition"
                                 value={busqueda}
                                 onChange={(e) => { setBusqueda(e.target.value); setPage(1); }}
                             />
+                        </div>
+                    </div>
+
+                    {/* --- Barra de Filtros Avanzados --- */}
+                    <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200 grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-3 text-sm">
+
+                        {/* Filtro Sede */}
+                        <div className="col-span-1 md:col-span-2">
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Sede</label>
+                            <select name="sedeId" value={filtros.sedeId} onChange={handleFiltroChange} className="w-full border-gray-300 rounded-md text-sm p-1.5 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Todas las Sedes</option>
+                                {listasAuxiliares.sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                            </select>
+                        </div>
+
+                        {/* Filtro Estado */}
+                        <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Estado</label>
+                            <select name="estado" value={filtros.estado} onChange={handleFiltroChange} className="w-full border-gray-300 rounded-md text-sm p-1.5">
+                                <option value="">Todos</option>
+                                <option value="ACTIVA">Activa</option>
+                                <option value="PREMATRICULADO">Prematriculado</option>
+                                <option value="RETIRADO">Retirado</option>
+                                <option value="DESERTADO">Desertado</option>
+                            </select>
+                        </div>
+
+                        {/* Filtro Bloqueo */}
+                        <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Bloqueo Notas</label>
+                            <select name="bloqueo_notas" value={filtros.bloqueo_notas} onChange={handleFiltroChange} className="w-full border-gray-300 rounded-md text-sm p-1.5">
+                                <option value="">Todos</option>
+                                <option value="true">Sí (Bloqueado)</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+
+                        {/* Filtro Nuevo */}
+                        <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Es Nuevo</label>
+                            <select name="es_nuevo" value={filtros.es_nuevo} onChange={handleFiltroChange} className="w-full border-gray-300 rounded-md text-sm p-1.5">
+                                <option value="">Todos</option>
+                                <option value="true">Sí</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+
+                        {/* Filtro Repitente */}
+                        <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Es Repitente</label>
+                            <select name="es_repitente" value={filtros.es_repitente} onChange={handleFiltroChange} className="w-full border-gray-300 rounded-md text-sm p-1.5">
+                                <option value="">Todos</option>
+                                <option value="true">Sí</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+
+                        {/* Botón Limpiar - Ocupa todo el ancho en móvil o automático */}
+                        <div className="col-span-1 md:col-span-4 lg:col-span-6 flex justify-end mt-2">
+                            <button
+                                onClick={() => {
+                                    setFiltros({ sedeId: "", estado: "", bloqueo_notas: "", es_nuevo: "", es_repitente: "", situacion_ano_anterior: "" });
+                                    setPage(1);
+                                }}
+                                className="text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center"
+                            >
+                                <FontAwesomeIcon icon={faFilter} className="mr-1" /> Limpiar Filtros
+                            </button>
                         </div>
                     </div>
 
@@ -356,7 +444,12 @@ const Matriculas = () => {
                                     <tr>
                                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Folio</th>
                                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estudiante</th>
-                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grupo</th>
+                                        {/* Columna Sede / Grupo Combinada */}
+                                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sede / Grupo</th>
+                                        {/* Columna Bloqueo */}
+                                        <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase" title="Bloqueo de Notas">
+                                            <FontAwesomeIcon icon={faLock} />
+                                        </th>
                                         <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
                                         <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
                                     </tr>
@@ -365,20 +458,34 @@ const Matriculas = () => {
                                     {matriculas.length > 0 ? (
                                         matriculas.map((mat, i) => (
                                             <tr key={mat.id} className={i % 2 === 0 ? "bg-white hover:bg-blue-50" : "bg-gray-50 hover:bg-blue-50"}>
-                                                <td className="px-3 py-3 text-gray-500 font-mono text-xs">{mat.folio}</td>
+                                                <td className="px-3 py-3 text-gray-500 font-mono text-xs whitespace-nowrap">{mat.folio}</td>
+
                                                 <td className="px-3 py-3 text-sm font-medium">
                                                     {mat.estudiante?.primerApellido} {mat.estudiante?.primerNombre}
                                                     <div className="text-xs text-gray-400">{mat.estudiante?.documento}</div>
                                                 </td>
+
+                                                {/* Columna Sede y Grupo */}
                                                 <td className="px-3 py-3 text-sm text-gray-600">
+                                                    <div className="font-bold text-xs text-gray-800">{mat.sede?.nombre}</div>
                                                     {mat.grupo ? (
-                                                        <>
-                                                            <span className="font-semibold text-xs text-blue-600 block">{mat.grupo.grado?.nombre}</span>
-                                                            {mat.grupo.nombre} - {mat.grupo.jornada}
-                                                        </>
-                                                    ) : "Sin Grupo"}
+                                                        <span className="text-xs text-blue-600 block mt-0.5">
+                                                            {mat.grupo.grado?.nombre} - {mat.grupo.nombre} <span className="text-gray-400">({mat.grupo.jornada?.substring(0, 1)})</span>
+                                                        </span>
+                                                    ) : <span className="text-xs text-gray-400 italic">Sin Grupo</span>}
                                                 </td>
+
+                                                {/* Columna Bloqueo (Icono) */}
+                                                <td className="px-3 py-3 text-center">
+                                                    {mat.bloqueo_notas ? (
+                                                        <FontAwesomeIcon icon={faLock} className="text-red-500" title="Notas Bloqueadas" />
+                                                    ) : (
+                                                        <span className="text-gray-300 text-xs">-</span>
+                                                    )}
+                                                </td>
+
                                                 <td className="px-3 py-3 text-center">{getStatusBadge(mat.estado)}</td>
+
                                                 <td className="px-3 py-3 text-right">
                                                     <button onClick={() => handleEdit(mat)} className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50 transition">
                                                         <FontAwesomeIcon icon={faEdit} />
@@ -388,7 +495,9 @@ const Matriculas = () => {
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="5" className="px-6 py-8 text-center text-gray-500">No se encontraron matrículas registradas.</td>
+                                            <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                                                No se encontraron matrículas con los filtros actuales.
+                                            </td>
                                         </tr>
                                     )}
                                 </tbody>

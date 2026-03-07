@@ -238,11 +238,14 @@ export const calificacionService = {
                     // Si el input no viene (undefined), no se está intentando cambiar ese campo
                     if (valInput === undefined) return false;
 
-                    const numDB = parseFloat(valDB || 1.0);
-                    const numInput = parseFloat(valInput || 1.0);
+                    // Convertimos strings vacíos a null para comparar limpiamente
+                    const inputLimpio = valInput === "" ? null : valInput;
+
+                    if (valDB == null && inputLimpio == null) return false;
+                    if (valDB == null || inputLimpio == null) return true; // Si uno es null y el otro no, hubo cambio
 
                     // Si son diferentes (con margen de error mínimo para decimales)
-                    return Math.abs(numDB - numInput) > 0.001;
+                    return Math.abs(parseFloat(valDB) - parseFloat(inputLimpio)) > 0.001;
                 };
 
                 const cambioNotas =
@@ -309,44 +312,68 @@ export const calificacionService = {
 
             // Cálculos y Búsqueda de Juicios
             if (esComportamiento) {
-                const def = parseFloat(data.notaDefinitivaInput || 1.0);
-                const juicio = await _obtenerJuicio(def, rangos, contextJuicio, DIM.COMPORTAMIENTO); // Pasamos ID 999 (COMPORTAMIENTO) explícitamente
+                // Si no viene nota, lo dejamos como null
+                const def = data.notaDefinitivaInput ? parseFloat(data.notaDefinitivaInput) : null;
+                const juicio = def ? await _obtenerJuicio(def, rangos, contextJuicio, DIM.COMPORTAMIENTO) : "PENDIENTE";
 
                 Object.assign(dataToSave, {
-                    notaDefinitiva: def.toFixed(2),
-                    notaAcademica: def, promedioAcademica: 0, juicioAcademica: juicio,
-                    notaAcumulativa: 0, promedioAcumulativa: 0, juicioAcumulativa: "NO APLICA",
-                    notaLaboral: 0, promedioLaboral: 0, juicioLaboral: "NO APLICA",
-                    notaSocial: 0, promedioSocial: 0, juicioSocial: "NO APLICA",
+                    notaDefinitiva: def ? def.toFixed(2) : null,
+                    notaAcademica: def ? def.toFixed(2) : null,
+                    promedioAcademica: null,
+                    juicioAcademica: juicio,
+                    notaAcumulativa: null, promedioAcumulativa: null, juicioAcumulativa: "NO APLICA",
+                    notaLaboral: null, promedioLaboral: null, juicioLaboral: "NO APLICA",
+                    notaSocial: null, promedioSocial: null, juicioSocial: "NO APLICA",
                 });
 
             } else {
-                const nAcad = parseFloat(data.notaAcademica || 1.0);
-                const nAcum = parseFloat(data.notaAcumulativa || 1.0);
-                const nLab = parseFloat(data.notaLaboral || 1.0);
-                const nSoc = parseFloat(data.notaSocial || 1.0);
+                // Aceptamos null si la nota viene vacía
+                const nAcad = data.notaAcademica ? parseFloat(data.notaAcademica) : null;
+                const nAcum = data.notaAcumulativa ? parseFloat(data.notaAcumulativa) : null;
+                const nLab = data.notaLaboral ? parseFloat(data.notaLaboral) : null;
+                const nSoc = data.notaSocial ? parseFloat(data.notaSocial) : null;
 
-                const pAcad = nAcad * PORCENTAJES.ACADEMICA;
-                const pAcum = nAcum * PORCENTAJES.ACUMULATIVA;
-                const pLab = nLab * PORCENTAJES.LABORAL;
-                const pSoc = nSoc * PORCENTAJES.SOCIAL;
-                const definitiva = pAcad + pAcum + pLab + pSoc;
+                // Calculamos el aporte (promedio) SOLO si la nota existe, si no, es null
+                const pAcad = nAcad !== null ? (nAcad * PORCENTAJES.ACADEMICA) : null;
+                const pAcum = nAcum !== null ? (nAcum * PORCENTAJES.ACUMULATIVA) : null;
+                const pLab = nLab !== null ? (nLab * PORCENTAJES.LABORAL) : null;
+                const pSoc = nSoc !== null ? (nSoc * PORCENTAJES.SOCIAL) : null;
 
-                // Calculamos juicios pasando el contexto
-                // Usamos await Promise.all para hacerlo paralelo y más rápido
+                let definitiva = null;
+
+                // Solo calculamos definitiva si hay AL MENOS una nota digitada
+                if (nAcad !== null || nAcum !== null || nLab !== null || nSoc !== null) {
+                    // Para la suma matemática SÍ usamos un 0 temporal (|| 0)
+                    definitiva = (pAcad || 0) + (pAcum || 0) + (pLab || 0) + (pSoc || 0);
+                    if (definitiva >= 2.96 && definitiva < 3.0) { definitiva = 3.0; }
+                }
+
                 const [jAcad, jAcum, jLab, jSoc] = await Promise.all([
-                    _obtenerJuicio(nAcad, rangos, contextJuicio, DIM.ACADEMICA),   // ID 1
-                    _obtenerJuicio(nAcum, rangos, contextJuicio, DIM.ACUMULATIVA), // ID 4
-                    _obtenerJuicio(nLab, rangos, contextJuicio, DIM.LABORAL),      // ID 3
-                    _obtenerJuicio(nSoc, rangos, contextJuicio, DIM.SOCIAL)        // ID 2
+                    _obtenerJuicio(nAcad, rangos, contextJuicio, DIM.ACADEMICA),
+                    _obtenerJuicio(nAcum, rangos, contextJuicio, DIM.ACUMULATIVA),
+                    _obtenerJuicio(nLab, rangos, contextJuicio, DIM.LABORAL),
+                    _obtenerJuicio(nSoc, rangos, contextJuicio, DIM.SOCIAL)
                 ]);
 
                 Object.assign(dataToSave, {
-                    notaAcademica: nAcad.toFixed(2), promedioAcademica: pAcad.toFixed(2), juicioAcademica: jAcad,
-                    notaAcumulativa: nAcum.toFixed(2), promedioAcumulativa: pAcum.toFixed(2), juicioAcumulativa: jAcum,
-                    notaLaboral: nLab.toFixed(2), promedioLaboral: pLab.toFixed(2), juicioLaboral: jLab,
-                    notaSocial: nSoc.toFixed(2), promedioSocial: pSoc.toFixed(2), juicioSocial: jSoc,
-                    notaDefinitiva: definitiva.toFixed(2)
+                    // Ahora guardamos pAcad, pAcum, etc. que serán null si la nota era null
+                    notaAcademica: nAcad ? nAcad.toFixed(2) : null,
+                    promedioAcademica: pAcad !== null ? pAcad.toFixed(2) : null,
+                    juicioAcademica: jAcad,
+
+                    notaAcumulativa: nAcum ? nAcum.toFixed(2) : null,
+                    promedioAcumulativa: pAcum !== null ? pAcum.toFixed(2) : null,
+                    juicioAcumulativa: jAcum,
+
+                    notaLaboral: nLab ? nLab.toFixed(2) : null,
+                    promedioLaboral: pLab !== null ? pLab.toFixed(2) : null,
+                    juicioLaboral: jLab,
+
+                    notaSocial: nSoc ? nSoc.toFixed(2) : null,
+                    promedioSocial: pSoc !== null ? pSoc.toFixed(2) : null,
+                    juicioSocial: jSoc,
+
+                    notaDefinitiva: definitiva ? definitiva.toFixed(2) : null
                 });
             }
 
@@ -760,50 +787,74 @@ export const calificacionService = {
 
                     // --- LOGICA CONDICIONAL DE LECTURA ---
                     if (meta.esComp) {
-                        const notaVal = parseFloat(v(2) || 1.0); // Col C (Index 2) es la NOTA
-                        const juicio = await _obtenerJuicio(notaVal, rangosCache, contextJuicio, DIM.COMPORTAMIENTO);
+                        const notaVal = v(2) ? parseFloat(v(2)) : null; // Col C (Index 2) es la NOTA
+                        const juicio = notaVal ? await _obtenerJuicio(notaVal, rangosCache, contextJuicio, DIM.COMPORTAMIENTO) : "PENDIENTE";
 
                         dataToSave = {
                             ...dataToSave,
-                            notaDefinitiva: notaVal.toFixed(2),
+                            notaDefinitiva: notaVal ? notaVal.toFixed(2) : null,
 
                             // REUTILIZACIÓN DE CAMPOS (Espejo de procesarGuardado)
-                            notaAcademica: notaVal.toFixed(2), // Guardamos la nota también aquí
-                            promedioAcademica: 0,              // Promedio en 0 para no afectar cálculos globales si los hubiera
-                            juicioAcademica: juicio, notaAcumulativa: 0,
-                            promedioAcumulativa: 0, juicioAcumulativa: "NO APLICA",
-                            notaLaboral: 0, promedioLaboral: 0, juicioLaboral: "NO APLICA",
-                            notaSocial: 0, promedioSocial: 0, juicioSocial: "NO APLICA",
+                            notaAcademica: notaVal ? notaVal.toFixed(2) : null, // Guardamos la nota también aquí
+                            promedioAcademica: null,              // Promedio en 0 para no afectar cálculos globales si los hubiera
+                            juicioAcademica: juicio,
+                            notaAcumulativa: null, promedioAcumulativa: null, juicioAcumulativa: "NO APLICA",
+                            notaLaboral: null, promedioLaboral: null, juicioLaboral: "NO APLICA",
+                            notaSocial: null, promedioSocial: null, juicioSocial: "NO APLICA",
                             fallas: 0
                         };
 
                     } else {
                         // --- CASO ASIGNATURA NORMAL ---
-                        // Extraer notas (Promedios calculados por Excel)
-                        const pAcad = parseFloat(v(8) || 1.0);
-                        const nAcum = parseFloat(v(9) || 1.0);
-                        const pLab = parseFloat(v(14) || 1.0);
-                        const pSoc = parseFloat(v(19) || 1.0);
-                        const fallas = parseInt(v(21) || 0); // Fallas
+                        // Extraer notas (Aceptamos null si vienen vacías)
+                        const nAcad = v(8) ? parseFloat(v(8)) : null;
+                        const nAcum = v(9) ? parseFloat(v(9)) : null;
+                        const nLab = v(14) ? parseFloat(v(14)) : null;
+                        const nSoc = v(19) ? parseFloat(v(19)) : null;
+                        const fallas = parseInt(v(21) || 0);
+
+                        // Porcentajes para base de datos (conservan el null)
+                        const pAcad = nAcad !== null ? (nAcad * 0.50) : null;
+                        const pAcum = nAcum !== null ? (nAcum * 0.20) : null;
+                        const pLab = nLab !== null ? (nLab * 0.15) : null;
+                        const pSoc = nSoc !== null ? (nSoc * 0.15) : null;
 
                         // Cálculo nota definitiva
-                        const def = (pAcad * 0.50) + (nAcum * 0.20) + (pLab * 0.15) + (pSoc * 0.15);
+                        let def = null;
+                        // Solo calculamos si al menos digitó una nota en esa fila
+                        if (nAcad !== null || nAcum !== null || nLab !== null || nSoc !== null) {
+                            // Sumamos usando ceros temporales
+                            def = (pAcad || 0) + (pAcum || 0) + (pLab || 0) + (pSoc || 0);
+                            if (def >= 2.96 && def < 3.0) def = 3.0;
+                        }
 
                         // Calcular juicios (Promise.all para velocidad)
                         const [jAcad, jAcum, jLab, jSoc] = await Promise.all([
-                            _obtenerJuicio(pAcad, rangosCache, contextJuicio, DIM.ACADEMICA),
+                            _obtenerJuicio(nAcad, rangosCache, contextJuicio, DIM.ACADEMICA),
                             _obtenerJuicio(nAcum, rangosCache, contextJuicio, DIM.ACUMULATIVA),
-                            _obtenerJuicio(pLab, rangosCache, contextJuicio, DIM.LABORAL),
-                            _obtenerJuicio(pSoc, rangosCache, contextJuicio, DIM.SOCIAL)
+                            _obtenerJuicio(nLab, rangosCache, contextJuicio, DIM.LABORAL),
+                            _obtenerJuicio(nSoc, rangosCache, contextJuicio, DIM.SOCIAL)
                         ]);
 
                         dataToSave = {
                             ...dataToSave,
-                            notaAcademica: pAcad.toFixed(2), promedioAcademica: (pAcad * 0.5).toFixed(2), juicioAcademica: jAcad,
-                            notaAcumulativa: nAcum.toFixed(2), promedioAcumulativa: (nAcum * 0.2).toFixed(2), juicioAcumulativa: jAcum,
-                            notaLaboral: pLab.toFixed(2), promedioLaboral: (pLab * 0.15).toFixed(2), juicioLaboral: jLab,
-                            notaSocial: pSoc.toFixed(2), promedioSocial: (pSoc * 0.15).toFixed(2), juicioSocial: jSoc,
-                            notaDefinitiva: def.toFixed(2),
+                            notaAcademica: nAcad ? nAcad.toFixed(2) : null,
+                            promedioAcademica: pAcad !== null ? pAcad.toFixed(2) : null,
+                            juicioAcademica: jAcad,
+
+                            notaAcumulativa: nAcum ? nAcum.toFixed(2) : null,
+                            promedioAcumulativa: pAcum !== null ? pAcum.toFixed(2) : null,
+                            juicioAcumulativa: jAcum,
+
+                            notaLaboral: nLab ? nLab.toFixed(2) : null,
+                            promedioLaboral: pLab !== null ? pLab.toFixed(2) : null,
+                            juicioLaboral: jLab,
+
+                            notaSocial: nSoc ? nSoc.toFixed(2) : null,
+                            promedioSocial: pSoc !== null ? pSoc.toFixed(2) : null,
+                            juicioSocial: jSoc,
+
+                            notaDefinitiva: def ? def.toFixed(2) : null,
                             fallas: fallas,
                             recomendacionUno: v(22) ? recomendacionesCache.get(v(22)) : null,
                             recomendacionDos: v(23) ? recomendacionesCache.get(v(23)) : null
@@ -835,123 +886,95 @@ export const calificacionService = {
     },
 
     /**
-     * LÓGICA CORE: Detectar Pendientes
-     * 1. Identifica periodos ya cerrados.
-     * 2. Cruza Estudiantes vs Notas Existentes.
-     * 3. Retorna lista de faltantes.
+     * AUDITORÍA DE DOCENTES: Busca estudiantes a los que les falten notas en periodos anteriores.
+     * Agrupado por estudiante e incluyendo el nombre de la Asignatura.
      */
-    /*async detectarPendientes(docenteId, vigenciaId, soloConteo = true) {
-        // 1. Obtener Periodos Cerrados (Fecha Fin < Hoy)
-        const hoy = new Date().toISOString().split('T')[0];
+    async auditarNotasPendientesAnteriores(grupoId, asignaturaId, periodoActual, vigenciaId) {
+        // Si es el periodo 1, no hay periodos anteriores que auditar
+        if (periodoActual <= 1) return { hayPendientes: false, detalles: [] };
 
-        const ventanas = await VentanaCalificacion.findAll({
-            where: { vigenciaId },
-            attributes: ['periodo', 'fechaFin'],
-            order: [['periodo', 'ASC']]
+        const periodosAnteriores = Array.from({ length: periodoActual - 1 }, (_, i) => i + 1);
+
+        // 1. Obtener el nombre de la asignatura para el reporte
+        const asignatura = await Asignatura.findByPk(asignaturaId);
+        const asignaturaNombre = asignatura ? asignatura.nombre : "Asignatura desconocida";
+
+        // Determinamos si es comportamiento usando tu helper
+        const esComportamiento = _esComportamiento(asignaturaNombre);
+
+        // 2. Obtener estudiantes activos del grupo
+        const todasLasMatriculas = await calificacionRepository.findMatriculasPorGrupo(grupoId, vigenciaId);
+
+        // Filtramos y sacamos de la lista a los estudiantes con bloqueo_notas
+        const matriculas = todasLasMatriculas.filter(m => !m.bloqueo_notas);
+
+        if (matriculas.length === 0) return { hayPendientes: false, detalles: [] };
+
+        const estudiantesIds = matriculas.map(m => m.estudiante.id);
+
+        // 3. Obtener las notas que SÍ existen para esos estudiantes en periodos anteriores
+        const notasExistentes = await calificacionRepository.findCalificacionesPorEstudiantes(
+            estudiantesIds, asignaturaId, periodosAnteriores, vigenciaId
+        );
+
+        // Diccionario rápido: dict[estId][periodo] = true
+        const notasDict = {};
+        notasExistentes.forEach(n => {
+            let notaCompletada = false;
+
+            if (esComportamiento) {
+                // Comportamiento solo exige que exista la nota definitiva
+                notaCompletada = n.notaDefinitiva !== null;
+            } else {
+                // Las materias normales EXIGEN las 4 notas parciales
+                notaCompletada = (
+                    n.notaAcademica !== null &&
+                    n.notaAcumulativa !== null &&
+                    n.notaLaboral !== null &&
+                    n.notaSocial !== null
+                );
+            }
+
+            // SOLO si la nota está 100% completa, le decimos al auditor que todo está en orden.
+            // Si le falta aunque sea UN componente, no la registramos, forzando a que salga la alerta naranja.
+            if (notaCompletada) {
+                if (!notasDict[n.estudianteId]) notasDict[n.estudianteId] = {};
+                notasDict[n.estudianteId][n.periodo] = true;
+            }
         });
 
-        // Filtramos solo los periodos que YA pasaron.
-        const periodosCerrados = ventanas
-            .filter(v => v.fechaFin < hoy)
-            .map(v => v.periodo);
+        const detalles = [];
+        let totalFaltantes = 0; // Contador para el total de notas faltantes
 
-        // Si no hay periodos cerrados, no hay pendientes históricos.
-        if (periodosCerrados.length === 0) {
-            return { hayPendientes: false, total: 0, detalles: [] };
-        }
+        // 3. Cruzar y buscar los vacíos por estudiante y periodo
+        matriculas.forEach(m => {
+            const periodosFaltantesDelEstudiante = [];
 
-        // 2. Obtener UNIVERSO ESPERADO (Cargas + Estudiantes)
-        const cargas = await calificacionRepository.findCargasConEstudiantes(docenteId, vigenciaId);
-
-        // 3. Obtener UNIVERSO EXISTENTE (Notas en BD)
-        // Traemos todas las notas de esos periodos para optimizar (una sola consulta)
-        const notasExistentes = await calificacionRepository.findLlavesCalificacionesDocente(docenteId, vigenciaId, periodosCerrados);
-
-        // Creamos un Set para búsqueda instantánea O(1).
-        // Clave única: "ESTUDIANTE_ID - ASIGNATURA_ID - PERIODO"
-        const mapaNotas = new Set(notasExistentes.map(n => `${n.estudianteId}-${n.asignaturaId}-${n.periodo}`));
-
-        const pendientes = [];
-
-        // 4. CRUCE DE INFORMACIÓN (Diferencia de Conjuntos)
-        for (const carga of cargas) {
-            // Si el grupo no tiene matrículas, saltamos
-            if (!carga.grupo || !carga.grupo.matriculas) continue;
-
-            const asignaturaId = carga.asignatura.id;
-            const nombreAsignatura = carga.asignatura.nombre;
-            // Formato: "6-A" o "11-B" (Grado + Grupo)
-            const nombreGrupo = `${carga.grupo.grado.nombre} ${carga.grupo.nombre}`;
-
-            for (const matricula of carga.grupo.matriculas) {
-                const est = matricula.estudiante;
-
-                // Verificamos CADA periodo cerrado para este estudiante
-                for (const periodo of periodosCerrados) {
-                    const llaveBusqueda = `${est.id}-${asignaturaId}-${periodo}`;
-
-                    // ¿Existe la nota?
-                    if (!mapaNotas.has(llaveBusqueda)) {
-
-                        // ¡NO EXISTE! Es un pendiente.
-                        pendientes.push({
-                            estudiante: `${est.primerApellido} ${est.segundoApellido || ''} ${est.primerNombre} ${est.segundoNombre || ''}`.trim(),
-                            gradoGrupo: nombreGrupo,
-                            asignatura: nombreAsignatura,
-                            periodo: periodo
-                        });
-                    }
+            periodosAnteriores.forEach(per => {
+                if (!notasDict[m.estudiante.id]?.[per]) {
+                    periodosFaltantesDelEstudiante.push(per);
+                    totalFaltantes++;
                 }
+            });
+
+            // Si le falta al menos un periodo, lo agregamos al reporte
+            if (periodosFaltantesDelEstudiante.length > 0) {
+                detalles.push({
+                    estudianteId: m.estudiante.id,
+                    documento: m.estudiante.documento,
+                    nombreCompleto: `${m.estudiante.primerApellido} ${m.estudiante.primerNombre}`,
+                    asignatura: asignaturaNombre, // Agregamos la asignatura
+                    periodosFaltantes: periodosFaltantesDelEstudiante.join(", ") // Ej: "1, 2"
+                });
             }
-        }
+        });
 
         return {
-            hayPendientes: pendientes.length > 0,
-            total: pendientes.length,
-            detalles: pendientes // Array con el detalle (vacío si no hay)
+            hayPendientes: detalles.length > 0,
+            totalFaltantes, // Total de casillas en blanco
+            totalEstudiantes: detalles.length, // Total de alumnos involucrados
+            detalles
         };
-    },*/
-
-    /**
-     * Generar Excel de Pendientes
-     * Reutiliza la lógica de detección y lo plasma en un archivo.
-     */
-    /*async generarReportePendientes(docenteId, vigenciaId) {
-        // Forzamos soloConteo = false para obtener los detalles
-        const { detalles } = await this.detectarPendientes(docenteId, vigenciaId, false);
-
-        if (detalles.length === 0) throw new Error("¡Felicidades! No tienes calificaciones pendientes.");
-
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Pendientes Acumulados');
-
-        // Definir Columnas
-        worksheet.columns = [
-            { header: 'Periodo', key: 'periodo', width: 10 },
-            { header: 'Grado y Grupo', key: 'gradoGrupo', width: 25 },
-            { header: 'Asignatura', key: 'asignatura', width: 30 },
-            { header: 'Estudiante', key: 'estudiante', width: 40 },
-        ];
-
-        // Estilos del Encabezado (Rojo Alerta)
-        const headerRow = worksheet.getRow(1);
-        headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
-        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'DC2626' } }; // Rojo
-        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // Agregar Datos
-        detalles.forEach(d => {
-            worksheet.addRow(d);
-        });
-
-        // Bordes simples
-        worksheet.eachRow((row, rowNumber) => {
-            row.eachCell((cell) => {
-                cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-            });
-        });
-
-        return workbook.xlsx.writeBuffer();
-    }*/
+    }
 
 };

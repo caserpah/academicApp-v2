@@ -57,7 +57,6 @@ router.post(
     calificacionController.importar
 );
 
-/* Rutas para Reporte de estudiantes con notas pendientes (aún no implementadas en frontend)
 // Alerta de pendientes (Check ligero para la alerta visual)
 router.get(
     "/pendientes/check",
@@ -66,6 +65,7 @@ router.get(
     calificacionController.checkPendientes
 );
 
+/*
 // Reporte detallado de pendientes (para el modal)
 router.get(
     "/pendientes/reporte",

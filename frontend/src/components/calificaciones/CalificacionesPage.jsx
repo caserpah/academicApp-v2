@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faFileExcel, faClipboardCheck, faFilter, faDownload,
-    faUpload, faSpinner, faSchool, faEraser
+    faUpload, faSpinner, faSchool, faEraser, faExclamationTriangle
 } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../../context/AuthContext.jsx";
 
@@ -12,7 +12,7 @@ import {
     guardarCalificacion,
     fetchBancoRecomendaciones,
     descargarPlantillaDocente,
-    //checkPendientesDocente,
+    checkPendientesDocente,
     //descargarReportePendientes
 } from "../../api/calificacionesService.js";
 
@@ -64,8 +64,11 @@ const CalificacionesPage = () => {
     // Estado del modal para importar calificaciones
     const [showImportModal, setShowImportModal] = useState(false);
 
-    /*/ Estado para alerta de estudiantes con Calificaciones Pendientes
-    const [alertaPendientes, setAlertaPendientes] = useState({ show: false, count: 0 });*/
+    // Estado para alerta de estudiantes con Calificaciones Pendientes
+    const [alertaPendientes, setAlertaPendientes] = useState({ show: false, count: 0 });
+
+    // Estado para mostrar el modal con la lista completa de pendientes del docente
+    const [showModalPendientes, setShowModalPendientes] = useState(false);
 
     // --- CARGA INICIAL DE CATÁLOGOS ---
     useEffect(() => {
@@ -90,18 +93,6 @@ const CalificacionesPage = () => {
                 if (data.sedes.length === 1) {
                     setFilters(prev => ({ ...prev, sedeId: data.sedes[0].id }));
                 }
-
-                /* Esta lógica se mantiene comentada porque aún no se ha definido la ruta en el frontend,
-                pero la función ya está implementada en el servicio. */
-
-                // Check para docentes: ¿Tienes estudiantes con notas pendientes de calificar?
-                /*if (rolUsuario === 'docente' && data.vigencia) {
-                    // Hacemos el ping ligero
-                    const status = await checkPendientesDocente(data.vigencia.id);
-                    if (status.hayPendientes) {
-                        setAlertaPendientes({ show: true, count: status.total });
-                    }
-                }*/
 
             } catch (err) {
                 showError("No se pudieron cargar los datos iniciales.");
@@ -169,7 +160,8 @@ const CalificacionesPage = () => {
         const { grupoId, asignaturaId, periodo } = filters;
 
         if (!grupoId || !asignaturaId || !periodo || !vigencia?.id) {
-            setStudentsData([]); // Limpiar si faltan datos
+            setStudentsData([]);
+            setAlertaPendientes({ show: false, data: null }); // Limpiamos la alerta
             return;
         }
 
@@ -177,6 +169,18 @@ const CalificacionesPage = () => {
             setLoadingGrilla(true);
             const data = await fetchGrillaCalificaciones({ ...filters, vigenciaId: vigencia.id });
             setStudentsData(data);
+
+            // --- CHECK DE VUELO DEL DOCENTE ---
+            if (parseInt(periodo) > 1) {
+                const auditoria = await checkPendientesDocente({ grupoId, asignaturaId, periodo });
+                if (auditoria.hayPendientes) {
+                    setAlertaPendientes({ show: true, data: auditoria });
+                } else {
+                    setAlertaPendientes({ show: false, data: null });
+                }
+            } else {
+                setAlertaPendientes({ show: false, data: null });
+            }
         } catch (err) {
             showError("Error al cargar la planilla de calificaciones.");
             console.error(err);
@@ -313,33 +317,6 @@ const CalificacionesPage = () => {
                     )}
                 </div>
 
-                {/* ========================================================== */}
-                {/* COMPONENTE VISUAL: ALERTA DE CALIFICACIONES PENDIENTES.
-                    NO SE MUESTRA POR AHORA, PERO LA LÓGICA YA ESTÁ IMPLEMENTADA EN EL BACKEND Y SE PUEDE ACTIVAR CUANDO SE DESEE.*/}
-                {/* ========================================================== */}
-                {/* {alertaPendientes.show && (
-                    <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in">
-                        <div className="flex items-center gap-3">
-                            <FontAwesomeIcon icon={faExclamationCircle} className="text-red-500 text-2xl" />
-                            <div>
-                                <p className="text-sm font-bold text-red-800">
-                                    Notas Pendientes de Periodos Anteriores
-                                </p>
-                                <p className="text-sm text-red-700 mt-1">
-                                    El sistema ha detectado <span className="font-bold underline">{alertaPendientes.count} estudiantes</span> matriculados sin calificación en periodos ya cerrados.
-                                </p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={handleDownloadReportePendientes}
-                            className="whitespace-nowrap bg-white hover:bg-red-50 text-red-700 text-xs font-bold py-2 px-4 rounded border border-red-200 shadow-sm transition-colors flex items-center gap-2"
-                        >
-                            <FontAwesomeIcon icon={faDownload} />
-                            Descargar Informe Detallado
-                        </button>
-                    </div>
-                )} */}
-
                 {/* Filtros: Ahora son 4 Columnas */}
                 <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
@@ -430,20 +407,22 @@ const CalificacionesPage = () => {
                         <span className="font-semibold">Gestión Masiva de Notas (Excel)</span>
                     </div>
 
-                    {/* Botón Descargar (Requiere periodo) */}
-                    <button
-                        onClick={handleDescargarPlantilla}
-                        disabled={!filters.periodo}
-                        className={`px-4 py-2 rounded-lg shadow-sm text-sm font-bold flex items-center gap-2 transition-all
+                    {/* Botón Descargar (SOLO DOCENTES y requiere periodo) */}
+                    {rolUsuario === 'docente' && (
+                        <button
+                            onClick={handleDescargarPlantilla}
+                            disabled={!filters.periodo}
+                            className={`px-4 py-2 rounded-lg shadow-sm text-sm font-bold flex items-center gap-2 transition-all
                             ${!filters.periodo
-                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-white text-blue-700 border border-blue-200 hover:bg-blue-50 hover:shadow-md'
-                            }`}
-                        title={!filters.periodo ? "Selecciona un periodo primero" : "Descargar planilla completa con todas tus asignaturas"}
-                    >
-                        <FontAwesomeIcon icon={faDownload} />
-                        Descargar Mi Planilla
-                    </button>
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    : 'bg-white text-blue-700 border border-blue-200 hover:bg-blue-50 hover:shadow-md'
+                                }`}
+                            title={!filters.periodo ? "Selecciona un periodo primero" : "Descargar planilla completa con todas tus asignaturas"}
+                        >
+                            <FontAwesomeIcon icon={faDownload} />
+                            Descargar Mi Planilla
+                        </button>
+                    )}
 
                     {/* Botón Importar (Global) */}
                     <button
@@ -455,6 +434,32 @@ const CalificacionesPage = () => {
                         Subir Planilla
                     </button>
                 </div>
+
+                {/* ALERTA DE NOTAS PENDIENTES */}
+                {alertaPendientes.show && alertaPendientes.data && (
+                    <div className="mb-4 p-4 bg-orange-50 border-l-4 border-orange-500 rounded-r-lg shadow-sm flex items-center justify-between gap-4">
+                        <div className="flex items-start gap-3">
+                            <FontAwesomeIcon icon={faExclamationTriangle} className="text-orange-500 mt-1" />
+                            <div>
+                                <h4 className="text-sm font-bold text-orange-800">
+                                    ¡Atención! Tienes estudiantes con notas pendientes en periodos anteriores.
+                                </h4>
+                                <p className="text-xs text-orange-700 mt-0.5">
+                                    Se detectaron <strong>{alertaPendientes.data.totalFaltantes}</strong> calificaciones en blanco
+                                    distribuidas en <strong>{alertaPendientes.data.totalEstudiantes}</strong> estudiantes.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* BOTÓN PARA VER LISTA COMPLETA */}
+                        <button
+                            onClick={() => setShowModalPendientes(true)}
+                            className="whitespace-nowrap text-xs bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded shadow-sm transition-colors focus:ring-2 focus:ring-orange-300"
+                        >
+                            Ver listado completo
+                        </button>
+                    </div>
+                )}
 
                 {/* Grilla */}
                 <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden min-h-[400px]">
@@ -502,6 +507,61 @@ const CalificacionesPage = () => {
                 )}
 
             </div>
+
+            {/* ========================================================= */}
+            {/* MODAL PARA DOCENTES: LISTA COMPLETA DE PENDIENTES         */}
+            {/* ========================================================= */}
+            {showModalPendientes && alertaPendientes.data && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden border-t-4 border-orange-500">
+                        <div className="p-4 border-b border-gray-100 bg-orange-50 flex justify-between items-center">
+                            <h3 className="text-lg font-bold text-orange-800 flex items-center gap-2">
+                                <FontAwesomeIcon icon={faExclamationTriangle} className="text-orange-500" />
+                                Estudiantes con notas pendientes
+                            </h3>
+                            <button onClick={() => setShowModalPendientes(false)} className="text-gray-400 hover:text-red-500">
+                                <FontAwesomeIcon icon="times" />
+                            </button>
+                        </div>
+
+                        <div className="p-4">
+                            <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg shadow-inner">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-100 sticky top-0">
+                                        <tr>
+                                            <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Documento</th>
+                                            <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Estudiante</th>
+                                            <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Asignatura</th>
+                                            <th className="px-4 py-2 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Periodos Pendientes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200 text-sm">
+                                        {alertaPendientes.data.detalles.map((item, index) => (
+                                            <tr key={index} className="hover:bg-orange-50/50 transition-colors">
+                                                <td className="px-4 py-2 whitespace-nowrap text-gray-500">{item.documento}</td>
+                                                <td className="px-4 py-2 whitespace-nowrap text-gray-800 font-medium">{item.nombreCompleto}</td>
+                                                <td className="px-4 py-2 whitespace-nowrap text-gray-600">{item.asignatura}</td>
+                                                <td className="px-4 py-2 whitespace-nowrap text-center font-bold text-orange-600">
+                                                    {item.periodosFaltantes}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-gray-50 border-t border-gray-300 flex justify-end">
+                            <button
+                                onClick={() => setShowModalPendientes(false)}
+                                className="bg-red-500 text-white px-5 py-2 rounded-lg shadow-md hover:bg-red-600 transition duration-150 flex items-center hover:scale-[1.01]"
+                            >
+                                Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
