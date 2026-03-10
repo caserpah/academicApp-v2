@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{{configuracionImpresion.tituloBoletin}}</title>
+    <style>
+        /* =======================================================
+            1. ESTILOS GLOBALES Y DE PÁGINA
+           ======================================================= */
+        @page {
+            margin: 10mm;
+            /* Márgenes estrictos para aprovechar la hoja A4 */
+        }
+
+        /* Contenedor del encabezado con logo, textos y rangos */
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .header-logo {
+            width: 15%;
+            text-align: left;
+        }
+
+        .header-logo img {
+            max-height: 70px;
+            max-width: 100%;
+        }
+
+        .header-textos {
+            width: 65%;
+            text-align: center;
+        }
+
+        .header-textos h2 {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .header-textos p {
+            margin: 2px 0;
+            font-size: 9px;
+        }
+
+        .header-textos h3 {
+            margin: 5px 0 0 0;
+            font-size: 12px;
+        }
+
+        .header-rangos {
+            width: 20%;
+        }
+
+        .tabla-mini-rangos {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 7px;
+            text-align: center;
+        }
+
+        .tabla-mini-rangos th,
+        .tabla-mini-rangos td {
+            border: 1px solid #000;
+            padding: 2px;
+        }
+
+        .tabla-mini-rangos th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        .titulo-rangos {
+            font-weight: bold;
+            font-size: 8px;
+            border-bottom: none;
+        }
+
+        /* Estilos para las dimensiones y juicios */
+        .caja-dimensiones {
+            margin-top: 4px;
+            padding-left: 2px;
+        }
+
+        .subtitulo-dimension {
+            text-decoration: underline;
+            font-size: 8px;
+            margin: 4px 0 2px 0;
+            text-transform: uppercase;
+        }
+
+        /* Estructura de columnas para el juicio */
+        .fila-juicio {
+            display: flex;
+            font-size: 8px;
+            margin-bottom: 2px;
+            align-items: flex-start;
+        }
+
+        .col-formula {
+            width: 15%;
+            white-space: nowrap;
+        }
+
+        .col-texto {
+            width: 80%;
+            text-align: justify;
+        }
+
+        /* Estilos generales para todo el boletín */
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 9px;
+            /* Tamaño reducido para encajar textos largos */
+            line-height: 1.2;
+            color: #000;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Salto de página obligatorio por estudiante */
+        .salto-pagina {
+            page-break-after: always;
+        }
+
+        /* Evita que una asignatura se corte a la mitad entre dos páginas */
+        tr {
+            page-break-inside: avoid;
+        }
+
+        /* =======================================================
+            2. ESTILOS DE TABLAS
+           ======================================================= */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+
+        th,
+        td {
+            border: 1px solid #000;
+            padding: 3px 4px;
+            vertical-align: middle;
+        }
+
+        th {
+            background-color: #e6e6e6;
+            font-weight: bold;
+            text-align: center;
+            font-size: 8px;
+            /* Cabeceras un poco más pequeñas */
+        }
+
+        /* =======================================================
+            3. CLASES ESPECÍFICAS (Tipografía y colores)
+           ======================================================= */
+        .encabezado-institucional {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .encabezado-institucional h2 {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .encabezado-institucional p {
+            margin: 2px 0;
+            font-size: 9px;
+        }
+
+        .encabezado-institucional h3 {
+            margin: 5px 0 0 0;
+            font-size: 12px;
+        }
+
+        .titulo-area {
+            background-color: #f2f2f2;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .docente-texto {
+            font-size: 7.5px;
+            font-style: italic;
+            color: #333;
+        }
+
+        .caja-dimensiones {
+            margin-top: 4px;
+            padding-left: 5px;
+        }
+
+        .subtitulo-dimension {
+            text-decoration: underline;
+            font-style: italic;
+            font-size: 8px;
+            margin-top: 3px;
+        }
+
+        .texto-juicio {
+            font-size: 8.5px;
+            text-align: justify;
+            margin: 1px 0;
+        }
+
+        .texto-formula {
+            font-weight: bold;
+        }
+
+        .caja-recomendaciones {
+            margin-top: 4px;
+            border-top: 0.5px dashed #ccc;
+            padding-top: 2px;
+        }
+
+        .tabla-pie {
+            width: 45%;
+            float: right;
+            margin-bottom: 20px;
+            font-size: 8px;
+        }
+
+        .tabla-pie th {
+            background-color: #f2f2f2;
+        }
+
+        .tabla-pie td {
+            text-align: center;
+        }
+
+        .tabla-pie td:first-child {
+            text-align: left;
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        .firma-caja {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 10px;
+            clear: both;
+        }
+
+        /* Alineaciones utilitarias */
+        .centrado {
+            text-align: center !important;
+        }
+
+        .negrita {
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    {{#each estudiantes}}
+    <div class="salto-pagina">
+
+        <table>
+
+            {{#if ../configuracionImpresion.esPreescolar}}
+            <colgroup>
+                <col style="width: 75%;">
+                <col style="width: 5%;">
+                <col style="width: 5%;">
+                <col style="width: 15%;">
+            </colgroup>
+            {{else}}
+            <colgroup>
+                <col style="width: 55%;">
+                <col style="width: 5%;">
+                <col style="width: 5%;">
+                <col style="width: 5%;">
+                <col style="width: 5%;">
+                <col style="width: 5%;">
+                <col style="width: 10%;">
+                <col style="width: 10%;">
+            </colgroup>
+            {{/if}}
+
+            <thead>
+                <tr>
+                    <td colspan="{{#if ../configuracionImpresion.esPreescolar}}4{{else}}8{{/if}}"
+                        style="border: none; padding: 0; padding-bottom: 10px;">
+
+                        <div class="header-container">
+                            <div class="header-logo">
+                                <img src="{{../encabezadoInstitucional.logoUrl}}" alt="Escudo">
+                            </div>
+                            <div class="header-textos">
+                                <h2>{{../encabezadoInstitucional.nombre}}</h2>
+                                <p>{{../encabezadoInstitucional.dane_nit}} | {{../encabezadoInstitucional.contacto}}</p>
+                                <h3>{{../configuracionImpresion.tituloBoletin}} - PERIODO
+                                    {{../configuracionImpresion.periodoActual}} &nbsp;|&nbsp; AÑO LECTIVO
+                                    {{../configuracionImpresion.anioLectivo}}</h3>
+                            </div>
+                            <div class="header-rangos">
+                                <table class="tabla-mini-rangos">
+                                    <thead>
+                                        <tr>
+                                            <th colspan="3" class="titulo-rangos">RANGOS DE DESEMPEÑO</th>
+                                        </tr>
+                                        <tr>
+                                            <th>Desde</th>
+                                            <th>Hasta</th>
+                                            <th>Desempeño</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {{#each ../rangosDesempeno}}
+                                        <tr>
+                                            <td>{{this.desde}}</td>
+                                            <td>{{this.hasta}}</td>
+                                            <td style="font-weight: bold;">{{this.desempeno}}</td>
+                                        </tr>
+                                        {{/each}}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <table style="margin-bottom: 0;">
+                            <tr>
+                                <td style="width: 60%;"><strong>ESTUDIANTE:</strong>
+                                    {{this.infoPersonal.nombreCompleto}}</td>
+                                <td style="width: 40%;"><strong>No. Doc:</strong> {{this.infoPersonal.documento}}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>GRADO:</strong> {{../grupo.grado}} | <strong>GRUPO:</strong>
+                                    {{../grupo.grupoNombre}}</td>
+                                <td><strong>SEDE:</strong> {{../grupo.sede}} &nbsp;|&nbsp; <strong>JORNADA:</strong>
+                                    {{../grupo.jornada}}</td>
+                            </tr>
+                        </table>
+
+                    </td>
+                </tr>
+
+                <tr>
+                    <th>ÁREAS / ASIGNATURAS</th>
+                    <th>Fallas</th>
+                    {{#if ../configuracionImpresion.esPreescolar}}
+                    <th>I.H</th>
+                    <th>DESEMPEÑO</th>
+                    {{else}}
+                    <th>P1</th>
+                    <th>P2</th>
+                    <th>P3</th>
+                    <th>P4</th>
+                    <th>Acumulado</th>
+                    <th>Estado</th>
+                    {{/if}}
+                </tr>
+            </thead>
+
+            <tbody>
+                {{#each this.areas}}
+
+                <tr class="titulo-area">
+                    <td>
+                        {{this.nombreArea}}
+                        {{#if this.esComportamiento}}
+                        <span class="docente-texto" style="margin-left: 10px; font-weight: normal;">Docente:
+                            {{this.docenteComportamiento}}</span>
+                        {{/if}}
+                    </td>
+
+                    {{#if ../../configuracionImpresion.esPreescolar}}
+                    <td class="centrado">{{this.fallasArea}}</td>
+                    <td class="centrado"></td>
+                    <td class="centrado">{{this.desempenoArea}}</td>
+                    {{else}}
+                    <td class="centrado">{{this.fallasArea}}</td>
+                    <td class="centrado">{{this.p1Area}}</td>
+                    <td class="centrado">{{this.p2Area}}</td>
+                    <td class="centrado">{{this.p3Area}}</td>
+                    <td class="centrado">{{this.p4Area}}</td>
+                    <td class="centrado">{{this.acumuladoActualArea}}</td>
+                    <td class="centrado">{{this.estadoGanandoPerdiendo}}</td>
+                    {{/if}}
+                </tr>
+
+                {{#unless this.esComportamiento}}
+                {{#each this.asignaturas}}
+                <tr>
+                    <td colspan="{{#if ../../../configuracionImpresion.esPreescolar}}4{{else}}8{{/if}}">
+                        {{#if ../mostrarNombreAsignatura}}
+                        <span class="negrita">{{this.nombreAsignatura}}</span>
+                        {{#if this.formulaPorcentajeExtra}}
+                        <span style="font-size: 8px; font-style: italic;">({{this.formulaPorcentajeExtra}})</span>
+                        {{/if}}
+                        <br>
+                        {{/if}}
+                        <span class="docente-texto">Docente: {{this.docente}}</span>
+                    </td>
+                </tr>
+
+                {{#if this.gruposDimensiones.length}}
+                <tr>
+                    <td colspan="{{#if ../../../configuracionImpresion.esPreescolar}}4{{else}}8{{/if}}"
+                        style="padding: 2px 10px; border-top: none;">
+                        <div class="caja-dimensiones">
+                            {{#each this.gruposDimensiones}}
+                            <div class="subtitulo-dimension">{{this.tituloCabecera}}</div>
+                            {{#each this.dimensiones}}
+                            <div class="fila-juicio">
+                                <div class="col-formula">{{this.formula}}</div>
+                                <div class="col-texto">{{this.juicio}}</div>
+                            </div>
+                            {{/each}}
+                            {{/each}}
+                        </div>
+                    </td>
+                </tr>
+                {{/if}}
+
+                {{#if this.recomendaciones.length}}
+                <tr>
+                    <td colspan="{{#if ../../../configuracionImpresion.esPreescolar}}4{{else}}8{{/if}}"
+                        style="padding: 2px 10px;">
+                        <div class="caja-recomendaciones">
+                            <span class="negrita" style="font-size: 8px;">OBSERVACIONES:</span>
+                            <ul style="margin: 2px 0 0 0; padding-left: 15px; font-size: 8px;">
+                                {{#each this.recomendaciones}}
+                                <li>{{this}}</li>
+                                {{/each}}
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                {{/if}}
+
+                {{/each}}
+
+                {{else}}
+                {{#if this.textoComportamiento}}
+                <tr>
+                    <td colspan="{{#if ../../configuracionImpresion.esPreescolar}}4{{else}}8{{/if}}"
+                        style="padding: 4px 10px; font-size: 8px;">
+                        <span
+                            style="text-align: justify; display: block; margin-top: 2px;">{{this.textoComportamiento}}</span>
+                    </td>
+                </tr>
+                {{/if}}
+                {{/unless}}
+
+                {{/each}}
+            </tbody>
+        </table>
+
+        {{#unless ../configuracionImpresion.esPreescolar}}
+        <table class="tabla-pie">
+            <tr>
+                <th>PERIODO</th>
+                <th>1</th>
+                <th>2</th>
+                <th>3</th>
+                <th>4</th>
+            </tr>
+            <tr>
+                <td>PUESTO OCUPADO ENTRE {{this.cuadroHistorico.totalEstudiantes}} ESTUDIANTES</td>
+                <td>{{this.cuadroHistorico.puestosEstudiante.p1}}</td>
+                <td>{{this.cuadroHistorico.puestosEstudiante.p2}}</td>
+                <td>{{this.cuadroHistorico.puestosEstudiante.p3}}</td>
+                <td>{{this.cuadroHistorico.puestosEstudiante.p4}}</td>
+            </tr>
+            <tr>
+                <td>PROMEDIO DEL ESTUDIANTE</td>
+                <td>{{this.cuadroHistorico.promediosEstudiante.p1}}</td>
+                <td>{{this.cuadroHistorico.promediosEstudiante.p2}}</td>
+                <td>{{this.cuadroHistorico.promediosEstudiante.p3}}</td>
+                <td>{{this.cuadroHistorico.promediosEstudiante.p4}}</td>
+            </tr>
+            <tr>
+                <td>PROMEDIO DEL GRUPO</td>
+                <td>{{../grupo.promedioGrupoHistorico.p1}}</td>
+                <td>{{../grupo.promedioGrupoHistorico.p2}}</td>
+                <td>{{../grupo.promedioGrupoHistorico.p3}}</td>
+                <td>{{../grupo.promedioGrupoHistorico.p4}}</td>
+            </tr>
+        </table>
+        {{/unless}}
+
+        <div class="firma-caja">
+            <p style="margin: 0;">_____________________________________</p>
+            <p style="margin: 3px 0 0 0;" class="negrita">{{../grupo.directorGrupo}}</p>
+            <p style="margin: 0;">DIRECTOR DE GRUPO</p>
+        </div>
+
+    </div>
+    {{/each}}
+
+</body>
+
+</html>

@@ -55,6 +55,7 @@ import {
   faBalanceScale,     // Recuperaciones
   faChartSimple,      // Indicadores
   faGavel,             // Juicios
+  faFilePdf,             // Boletines
 
   faEnvelope,
 
@@ -67,7 +68,7 @@ faChevronRight,faSave, faXmark, faEdit, faPenToSquare, faChartSimple,
 faTrash, faSpinner, faInfoCircle,faUserCircle, faCirclePlus, faGavel,
 faTimesCircle, faTimes, faAnglesLeft,faAngleLeft, faAngleRight, faBalanceScale,
 faAnglesRight, faSchool, faBuilding, faUserTie, faCalendarAlt, faUserShield,
-faLayerGroup, faBookOpen, faUsersRectangle, faChalkboardUser,
+faLayerGroup, faBookOpen, faUsersRectangle, faChalkboardUser, faFilePdf,
 faEnvelope, faFilePen, faUsers, faHandsHoldingChild, faPersonChalkboard
 );
 // -----------------------------------------------------------------

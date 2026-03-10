@@ -333,18 +333,25 @@ export const calificacionService = {
                 const nLab = data.notaLaboral ? parseFloat(data.notaLaboral) : null;
                 const nSoc = data.notaSocial ? parseFloat(data.notaSocial) : null;
 
-                // Calculamos el aporte (promedio) SOLO si la nota existe, si no, es null
-                const pAcad = nAcad !== null ? (nAcad * PORCENTAJES.ACADEMICA) : null;
-                const pAcum = nAcum !== null ? (nAcum * PORCENTAJES.ACUMULATIVA) : null;
-                const pLab = nLab !== null ? (nLab * PORCENTAJES.LABORAL) : null;
-                const pSoc = nSoc !== null ? (nSoc * PORCENTAJES.SOCIAL) : null;
+                // Función auxiliar para redondear a 2 decimales EXACTOS evitando errores de coma flotante
+                const round2 = (num) => Math.round((num + Number.EPSILON) * 100) / 100;
+
+                // Calcular el aporte y redondear a 2 decimales ANTES de sumar
+                const pAcad = nAcad !== null ? round2(nAcad * PORCENTAJES.ACADEMICA) : null;
+                const pAcum = nAcum !== null ? round2(nAcum * PORCENTAJES.ACUMULATIVA) : null;
+                const pLab = nLab !== null ? round2(nLab * PORCENTAJES.LABORAL) : null;
+                const pSoc = nSoc !== null ? round2(nSoc * PORCENTAJES.SOCIAL) : null;
 
                 let definitiva = null;
 
                 // Solo calculamos definitiva si hay AL MENOS una nota digitada
                 if (nAcad !== null || nAcum !== null || nLab !== null || nSoc !== null) {
-                    // Para la suma matemática SÍ usamos un 0 temporal (|| 0)
+                    // Ahora la suma utiliza los valores previamente redondeados, garantizando la exactitud visual
                     definitiva = (pAcad || 0) + (pAcum || 0) + (pLab || 0) + (pSoc || 0);
+
+                    // Redondeamos el total por seguridad
+                    definitiva = round2(definitiva);
+
                     if (definitiva >= 2.96 && definitiva < 3.0) { definitiva = 3.0; }
                 }
 
@@ -613,10 +620,19 @@ export const calificacionService = {
                     row.getCell('B').value = documento;
 
                     // --- Formulas para calcular los promedios (Académica, Laboral y Social) y la nota definitiva
-                    row.getCell('I').value = { formula: `IFERROR(ROUND(AVERAGE(C${r}:H${r}), 2), 0)` };
-                    row.getCell('O').value = { formula: `IFERROR(ROUND(AVERAGE(K${r}:N${r}), 2), 0)` };
-                    row.getCell('T').value = { formula: `IFERROR(ROUND(AVERAGE(P${r}:S${r}), 2), 0)` };
-                    row.getCell('U').value = { formula: `ROUND((I${r}*0.5) + (IF(ISNUMBER(J${r}),J${r},0)*0.2) + (O${r}*0.15) + (T${r}*0.15), 2)` };
+                    // Los promedios parciales (notas visuales) muestren 1 solo decimal
+                    row.getCell('I').value = { formula: `IFERROR(ROUND(AVERAGE(C${r}:H${r}), 1), 0)` };
+                    row.getCell('O').value = { formula: `IFERROR(ROUND(AVERAGE(K${r}:N${r}), 1), 0)` };
+                    row.getCell('T').value = { formula: `IFERROR(ROUND(AVERAGE(P${r}:S${r}), 1), 0)` };
+
+                    // --- Fórmula para la nota definitiva
+                    // Redondeamos CADA fragmento a 2 decimales antes de sumarlos
+                    row.getCell('U').value = {
+                        formula: `ROUND(ROUND(I${r}*0.5, 2) +
+                        ROUND(IF(ISNUMBER(J${r}),J${r},0)*0.2, 2) +
+                        ROUND(O${r}*0.15, 2) +
+                        ROUND(T${r}*0.15, 2), 2)`
+                    };
 
                     // Nombre y Documento: Bloqueados si es estudiante existente, Desbloqueados si es Reserva
                     row.getCell('A').protection = { locked: !esFilaReserva };

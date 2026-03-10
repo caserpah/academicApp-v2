@@ -41,10 +41,11 @@ const menuStructure = [
         title: "Evaluación",
         key: "evaluacion",
         items: [
+            { path: "/ventanas", label: "Ventanas de Calificaciones", icon: "calendar-alt", requiredRole: 'admin' },
             { path: "/calificaciones", label: "Calificaciones", icon: "star", requiredRoles: ['admin', 'docente'] },
             { path: "/nivelaciones", label: "Recuperaciones", icon: "balance-scale", requiredRoles: ['admin', 'docente', 'coordinador'] },
             { path: "/juicios", label: "Juicios Académicos", icon: "gavel", requiredRole: 'admin' },
-            { path: "/ventanas", label: "Ventanas de Calificación", icon: "calendar-alt", requiredRole: 'admin' },
+            { path: "/boletines", label: "Generar Boletines", icon: "file-pdf", requiredRoles: ['admin', 'secretaria', 'coordinador'] }
         ]
     }
 ];

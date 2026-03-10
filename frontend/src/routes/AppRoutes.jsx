@@ -21,6 +21,7 @@ import Cargas from '../components/cargas/Cargas.jsx';
 import Juicios from '../components/juicios/Juicios.jsx';
 import Calificaciones from '../components/calificaciones/CalificacionesPage.jsx';
 import Nivelaciones from '../components/nivelaciones/NivelacionesPage.jsx';
+import GenerarBoletines from "../components/boletines/GenerarBoletines.jsx";
 import Estudiantes from '../components/estudiantes/Estudiantes.jsx';
 import Acudientes from '../components/acudientes/Acudientes.jsx';
 import AsignarAcudientes from '../components/estudiantes/AcudientesTab.jsx';
@@ -80,6 +81,11 @@ const AppRoutes = () => {
                     <Route path="calificaciones" element={<ProtectedRoute requiredRole={["admin", "secretaria", "docente"]}><Calificaciones /></ProtectedRoute>} />
                     <Route path="nivelaciones" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador", "docente"]}><Nivelaciones /></ProtectedRoute>} />
                     <Route path="ventanas" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador"]}><Ventanas /></ProtectedRoute>} />
+                    <Route path="boletines" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador"]}><GenerarBoletines /></ProtectedRoute>} />
+
+                    {/* RUTAS TEMPORALES PARA MÓDULOS EN DESARROLLO */}
+                    <Route path="reportes" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador"]}><PaginaEnConstruccion titulo="Reportes" /></ProtectedRoute>} />
+                    <Route path="configuracion" element={<ProtectedRoute requiredRole="admin"><PaginaEnConstruccion titulo="Configuración" /></ProtectedRoute>} />
 
                 </Route>
             </Route>

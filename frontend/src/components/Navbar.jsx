@@ -26,6 +26,7 @@ const Navbar = ({ toggleSidebar }) => {
         '/nivelaciones': 'Evaluación / Recuperaciones',
         '/juicios': 'Evaluación / Juicios',
         '/ventanas': 'Evaluación / Ventanas',
+        '/boletines': 'Evaluación / Boletines',
     };
 
     // Obtenemos el título actual o un defecto
