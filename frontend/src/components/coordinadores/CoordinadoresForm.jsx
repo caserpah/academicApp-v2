@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSave, faTimes, faPlus, faTrash } from "@fortawesome/free-solid-svg-icons";
 
 // Definición estática de las jornadas
-const JORNADAS_ENUMS = ["MAÑANA", "TARDE", "NOCHE", "COMPLETA"];
+const JORNADAS_ENUMS = ["MAÑANA", "TARDE", "NOCHE", "UNICA"];
 
 const CoordinadoresForm = ({
     formData,

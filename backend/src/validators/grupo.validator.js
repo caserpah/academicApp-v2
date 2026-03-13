@@ -25,7 +25,7 @@ export const validarCrearGrupo = [
         .custom(verificarExistenciaPorId(Grado, "id", "el grado")),
 
     validarCampoRequerido("jornada", "Seleccione la jornada.")
-        .isIn(["MANANA", "TARDE", "NOCHE", "COMPLETA"])
+        .isIn(["MANANA", "TARDE", "NOCHE", "UNICA"])
         .withMessage("La jornada seleccionada no es válida."),
 
     validarCampoRequerido("sedeId", "Seleccione la sede.")
@@ -60,7 +60,7 @@ export const validarActualizarGrupo = [
         .custom(verificarExistenciaPorId(Grado, "id", "el grado")),
 
     validarCampoOpcionalRequerido("jornada", "Seleccione la jornada.")
-        .isIn(["MANANA", "TARDE", "NOCHE", "COMPLETA"])
+        .isIn(["MANANA", "TARDE", "NOCHE", "UNICA"])
         .withMessage("La jornada seleccionada no es válida."),
 
     validarCampoOpcionalRequerido("sedeId", "Seleccione la sede.")

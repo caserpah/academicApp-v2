@@ -27,14 +27,15 @@ export const Grupo = sequelize.define("grupo", {
     },
 
     jornada: {
-        type: DataTypes.ENUM("MANANA", "TARDE", "NOCHE", "COMPLETA"),
+        type: DataTypes.ENUM("MANANA", "TARDE", "NOCHE", "UNICA"),
         allowNull: false
     },
 
     cupos: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        defaultValue: 45
+        defaultValue: 50,
+        comment: "Número máximo de estudiantes permitidos en el grupo."
     },
 
     sobrecupoPermitido: {

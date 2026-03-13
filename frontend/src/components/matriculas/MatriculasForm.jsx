@@ -378,7 +378,7 @@ const MatriculasForm = ({
                                 >
                                     {/* Asegúrate de importar faTrash si usas FontAwesome */}
                                     <FontAwesomeIcon icon={faTrash} className="mr-2" />
-                                    Anular / Eliminar registro
+                                    Eliminar registro
                                 </button>
                             )}
                         </div>

@@ -21,6 +21,7 @@ const Matriculas = () => {
     const initialFormState = {
         id: null,
         estudianteId: "",
+        estudiante: null,
         sedeId: "",
         grupoId: "",
         metodologia: "TRADICIONAL",
@@ -60,6 +61,7 @@ const Matriculas = () => {
     const [processing, setProcessing] = useState(false);
 
     const formContainerRef = useRef(null);
+    const studentInputRef = useRef(null);
 
     // Hook Principal
     const {
@@ -182,13 +184,26 @@ const Matriculas = () => {
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        const valorFinal = type === 'checkbox' ? checked : value; // Para checkboxes, el valor final es el estado checked (true/false)
+        const valorFinal = type === "checkbox" ? checked : value;
 
-        if (name === "sedeId") {
-            setFormData(prev => ({ ...prev, sedeId: valorFinal, grupoId: "" }));
-        } else {
-            setFormData(prev => ({ ...prev, [name]: valorFinal }));
-        }
+        setFormData(prev => {
+            // Si cambia la sede, resetear grupo
+            if (name === "sedeId") {
+                if (prev.sedeId === valorFinal) return prev; // Evitar actualizar si el valor es igual
+                return {
+                    ...prev,
+                    sedeId: valorFinal,
+                    grupoId: "",
+                    estudianteId: "",
+                    estudiante: null
+                };
+            }
+
+            // Evitar actualizar si el valor es igual
+            if (prev[name] === valorFinal) return prev;
+
+            return { ...prev, [name]: valorFinal };
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -257,11 +272,18 @@ const Matriculas = () => {
     };
 
     const resetForm = () => {
-        setFormData({
+        setFormData(prev => ({
             ...initialFormState,
-            vigenciaId: vigenciaActiva?.id || "" // Reseteamos a vigencia activa si existe
-        });
+            sedeId: prev.sedeId,
+            grupoId: prev.grupoId,
+            vigenciaId: vigenciaActiva?.id || ""
+        }));
         setMode("agregar");
+
+        // Volver el foco al buscador de estudiante
+        setTimeout(() => {
+            studentInputRef.current?.focus();
+        }, 0);
     };
 
     const getStatusBadge = (estado) => {
@@ -358,6 +380,7 @@ const Matriculas = () => {
                                 <FontAwesomeIcon icon={faSearch} />
                             </div>
                             <input
+                                ref={studentInputRef}
                                 type="text"
                                 placeholder="Buscar estudiante..."
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition"

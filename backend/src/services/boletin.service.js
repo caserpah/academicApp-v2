@@ -1,4 +1,3 @@
-import { error, log } from "console";
 import { boletinRepository } from "../repositories/boletin.repository.js";
 import fs from "fs/promises";
 import path from "path";
@@ -7,14 +6,6 @@ import { fileURLToPath } from "url";
 // Configuración de rutas absolutas
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Constantes de configuración
-const PESOS_DIMENSIONES = {
-    academica: 0.50,
-    acumulativa: 0.20,
-    laboral: 0.15,
-    social: 0.15
-};
 
 export const boletinService = {
 
@@ -56,14 +47,14 @@ export const boletinService = {
         // Validar que al menos alguien tenga notas en el periodo solicitado
         const tieneNotasPeriodo = calificacionesPlanas.some(cal => Number(cal.periodo) === Number(periodoActual));
 
-        if (!tieneNotasPeriodo && calificacionesPlanas.length > 0) {
+        if (!tieneNotasPeriodo) {
             throw new Error(`No hay calificaciones registradas para el periodo y grupo seleccionado. No se puede generar el boletín.`);
         }
 
         // =========================================================
         // FASE 2: CÁLCULOS EN MEMORIA
         // =========================================================
-        const notasAgrupadas = _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipoBoletin, periodoActual);
+        const notasAgrupadas = _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipoBoletin, periodoActual, rangosDesempeno);
         const { promediosGrupo, rankingEstudiantes } = _calcularEstadisticasYPuestos(notasAgrupadas, idsEstudiantesTotales);
 
         // =========================================================
@@ -111,7 +102,8 @@ export const boletinService = {
                 tituloBoletin: `BOLETÍN ${tipoBoletin}`,
                 periodoActual: periodoActual,
                 anioLectivo: anioLectivo,
-                esPreescolar,
+                esPreescolar: esPreescolar,
+                esValorativo: tipoBoletin === 'VALORATIVO'
             },
             grupo: {
                 grado: grupo.grado.nombre,
@@ -124,6 +116,86 @@ export const boletinService = {
             rangosDesempeno,
             estudiantes: boletinesGenerados
         };
+    },
+
+    /**
+     * Auditoría para detectar notas faltantes en el periodo actual,
+     * con detalle de qué nota falta y quién es el docente responsable.
+     */
+    async auditarNotasPendientes(grupoId, vigenciaId, periodoActual) {
+        const { grupo } = await boletinRepository.findInfoGrupo(grupoId);
+
+        const esPreescolar = grupo.grado.nivelAcademico === 'PREESCOLAR';
+
+        // 1. Traer matrículas activas
+        let matriculasTotales = await boletinRepository.findMatriculasPorGrupo(grupoId, vigenciaId);
+        matriculasTotales = matriculasTotales.filter(m =>
+            m.bloqueo_notas !== true && m.bloqueo_notas !== 1 &&
+            !['ANULADO', 'RETIRADO', 'DESERTADO'].includes(m.estado)
+        );
+
+        if (matriculasTotales.length === 0) return [];
+
+        // 2. Traer Cargas (para saber quién dicta qué) y Notas Planas
+        const idsEstudiantes = matriculasTotales.map(m => m.estudiante.id);
+        const cargas = await boletinRepository.findCargasPorGrupo(grupoId, vigenciaId);
+        const calificacionesPlanas = await boletinRepository.findCalificacionesHistoricasLote(idsEstudiantes, vigenciaId);
+
+        // 3. Crear diccionario de acceso ultra rápido
+        const diccNotas = {};
+        calificacionesPlanas.forEach(c => {
+            if (!diccNotas[c.estudianteId]) diccNotas[c.estudianteId] = {};
+            if (!diccNotas[c.estudianteId][c.asignaturaId]) diccNotas[c.estudianteId][c.asignaturaId] = {};
+            diccNotas[c.estudianteId][c.asignaturaId][c.periodo] = c;
+        });
+
+        // 4. Cruzar información (Estudiantes x Materias x Periodos)
+        const reporteFaltantes = [];
+        const periodosAEvaluar = Array.from({ length: Number(periodoActual) }, (_, i) => i + 1); // Ej: si es periodo 3 -> [1, 2, 3]
+
+        matriculasTotales.forEach(m => {
+            cargas.forEach(carga => {
+                const asigNombre = (carga.asignatura?.nombre || '').toUpperCase();
+                if (asigNombre === 'COMPORTAMIENTO' || asigNombre === 'DISCIPLINA') return;
+
+                periodosAEvaluar.forEach(periodo => {
+                    const notaObj = diccNotas[m.estudiante.id]?.[carga.asignaturaId]?.[periodo];
+                    let notasFaltantesDetalle = [];
+
+                    if (!notaObj) {
+                        notasFaltantesDetalle.push("Ninguna nota registrada");
+                    } else {
+                        // Validamos las 4 columnas internas
+                        if (notaObj.notaAcademica === null || notaObj.notaAcademica === undefined) notasFaltantesDetalle.push("Académica");
+                        if (notaObj.notaAcumulativa === null || notaObj.notaAcumulativa === undefined) notasFaltantesDetalle.push("Acumulativa");
+                        if (notaObj.notaLaboral === null || notaObj.notaLaboral === undefined) notasFaltantesDetalle.push("Laboral");
+                        if (notaObj.notaSocial === null || notaObj.notaSocial === undefined) notasFaltantesDetalle.push("Social");
+
+                        /*
+                        // Validación adicional para preescolar: Si falta el juicio descriptivo, también lo marcamos
+                        if (esPreescolar) {
+                            const juicio = notaObj.juicioAcademica ? notaObj.juicioAcademica.trim().toUpperCase() : '';
+                            if (!juicio || juicio === 'PENDIENTE') {
+                                notasFaltantesDetalle.push("Juicio Descriptivo (Pendiente)");
+                            }
+                        }*/
+                    }
+
+                    // Si le falta algo, va para el reporte
+                    if (notasFaltantesDetalle.length > 0) {
+                        reporteFaltantes.push({
+                            docente: carga.docente ? `${carga.docente.nombre} ${carga.docente.apellidos}` : 'Sin asignar',
+                            asignatura: carga.asignatura.nombre,
+                            periodo: `Periodo ${periodo}`,
+                            detalle: notasFaltantesDetalle.join(" / "),
+                            estudiante: `${m.estudiante.primerApellido} ${m.estudiante.primerNombre}`
+                        });
+                    }
+                });
+            });
+        });
+
+        return reporteFaltantes;
     }
 };
 
@@ -131,7 +203,7 @@ export const boletinService = {
 // FUNCIONES AUXILIARES PRIVADAS
 // =========================================================
 
-function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipoBoletin, periodoActual) {
+function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipoBoletin, periodoActual, rangosDesempeno) {
     const diccionario = {};
 
     calificacionesPlanas.forEach(cal => {
@@ -142,7 +214,6 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
         const porcentaje = cal.asignatura?.porcentual || 100;
 
         const esComportamiento = areaNombre === 'COMPORTAMIENTO' || areaNombre === 'DISCIPLINA';
-
         const isPeriodoActual = Number(cal.periodo) === Number(periodoActual);
 
         if (!diccionario[estId]) diccionario[estId] = {};
@@ -186,66 +257,45 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
             asigRef.textoComportamiento = cal.juicioAcademica || "Sin registro descriptivo de comportamiento.";
         }
 
-        // Si NO es comportamiento, calculamos las fórmulas y juicios
-        if (tipoBoletin === 'DESCRIPTIVO' && isPeriodoActual && cal.notaDefinitiva !== null && !esComportamiento) {
-            if (esPreescolar) {
-                asigRef.gruposDimensiones = [
-                    {
-                        tituloCabecera: "COMPETENCIA ACADÉMICA Y EVALUACIÓN ACUMULATIVA",
-                        dimensiones: [
-                            { formula: null, juicio: cal.juicioAcademica },
-                            { formula: null, juicio: cal.juicioAcumulativa }
-                        ].filter(d => d.juicio)
-                    },
-                    {
-                        tituloCabecera: "COMPETENCIAS LABORAL Y SOCIAL",
-                        dimensiones: [
-                            { formula: null, juicio: cal.juicioLaboral }
-                        ].filter(d => d.juicio)
-                    }
-                ];
-            } else {
-                // Formateadores estéticos (Solo le dan formato visual de comas, NO calculan nada)
-                const formatNota = (num) => num ? Number(num).toFixed(1).replace('.', ',') : "0,0";
-                const formatPromedio = (num) => num ? Number(num).toFixed(3).replace('.', ',') : "0,000";
+        // --- CÁLCULOS MATEMÁTICOS PARA EL PERIODO ACTUAL ---
+        if (isPeriodoActual && cal.notaDefinitiva !== null && !esComportamiento) {
 
-                // Formateador exacto de 2 decimales para la fórmula de la asignatura
-                const formatNota2Dec = (num) => num ? Number(num).toFixed(2).replace('.', ',') : "0,00";
+            // SIEMPRE calculamos la fórmula de la asignatura (Para Descriptivo y Valorativo)
+            const formatNota2Dec = (num) => num ? Number(num).toFixed(2).replace('.', ',') : "0,00";
+            asigRef.formulaPorcentajeExtra = `(Nota ${formatNota2Dec(cal.notaDefinitiva)} x ${porcentaje}% = ${(cal.notaDefinitiva * (porcentaje / 100)).toFixed(4).replace('.', ',')})`;
 
-                asigRef.gruposDimensiones = [
-                    {
-                        tituloCabecera: "COMPETENCIA ACADÉMICA Y EVALUACION ACUMULATIVA",
-                        dimensiones: [
-                            {
-                                formula: `${formatNota(cal.notaAcademica)} x 50% = ${formatPromedio(cal.promedioAcademica)}`,
-                                juicio: cal.juicioAcademica || "Juicio académico no registrado."
-                            },
-                            {
-                                formula: `${formatNota(cal.notaAcumulativa)} x 20% = ${formatPromedio(cal.promedioAcumulativa)}`,
-                                juicio: cal.juicioAcumulativa || "Juicio acumulativo no registrado."
-                            }
-                        ]
-                    },
-                    {
-                        tituloCabecera: "COMPETENCIAS LABORAL Y SOCIAL",
-                        dimensiones: [
-                            {
-                                formula: `${formatNota(cal.notaLaboral)} x 15% = ${formatPromedio(cal.promedioLaboral)}`,
-                                juicio: cal.juicioLaboral || "Juicio laboral no registrado."
-                            },
-                            {
-                                formula: `${formatNota(cal.notaSocial)} x 15% = ${formatPromedio(cal.promedioSocial)}`,
-                                juicio: cal.juicioSocial || "Juicio social no registrado."
-                            }
-                        ]
-                    }
-                ];
+            // SOLO si es Descriptivo armamos los juicios
+            if (tipoBoletin === 'DESCRIPTIVO') {
+                if (esPreescolar) {
+                    asigRef.gruposDimensiones = [
+                        { tituloCabecera: "COMPETENCIA ACADÉMICA", dimensiones: [{ formula: null, juicio: cal.juicioAcademica }, { formula: null, juicio: cal.juicioAcumulativa }].filter(d => d.juicio) },
+                        { tituloCabecera: "COMPETENCIAS LABORAL Y SOCIAL", dimensiones: [{ formula: null, juicio: cal.juicioLaboral }].filter(d => d.juicio) }
+                    ];
+                } else {
+                    const formatNota = (num) => num ? Number(num).toFixed(1).replace('.', ',') : "0,0";
+                    const formatProm = (num) => num ? Number(num).toFixed(3).replace('.', ',') : "0,000";
 
-                asigRef.formulaPorcentajeExtra = `Nota ${formatNota2Dec(cal.notaDefinitiva)} x ${porcentaje}% = ${(cal.notaDefinitiva * (porcentaje / 100)).toFixed(4).replace('.', ',')}`;
+                    asigRef.gruposDimensiones = [
+                        {
+                            tituloCabecera: "COMPETENCIA ACADÉMICA Y EVALUACIÓN ACUMULATIVA",
+                            dimensiones: [
+                                { formula: `${formatNota(cal.notaAcademica)} x 50% = ${formatProm(cal.promedioAcademica)}`, juicio: cal.juicioAcademica || "Sin registro." },
+                                { formula: `${formatNota(cal.notaAcumulativa)} x 20% = ${formatProm(cal.promedioAcumulativa)}`, juicio: cal.juicioAcumulativa || "Sin registro." }
+                            ]
+                        },
+                        {
+                            tituloCabecera: "COMPETENCIAS LABORAL Y SOCIAL",
+                            dimensiones: [
+                                { formula: `${formatNota(cal.notaLaboral)} x 15% = ${formatProm(cal.promedioLaboral)}`, juicio: cal.juicioLaboral || "Sin registro." },
+                                { formula: `${formatNota(cal.notaSocial)} x 15% = ${formatProm(cal.promedioSocial)}`, juicio: cal.juicioSocial || "Sin registro." }
+                            ]
+                        }
+                    ];
+                }
+
+                if (cal.recomendacionUno) asigRef.recomendaciones.push(cal.recomendacionUno);
+                if (cal.recomendacionDos) asigRef.recomendaciones.push(cal.recomendacionDos);
             }
-
-            if (cal.recomendacionUno) asigRef.recomendaciones.push(cal.recomendacionUno);
-            if (cal.recomendacionDos) asigRef.recomendaciones.push(cal.recomendacionDos);
         }
     });
 
@@ -255,7 +305,7 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
             const listaAsignaturas = Object.values(area.asignaturasObj);
             const esComportamiento = area.esComportamiento;
 
-            // LÓGICA NUEVA: ¿Mostramos el nombre de la asignatura? Solo si hay más de 1
+            // Mostramos el nombre de la asignatura solo si hay más de 1
             const mostrarNombreAsignatura = listaAsignaturas.length > 1;
 
             // Extraemos info de comportamiento para subirla al Área
@@ -268,6 +318,7 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
 
             let acumuladoArea = 0;
             let fallasArea = 0;
+            let ihArea = 0;
             let areaP1 = 0, areaP2 = 0, areaP3 = 0, areaP4 = 0;
             let tieneP1 = false, tieneP2 = false, tieneP3 = false, tieneP4 = false;
 
@@ -276,6 +327,7 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
                 acumuladoArea += (sumaNotas * (a.porcentajePeso / 100));
 
                 fallasArea += (a.fallas || 0);
+                ihArea += (a.intensidadHoraria || 0);
 
                 if (a.notasHistoricas.p1 !== null) { areaP1 += (a.notasHistoricas.p1 * (a.porcentajePeso / 100)); tieneP1 = true; }
                 if (a.notasHistoricas.p2 !== null) { areaP2 += (a.notasHistoricas.p2 * (a.porcentajePeso / 100)); tieneP2 = true; }
@@ -302,6 +354,20 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
 
             const estadoGanandoPerdiendo = acumuladoArea > metaEsperada ? 'G' : 'PR';
 
+            // --- Calcular Desempeño del Área ---
+            let notaPeriodoActual = 0;
+            if (Number(periodoActual) === 1 && tieneP1) notaPeriodoActual = areaP1;
+            else if (Number(periodoActual) === 2 && tieneP2) notaPeriodoActual = areaP2;
+            else if (Number(periodoActual) === 3 && tieneP3) notaPeriodoActual = areaP3;
+            else if (Number(periodoActual) === 4 && tieneP4) notaPeriodoActual = areaP4;
+
+            let desempenoAreaText = "";
+            if (notaPeriodoActual > 0) {
+                const n = Number(notaPeriodoActual.toFixed(2));
+                const rango = rangosDesempeno.find(r => n >= Number(r.desde) && n <= Number(r.hasta));
+                if (rango) desempenoAreaText = rango.desempeno.toUpperCase();
+            }
+
             return {
                 nombreArea: area.nombreArea,
                 esComportamiento: esComportamiento,
@@ -315,6 +381,8 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
                 p4Area: tieneP4 ? areaP4.toFixed(2) : "",
                 acumuladoActualArea: acumuladoArea > 0 ? acumuladoArea.toFixed(2) : "",
                 estadoGanandoPerdiendo: esPreescolar ? null : estadoGanandoPerdiendo,
+                desempenoArea: desempenoAreaText,
+                ihArea: ihArea > 0 ? ihArea : "",
                 asignaturas: listaAsignaturas
             };
         }).sort((a, b) => {
@@ -334,6 +402,8 @@ function _calcularEstadisticasYPuestos(notasAgrupadas, idsEstudiantes) {
     const rankingEstudiantes = {};
     const promediosPorPeriodo = { p1: [], p2: [], p3: [], p4: [] };
 
+    const aplicarBenevolencia = (nota) => (nota >= 2.96 && nota < 3.0) ? 3.0 : nota;
+
     for (const estId of idsEstudiantes) {
         const areasEstudiante = notasAgrupadas[estId] || [];
         let sumaP1 = 0, countP1 = 0; let sumaP2 = 0, countP2 = 0; let sumaP3 = 0, countP3 = 0; let sumaP4 = 0, countP4 = 0;
@@ -350,14 +420,12 @@ function _calcularEstadisticasYPuestos(notasAgrupadas, idsEstudiantes) {
                     if (asig.notasHistoricas.p4 !== null) { notaAreaP4 += (asig.notasHistoricas.p4 * (asig.porcentajePeso / 100)); tieneP4 = true; }
                 });
 
-                if (tieneP1) { sumaP1 += notaAreaP1; countP1++; }
-                if (tieneP2) { sumaP2 += notaAreaP2; countP2++; }
-                if (tieneP3) { sumaP3 += notaAreaP3; countP3++; }
-                if (tieneP4) { sumaP4 += notaAreaP4; countP4++; }
+                if (tieneP1) { sumaP1 += aplicarBenevolencia(notaAreaP1); countP1++; }
+                if (tieneP2) { sumaP2 += aplicarBenevolencia(notaAreaP2); countP2++; }
+                if (tieneP3) { sumaP3 += aplicarBenevolencia(notaAreaP3); countP3++; }
+                if (tieneP4) { sumaP4 += aplicarBenevolencia(notaAreaP4); countP4++; }
             }
         });
-
-        const aplicarBenevolencia = (nota) => (nota >= 2.96 && nota < 3.0) ? 3.0 : nota;
 
         const promEstP1 = countP1 > 0 ? aplicarBenevolencia(parseFloat((sumaP1 / countP1).toFixed(2))) : null;
         const promEstP2 = countP2 > 0 ? aplicarBenevolencia(parseFloat((sumaP2 / countP2).toFixed(2))) : null;

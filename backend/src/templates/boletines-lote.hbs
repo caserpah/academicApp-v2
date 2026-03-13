@@ -272,6 +272,19 @@
                 <col style="width: 15%;">
             </colgroup>
             {{else}}
+            {{#if ../configuracionImpresion.esValorativo}}
+            <colgroup>
+                <col style="width: 48%;">
+                <col style="width: 5%;">
+                <col style="width: 5%;">
+                <col style="width: 5%;">
+                <col style="width: 5%;">
+                <col style="width: 5%;">
+                <col style="width: 9%;">
+                <col style="width: 8%;">
+                <col style="width: 10%;">
+            </colgroup>
+            {{else}}
             <colgroup>
                 <col style="width: 55%;">
                 <col style="width: 5%;">
@@ -283,10 +296,11 @@
                 <col style="width: 10%;">
             </colgroup>
             {{/if}}
+            {{/if}}
 
             <thead>
                 <tr>
-                    <td colspan="{{#if ../configuracionImpresion.esPreescolar}}4{{else}}8{{/if}}"
+                    <td colspan="{{#if ../configuracionImpresion.esPreescolar}}4{{else}}{{#if ../configuracionImpresion.esValorativo}}9{{else}}8{{/if}}{{/if}}"
                         style="border: none; padding: 0; padding-bottom: 10px;">
 
                         <div class="header-container">
@@ -355,6 +369,9 @@
                     <th>P4</th>
                     <th>Acumulado</th>
                     <th>Estado</th>
+                    {{#if ../configuracionImpresion.esValorativo}}
+                    <th>Desempeño</th>
+                    {{/if}}
                     {{/if}}
                 </tr>
             </thead>
@@ -373,8 +390,8 @@
 
                     {{#if ../../configuracionImpresion.esPreescolar}}
                     <td class="centrado">{{this.fallasArea}}</td>
-                    <td class="centrado"></td>
-                    <td class="centrado">{{this.desempenoArea}}</td>
+                    <td class="centrado">{{this.ihArea}}</td>
+                    <td class="centrado" style="font-weight: bold; font-size: 8px;">{{this.desempenoArea}}</td>
                     {{else}}
                     <td class="centrado">{{this.fallasArea}}</td>
                     <td class="centrado">{{this.p1Area}}</td>
@@ -383,17 +400,21 @@
                     <td class="centrado">{{this.p4Area}}</td>
                     <td class="centrado">{{this.acumuladoActualArea}}</td>
                     <td class="centrado">{{this.estadoGanandoPerdiendo}}</td>
+                    {{#if ../../configuracionImpresion.esValorativo}}
+                    <td class="centrado" style="font-weight: bold; font-size: 8px;">{{this.desempenoArea}}</td>
+                    {{/if}}
                     {{/if}}
                 </tr>
 
                 {{#unless this.esComportamiento}}
                 {{#each this.asignaturas}}
                 <tr>
-                    <td colspan="{{#if ../../../configuracionImpresion.esPreescolar}}4{{else}}8{{/if}}">
+                    <td
+                        colspan="{{#if ../../../configuracionImpresion.esPreescolar}}4{{else}}{{#if ../../../configuracionImpresion.esValorativo}}9{{else}}8{{/if}}{{/if}}">
                         {{#if ../mostrarNombreAsignatura}}
                         <span class="negrita">{{this.nombreAsignatura}}</span>
                         {{#if this.formulaPorcentajeExtra}}
-                        <span style="font-size: 8px; font-style: italic;">({{this.formulaPorcentajeExtra}})</span>
+                        <span style="font-size: 8px; font-style: italic;">{{this.formulaPorcentajeExtra}}</span>
                         {{/if}}
                         <br>
                         {{/if}}
@@ -403,7 +424,7 @@
 
                 {{#if this.gruposDimensiones.length}}
                 <tr>
-                    <td colspan="{{#if ../../../configuracionImpresion.esPreescolar}}4{{else}}8{{/if}}"
+                    <td colspan="{{#if ../../../configuracionImpresion.esPreescolar}}4{{else}}{{#if ../../../configuracionImpresion.esValorativo}}9{{else}}8{{/if}}{{/if}}"
                         style="padding: 2px 10px; border-top: none;">
                         <div class="caja-dimensiones">
                             {{#each this.gruposDimensiones}}
@@ -422,7 +443,7 @@
 
                 {{#if this.recomendaciones.length}}
                 <tr>
-                    <td colspan="{{#if ../../../configuracionImpresion.esPreescolar}}4{{else}}8{{/if}}"
+                    <td colspan="{{#if ../../../configuracionImpresion.esPreescolar}}4{{else}}{{#if ../../../configuracionImpresion.esValorativo}}9{{else}}8{{/if}}{{/if}}"
                         style="padding: 2px 10px;">
                         <div class="caja-recomendaciones">
                             <span class="negrita" style="font-size: 8px;">OBSERVACIONES:</span>
@@ -441,7 +462,7 @@
                 {{else}}
                 {{#if this.textoComportamiento}}
                 <tr>
-                    <td colspan="{{#if ../../configuracionImpresion.esPreescolar}}4{{else}}8{{/if}}"
+                    <td colspan="{{#if ../../configuracionImpresion.esPreescolar}}4{{else}}{{#if ../../configuracionImpresion.esValorativo}}9{{else}}8{{/if}}{{/if}}"
                         style="padding: 4px 10px; font-size: 8px;">
                         <span
                             style="text-align: justify; display: block; margin-top: 2px;">{{this.textoComportamiento}}</span>

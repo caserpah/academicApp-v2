@@ -4,7 +4,7 @@ const Bienvenida = () => {
     return (
         <div className="p-6 bg-white rounded-lg shadow-lg min-h-full">
             <h2 className="text-3xl font-bold text-gray-800 mb-4">
-                Bienvenido a academicApp
+                Bienvenido a AcademicApp
             </h2>
 
             {/* Contenido visual, como la imagen que mostraste */}

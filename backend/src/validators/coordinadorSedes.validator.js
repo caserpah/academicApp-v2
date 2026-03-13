@@ -8,7 +8,7 @@ import {
 } from "../utils/dbUtils.js";
 import { validationErrorHandler } from "./validationErrorHandler.js";
 
-const JORNADAS = ["MANANA", "TARDE", "NOCHE", "COMPLETA"];
+const JORNADAS = ["MANANA", "TARDE", "NOCHE", "UNICA"];
 
 export const validarCrearCoordinadorSede = [
     validarCampoRequerido("coordinadorId", "Seleccione un coordinador.")

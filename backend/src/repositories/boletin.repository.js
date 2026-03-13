@@ -68,7 +68,7 @@ export const boletinRepository = {
             where: {
                 grupoId,
                 vigenciaId,
-                estado: { [Op.notIn]: ['RETIRADO', 'DESERTADO'] }
+                estado: { [Op.notIn]: ['RETIRADO', 'DESERTADO', 'ANULADO'] }
             },
             include: [
                 {
@@ -96,6 +96,11 @@ export const boletinRepository = {
                     model: Docente,
                     as: "docente",
                     attributes: ["id", "nombre", "apellidos"]
+                },
+                {
+                    model: Asignatura,
+                    as: "asignatura",
+                    attributes: ["id", "nombre", "areaId"]
                 }
             ]
         });

@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSave, faTimes, faEdit, faExclamationCircle } from "@fortawesome/free-solid-svg-icons";
 import { fetchCargasCatalogs, fetchGruposFiltrados } from "../../api/cargasService.js";
 import { showWarning, showError } from "../../utils/notifications.js";
+import { formatearJornada } from "../../utils/formatters.js";
 
 const CargasForm = ({
     selectedCarga,     // Objeto carga si estamos editando (null si es crear)
@@ -223,7 +224,7 @@ const CargasForm = ({
                                     <label className={labelClasses}>Grupo <span className="text-red-500">*</span></label>
                                     <select name="grupoId" value={formData.grupoId} onChange={handleChange} className={inputClasses} disabled={!formData.sedeId} required>
                                         <option value="">{!formData.sedeId ? "Primero elija Sede" : catalogos.grupos.length === 0 ? "Sin grupos" : "-- Seleccione --"}</option>
-                                        {catalogos.grupos.map(g => <option key={g.id} value={g.id}>{g.nombre} ({g.jornada})</option>)}
+                                        {catalogos.grupos.map(g => <option key={g.id} value={g.id}>{g.nombre} ({formatearJornada(g.jornada)})</option>)}
                                     </select>
                                 </div>
                             </div>

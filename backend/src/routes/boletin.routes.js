@@ -27,4 +27,13 @@ router.post(
     boletinController.generarLote
 );
 
+// Auditoría de notas pendientes antes de imprimir boletines
+router.get(
+    "/auditoria",
+    protect,
+    restrictTo(["admin", "secretaria", "coordinador"]),
+    vigenciaContext,
+    boletinController.auditarNotasPendientes
+);
+
 export default router;

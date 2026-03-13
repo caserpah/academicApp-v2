@@ -1,4 +1,5 @@
 import apiClient from './apiClient.js';
+import { formatearJornada } from "../utils/formatters.js"; // Importamos el formateador de jornadas
 
 /**
  * Servicio de gestión de Calificaciones
@@ -12,18 +13,6 @@ const ASIGNATURAS_ENDPOINT = '/api/asignaturas';      // Endpoint General (Admin
 const SEDES_ENDPOINT = '/api/sedes';                 // Endpoint General (Admins)
 const VIGENCIAS_ENDPOINT = '/api/vigencias';
 const RECOMENDACIONES_ENDPOINT = '/api/recomendaciones'
-
-/* Helper: Formatear Jornada */
-const formatJornada = (jornadaEnum) => {
-    const map = {
-        'MANANA': 'Mañana',
-        'TARDE': 'Tarde',
-        'NOCHE': 'Noche',
-        'COMPLETA': 'Completa',
-        'UNICA': 'Única'
-    };
-    return map[jornadaEnum] || jornadaEnum;
-};
 
 /* Helper: Formatear Grado (Capitalizar) */
 const formatGrado = (nombre) => {
@@ -92,7 +81,7 @@ export const fetchCalificacionesCatalogs = async (rol) => {
                 id: g.id,
                 sedeId: g.sedeId, // Importante para el filtro
                 // Formato: "Sexto A | Mañana"
-                label: `${formatGrado(g.grado?.nombre)} ${g.nombre} | ${formatJornada(g.jornada)}`,
+                label: `${formatGrado(g.grado?.nombre)} ${g.nombre} | ${formatearJornada(g.jornada)}`,
                 gradoId: g.gradoId // Útil para filtrar asignaturas si quisieras
             }));
 
@@ -121,7 +110,7 @@ export const fetchCalificacionesCatalogs = async (rol) => {
                     gruposMap.set(g.id, {
                         id: g.id,
                         sedeId: item.sedeId, // Vinculamos grupo a la sede de la carga
-                        label: `${formatGrado(g.grado?.nombre)} ${g.nombre} | ${formatJornada(g.jornada)}`
+                        label: `${formatGrado(g.grado?.nombre)} ${g.nombre} | ${formatearJornada(g.jornada)}`
                     });
                 }
             });
@@ -271,24 +260,17 @@ export const checkPendientesDocente = async (params) => {
     return response.data.data;
 };
 
-/*
-// Descargar Reporte
-export const descargarReportePendientes = async (vigenciaId) => {
+/**
+ * Consulta si la ventana de calificaciones está abierta para un periodo específico
+ */
+export const checkEstadoVentana = async (periodo) => {
     try {
-        const response = await apiClient.get(`${CALIFICACIONES_ENDPOINT}/pendientes/reporte`, {
-            params: { vigenciaId },
-            responseType: 'blob'
+        const response = await apiClient.get(`${CALIFICACIONES_ENDPOINT}/ventana/estado`, {
+            params: { periodo }
         });
-
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', 'Informe_Pendientes.xlsx');
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(url);
+        return response.data.data; // Retorna { abierta: true/false, ventana: {...} }
     } catch (error) {
-        throw parseError(error);
+        console.error("Error verificando estado de la ventana de calificaciones:", error);
+        return { abierta: false }; // Por seguridad, si falla la red, asumimos que está cerrado
     }
-};*/
+};

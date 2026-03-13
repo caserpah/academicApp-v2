@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFilePdf, faPrint, faSpinner, faFilter } from "@fortawesome/free-solid-svg-icons";
-import { fetchBoletinesCatalogs, fetchEstudiantesPorGrupo, generarBoletinesPDF } from "../../api/boletinesService.js";
+import { faFilePdf, faPrint, faSpinner, faFilter, faSearch, faDownload, faTimes } from "@fortawesome/free-solid-svg-icons";
+import { fetchBoletinesCatalogs, fetchEstudiantesPorGrupo, generarBoletinesPDF, fetchAuditoriaBoletines } from "../../api/boletinesService.js";
 import { fetchGruposFiltrados } from "../../api/cargasService.js"; // Reutilizamos tu helper existente
 import { showError, showWarning } from "../../utils/notifications.js";
+import { formatearJornada } from "../../utils/formatters.js"; // Importamos el formateador de jornadas
 import Swal from "sweetalert2";
 
 const GenerarBoletines = () => {
@@ -22,6 +23,14 @@ const GenerarBoletines = () => {
     });
 
     const [loading, setLoading] = useState(false);
+
+    // Estado para auditoría de notas faltantes
+    const [reporteFaltantes, setReporteFaltantes] = useState(null);
+    const [isAuditing, setIsAuditing] = useState(false);
+
+    // Variable para que todo el componente (incluyendo el HTML) sepa si es preescolar
+    const grupoActual = catalogos.grupos.find(g => g.id === Number(formData.grupoId));
+    const esPreescolar = grupoActual?.grado?.nivelAcademico === 'PREESCOLAR';
 
     // Clases CSS extraídas de tu código
     const inputClasses = "w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-100 disabled:text-gray-500";
@@ -78,8 +87,89 @@ const GenerarBoletines = () => {
             setFormData(prev => ({ ...prev, grupoId: "", estudianteId: "" }));
         }
         if (name === "grupoId") {
-            setFormData(prev => ({ ...prev, estudianteId: "" }));
+            const grupoElegido = catalogos.grupos.find(g => g.id === Number(value));
+            const esGrupoPrees = grupoElegido?.grado?.nivelAcademico === 'PREESCOLAR';
+
+            setFormData(prev => ({
+                ...prev,
+                estudianteId: "",
+                tipoBoletin: esGrupoPrees ? "DESCRIPTIVO" : prev.tipoBoletin
+            }));
         }
+    };
+
+    // --- BOTÓN AUDITORÍA ---
+    const handleAuditarNotas = async () => {
+        if (!formData.grupoId || !formData.periodoActual) {
+            return showWarning("Seleccione un Grupo y el Periodo a Auditar.");
+        }
+        try {
+            setIsAuditing(true);
+            // Reemplaza esto con tu función real del api/boletinesService.js
+            const reporte = await fetchAuditoriaBoletines(formData.grupoId, formData.periodoActual);
+
+            if (reporte && reporte.length > 0) {
+                setReporteFaltantes(reporte);
+                showWarning(`Se encontraron ${reporte.length} registros incompletos.`);
+            } else {
+                Swal.fire({ icon: 'success', title: '¡Todo en orden!', text: 'No hay calificaciones pendientes hasta este periodo.' });
+            }
+        } catch (error) {
+            console.error("Error en auditoría de notas faltantes", error);
+            showError("Error al auditar calificaciones.");
+        } finally {
+            setIsAuditing(false);
+        }
+    };
+
+    // --- DESCARGAR REPORTE DE NOTAS FALTANTES EN EXCEL ---
+    const descargarAuditoriaExcel = () => {
+        if (!reporteFaltantes) return;
+
+        // Buscamos la información del Grupo y también del Grado para el nombre del archivo
+        const sedeInfo = catalogos.sedes.find(s => String(s.id) === String(formData.sedeId));
+        const grupoInfo = catalogos.grupos.find(g => String(g.id) === String(formData.grupoId));
+        const gradoInfo = catalogos.grados.find(g => String(g.id) === String(formData.gradoId));
+
+        const nombreSede = sedeInfo ? sedeInfo.nombre : 'Sede';
+        const nombreGrupo = grupoInfo ? grupoInfo.nombre : 'Grupo';
+        const nombreGrado = gradoInfo ? gradoInfo.nombre : 'Grado';
+
+        // Unimos los nombres para que quede bien claro (Ej: "SEXTO - A")
+        const SedeGradoGrupo = `${nombreSede} ${nombreGrado} ${nombreGrupo}`.trim();
+
+        // Limpiamos caracteres raros para el nombre del archivo (Ej: "SEXTO_A")
+        const nombreArchivoSeguro = SedeGradoGrupo.replace(/[^\p{L}\p{N}]/gu, '_');
+
+        const infoSuperior = [
+            ["REPORTE DE AUDITORÍA: NOTAS DE BOLETÍN FALTANTES"],
+            [`Grado:;"${nombreGrado}"`],
+            [`Grupo:;"${nombreGrupo}"`],
+            [`Sede:;"${nombreSede}"`],
+            [`Periodos evaluados:;"1 al ${formData.periodoActual}"`],
+            [""]
+        ];
+
+        const encabezados = ["Docente", "Asignatura", "Periodo", "Falta la nota:", "Estudiante"];
+        const filas = reporteFaltantes.map(item => [
+            `"${item.docente}"`, `"${item.asignatura}"`, `"${item.periodo}"`, `"${item.detalle}"`, `"${item.estudiante}"`
+        ]);
+
+        const contenidoCSV = [
+            ...infoSuperior.map(f => f.join(";")),
+            encabezados.join(";"),
+            ...filas.map(f => f.join(";"))
+        ].join("\n");
+
+        const blob = new Blob(["\uFEFF" + contenidoCSV], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+
+        link.setAttribute("download", `Auditoria_Boletines_${nombreArchivoSeguro}.csv`);
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     const handleSubmit = async (e) => {
@@ -178,7 +268,7 @@ const GenerarBoletines = () => {
                                     <label className={labelClasses}>Grupo <span className="text-red-500">*</span></label>
                                     <select name="grupoId" value={formData.grupoId} onChange={handleChange} className={inputClasses} disabled={!formData.gradoId} required>
                                         <option value="">{!formData.gradoId ? "Elija Grado" : catalogos.grupos.length === 0 ? "Sin grupos" : "-- Seleccione --"}</option>
-                                        {catalogos.grupos.map(g => <option key={g.id} value={g.id}>{g.nombre} ({g.jornada})</option>)}
+                                        {catalogos.grupos.map(g => (<option key={g.id} value={g.id}>{g.nombre} ({formatearJornada(g.jornada)})</option>))} {/* Usamos el formateador de jornadas aquí */}
                                     </select>
                                 </div>
                             </div>
@@ -204,7 +294,9 @@ const GenerarBoletines = () => {
                                     <label className={labelClasses}>Tipo de Boletín <span className="text-red-500">*</span></label>
                                     <select name="tipoBoletin" value={formData.tipoBoletin} onChange={handleChange} className={inputClasses} required>
                                         <option value="">-- Seleccione --</option>
-                                        <option value="VALORATIVO">Boletín Valorativo (Notas + Desempeño)</option>
+                                        {!esPreescolar && (
+                                            <option value="VALORATIVO">Boletín Valorativo (Notas + Desempeño)</option>
+                                        )}
                                         <option value="DESCRIPTIVO">Boletín Descriptivo (Con Juicios y Dimensiones)</option>
                                     </select>
                                     <p className="text-xs text-gray-500 mt-1">* Preescolar se forzará automáticamente a Descriptivo.</p>
@@ -233,11 +325,21 @@ const GenerarBoletines = () => {
                         </div>
 
                         {/* FOOTER Y BOTÓN */}
-                        <div className="pt-6 border-t border-gray-200 flex justify-end">
+                        <div className="pt-6 border-t border-gray-200 flex justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={handleAuditarNotas}
+                                disabled={loading || isAuditing}
+                                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold shadow-md flex items-center gap-2 transition-transform active:scale-95 disabled:opacity-70 text-lg"
+                            >
+                                <FontAwesomeIcon icon={isAuditing ? faSpinner : faSearch} spin={isAuditing} />
+                                {isAuditing ? "Auditando..." : "Auditar Notas Faltantes"}
+                            </button>
+
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold shadow-md flex items-center gap-2 transition-transform active:scale-95 disabled:opacity-70 text-lg"
+                                className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-bold shadow-md flex items-center gap-2 transition-transform active:scale-95 disabled:opacity-70 text-lg"
                             >
                                 {loading ? (
                                     <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
@@ -252,6 +354,63 @@ const GenerarBoletines = () => {
                 </div>
 
             </div>
+
+            {/* MODAL DE AUDITORÍA BOLETINES */}
+            {reporteFaltantes && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden border-t-4 border-blue-500">
+                        <div className="p-5 border-b border-gray-100 bg-blue-50 flex justify-between items-center">
+                            <h3 className="text-lg font-bold text-blue-800 flex items-center gap-2">
+                                <FontAwesomeIcon icon={faSearch} />
+                                Auditoría: Notas Incompletas
+                            </h3>
+                            <button onClick={() => setReporteFaltantes(null)} className="text-gray-400 hover:text-gray-600">
+                                <FontAwesomeIcon icon={faTimes} />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <p className="text-sm text-gray-700 mb-4">
+                                Se encontraron <strong>{reporteFaltantes.length}</strong> campos vacíos. Si genera el boletín ahora, estas notas saldrán en blanco o afectarán el promedio.
+                            </p>
+                            <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg shadow-inner">
+                                <table className="min-w-full divide-y divide-gray-200 text-sm">
+                                    <thead className="bg-gray-100 sticky top-0">
+                                        <tr>
+                                            <th className="px-4 py-2 text-left font-bold text-gray-600">Docente</th>
+                                            <th className="px-4 py-2 text-left font-bold text-gray-600">Asignatura</th>
+                                            <th className="px-4 py-2 text-left font-bold text-gray-600">Periodo</th>
+                                            <th className="px-4 py-2 text-left font-bold text-red-600">Falta la nota:</th>
+                                            <th className="px-4 py-2 text-left font-bold text-gray-600">Estudiante</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {reporteFaltantes.map((item, index) => (
+                                            <tr key={index} className="hover:bg-blue-50/50">
+                                                <td className="px-4 py-2 whitespace-nowrap">{item.docente}</td>
+                                                <td className="px-4 py-2 whitespace-nowrap">{item.asignatura}</td>
+                                                <td className="px-4 py-2 whitespace-nowrap">{item.periodo}</td>
+                                                <td className="px-4 py-2 whitespace-nowrap font-bold text-red-500">{item.detalle}</td>
+                                                <td className="px-4 py-2 whitespace-nowrap">{item.estudiante}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div className="p-4 bg-gray-50 border-t flex justify-between items-center">
+                            <span className="text-xs text-gray-500 italic">Descargue el reporte para enviarlo a los docentes.</span>
+                            <div className="flex gap-3">
+                                <button onClick={descargarAuditoriaExcel} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-bold flex items-center gap-2">
+                                    <FontAwesomeIcon icon={faDownload} /> Descargar Excel
+                                </button>
+                                <button onClick={() => setReporteFaltantes(null)} className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-bold">
+                                    Cerrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

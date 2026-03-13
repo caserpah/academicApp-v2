@@ -1,3 +1,5 @@
+
+
 import apiClient from "./apiClient.js";
 
 const BOLETINES_ENDPOINT = '/api/boletines';
@@ -83,5 +85,22 @@ export const generarBoletinesPDF = async (payload) => {
             throw new Error(errorJson.message || errorJson.msg || "Error al generar los boletines");
         }
         throw new Error("Error de conexión al generar el PDF.");
+    }
+};
+
+/**
+ * Audita las notas faltantes de un grupo antes de generar el boletín
+ */
+export const fetchAuditoriaBoletines = async (grupoId, periodoActual) => {
+    try {
+        const response = await apiClient.get(`${BOLETINES_ENDPOINT}/auditoria`, {
+            params: { grupoId, periodoActual }
+        });
+
+        // Retornamos directamente el arreglo con los datos del reporte
+        return response.data.data;
+    } catch (error) {
+        console.error("Error al auditar boletines:", error);
+        throw new Error(error.response?.data?.message || "Ocurrió un error al auditar las calificaciones.");
     }
 };

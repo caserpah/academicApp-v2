@@ -239,7 +239,7 @@ export const matriculaService = {
             });
 
             if (notasExistentes > 0) {
-                const err = new Error("No se puede eliminar: El estudiante ya tiene calificaciones registradas. Debe cambiar el estado de la matrícula a 'ANULADO' o 'RETIRADO'.");
+                const err = new Error("La matrícula no puede eliminarse porque el estudiante ya tiene calificaciones registradas. Como alternativa, puede cambiar el estado de la matrícula a “ANULADO” o “RETIRADO”.");
                 err.status = 409;
                 throw err;
             }

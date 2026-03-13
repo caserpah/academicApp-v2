@@ -116,7 +116,7 @@ const GruposForm = ({
                             <option value="MANANA">Mañana</option>
                             <option value="TARDE">Tarde</option>
                             <option value="NOCHE">Noche</option>
-                            <option value="COMPLETA">Completa</option>
+                            <option value="UNICA">Única</option>
                         </select>
                     </div>
 

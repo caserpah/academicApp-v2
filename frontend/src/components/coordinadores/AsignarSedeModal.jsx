@@ -20,7 +20,7 @@ const AsignarSedeModal = ({
     const jornadas = [
         { value: "mañana", label: "Mañana" },
         { value: "tarde", label: "Tarde" },
-        { value: "completa", label: "Completa" },
+        { value: "unica", label: "Única" },
         { value: "noche", label: "Noche" }
     ];
 
@@ -142,7 +142,7 @@ const AsignarSedeModal = ({
                         <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
                             <p><strong>Mañana:</strong> 6:00 AM - 12:00 PM</p>
                             <p><strong>Tarde:</strong> 12:00 PM - 6:00 PM</p>
-                            <p><strong>Completa:</strong> 6:00 AM - 6:00 PM</p>
+                            <p><strong>Única:</strong> 6:00 AM - 6:00 PM</p>
                             <p><strong>Noche:</strong> 6:00 PM - 10:00 PM</p>
                         </div>
 

@@ -55,5 +55,28 @@ export const boletinController = {
             }
             next(error);
         }
+    },
+
+    // Función para auditar notas faltantes antes de imprimir boletines
+    async auditarNotasPendientes(req, res, next) {
+        try {
+            const { grupoId, periodoActual } = req.query;
+
+            if (!grupoId || !periodoActual) {
+                return res.status(400).json({ status: 'error', message: "Selecciones el grupo y periodo académico." });
+            }
+
+            const vigenciaId = req.vigenciaActual.id;
+            const reporte = await boletinService.auditarNotasPendientes(grupoId, vigenciaId, periodoActual);
+
+            return res.status(200).json({
+                status: 'success',
+                data: reporte
+            });
+
+        } catch (error) {
+            console.error("Error en boletinController.auditarNotasPendientes:", error);
+            next(error);
+        }
     }
 };

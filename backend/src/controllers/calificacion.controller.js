@@ -64,7 +64,7 @@ export const calificacionController = {
                 if (docente) {
                     datosParaGuardar.docenteId = docente.id;
                 }
-                // Si NO es docente (es Admin), no tocamos docenteId (se mantiene null o el anterior).
+                // Si NO es docente (es Admin), no tocamos docenteId
             }
 
             // Pasamos el body completo al servicio
@@ -188,30 +188,24 @@ export const calificacionController = {
         }
     },
 
-    /*
-    // Descarga del reporte
-    async descargarReportePendientes(req, res, next) {
+    /**
+     * Verificar si la ventana de calificaciones está abierta
+     * Para el Modo Solo Lectura en el frontend
+     */
+    async verificarEstadoVentana(req, res, next) {
         try {
-            if (req.user.role !== 'docente') throw new Error("Acceso denegado.");
+            const { periodo } = req.query;
+            const vigenciaId = req.vigenciaActual.id;
 
-            const userId = req.user.id;
-            const { vigenciaId } = req.query;
+            if (!periodo) {
+                return res.json({ success: true, data: { abierta: false } });
+            }
 
-            // Misma lógica de puente: Usuario -> Documento -> Docente
-            const usuario = await Usuario.findByPk(userId);
-            if (!usuario) throw new Error("Usuario no válido.");
+            const resultado = await calificacionService.verificarEstadoVentana(periodo, vigenciaId);
 
-            const docente = await Docente.findOne({ where: { documento: usuario.documento } });
-            if (!docente) throw new Error("Perfil de docente no encontrado.");
-
-            const buffer = await calificacionService.generarReportePendientes(docente.id, vigenciaId);
-
-            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            res.setHeader('Content-Disposition', 'attachment; filename=Reporte_Pendientes_Academicos.xlsx');
-            res.send(buffer);
+            return res.json({ success: true, data: resultado });
         } catch (error) {
             next(error);
         }
-    }
-    */
+    },
 };

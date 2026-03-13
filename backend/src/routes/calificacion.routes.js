@@ -65,13 +65,11 @@ router.get(
     calificacionController.checkPendientes
 );
 
-/*
-// Reporte detallado de pendientes (para el modal)
 router.get(
-    "/pendientes/reporte",
+    "/ventana/estado",
     protect,
     restrictTo(["docente", "admin", "coordinador"]),
-    calificacionController.descargarReportePendientes
-);*/
+    calificacionController.verificarEstadoVentana
+);
 
 export default router;

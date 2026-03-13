@@ -3,6 +3,7 @@ import { Calificacion } from "../models/calificacion.js";
 import { Matricula } from "../models/matricula.js";
 import { Estudiante } from "../models/estudiante.js";
 import { Asignatura } from "../models/asignatura.js";
+import { VentanaCalificacion } from "../models/ventana_calificacion.js";
 
 export const calificacionRepository = {
 
@@ -14,7 +15,7 @@ export const calificacionRepository = {
             where: {
                 grupoId,
                 vigenciaId,
-                estado: { [Op.notIn]: ['RETIRADO', 'DESERTADO'] } // Solo estudiantes activos (no retirados ni desertados)
+                estado: { [Op.notIn]: ['RETIRADO', 'DESERTADO', 'ANULADO'] } // Solo estudiantes activos (no retirados ni desertados)
             },
             include: [
                 {
@@ -166,6 +167,15 @@ export const calificacionRepository = {
             ],
             raw: true,
             nest: true
+        });
+    },
+
+    /**
+     * Busca la configuración de la ventana de calificaciones para un periodo específico
+     */
+    async findVentana(periodo, vigenciaId) {
+        return VentanaCalificacion.findOne({
+            where: { periodo, vigenciaId }
         });
     }
 };

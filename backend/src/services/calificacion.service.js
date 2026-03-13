@@ -991,6 +991,25 @@ export const calificacionService = {
             totalEstudiantes: detalles.length, // Total de alumnos involucrados
             detalles
         };
+    },
+
+    /**
+     * Verifica si la ventana de calificaciones está abierta hoy
+     */
+    async verificarEstadoVentana(periodo, vigenciaId) {
+        const ventana = await calificacionRepository.findVentana(periodo, vigenciaId);
+
+        if (!ventana) {
+            return { abierta: false, mensaje: "El periodo seleccionado no tiene ventana de calificaciones configurada" };
+        }
+
+        const hoy = new Date().toISOString().split('T')[0];
+        const estaAbierta = hoy >= ventana.fechaInicio && hoy <= ventana.fechaFin;
+
+        return {
+            abierta: estaAbierta,
+            ventana
+        };
     }
 
 };

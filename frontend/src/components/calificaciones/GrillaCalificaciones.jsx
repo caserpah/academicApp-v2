@@ -21,7 +21,8 @@ const GrillaCalificaciones = ({
     onSave,
     onManualSave,
     asignaturaNombre = "",
-    bancoRecomendaciones = []
+    bancoRecomendaciones = [],
+    isReadOnly = false
 }) => {
     // --- Estado para la Grilla de calificaciones ---
     const [gridData, setGridData] = useState([]);
@@ -202,6 +203,13 @@ const GrillaCalificaciones = ({
 
     // --- HANDLER PARA GUARDAR DESDE EL MODAL ---
     const handleSaveRecommendations = async (rec1, rec2) => {
+        // Validación de Modo Solo Lectura
+        if (isReadOnly) {
+            showWarning("La planilla está en modo Solo Lectura.");
+            setModalOpen(false);
+            return;
+        }
+
         if (!currentStudent) return;
         const index = currentStudent.index;
         const row = gridData[index];
@@ -348,9 +356,9 @@ const GrillaCalificaciones = ({
                     closedWindowCount++;
                     setPendingJustificationRows(prev => ({ ...prev, [row.estudianteId]: true }));
                 }*/
-               // --- LÓGICA DE CLASIFICACIÓN DE ERRORES ---
+                // --- LÓGICA DE CLASIFICACIÓN DE ERRORES ---
 
-               // CASO 1: ADMIN - Backend pide justificación explícita
+                // CASO 1: ADMIN - Backend pide justificación explícita
                 if (err.code === 'REQ_JUSTIFICACION') {
                     adminJustificationCount++;
                     setPendingJustificationRows(prev => ({ ...prev, [row.estudianteId]: true }));
@@ -413,10 +421,10 @@ const GrillaCalificaciones = ({
                         value={row[field]}
                         onChange={(e) => handleCellChange(index, field, e.target.value)}
                         onBlur={() => handleBlur(index)}
-                        disabled={row.bloqueo_notas || isSaving}
+                        disabled={row.bloqueo_notas || isSaving || isReadOnly}
                         className={`w-14 text-center border rounded py-1 px-1 focus:outline-none focus:ring-2 focus:ring-blue-400 font-mono text-sm
-                            ${row.bloqueo_notas ? 'bg-red-50 text-red-400 cursor-not-allowed border-red-200' : 'bg-white border-gray-300'}
-                            ${row.isDirty ? 'border-yellow-400 bg-yellow-50' : ''}
+                            ${row.bloqueo_notas || isReadOnly ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' : 'bg-white border-gray-300'}
+                            ${row.isDirty && !isReadOnly ? 'border-yellow-400 bg-yellow-50' : ''}
                         `}
                         placeholder="0.0"
                     />
@@ -455,10 +463,10 @@ const GrillaCalificaciones = ({
     );
 
     if (loading && gridData.length === 0) return <div className="p-10 text-center text-gray-500">Cargando grilla...</div>;
-    if (gridData.length === 0) return <div className="p-10 text-center text-gray-500">No hay estudiantes en este grupo.</div>;
+    if (gridData.length === 0) return <div className="p-10 text-center text-gray-500">No hay estudiantes matriculados en este grupo.</div>;
 
     return (
-        <div className="overflow-x-auto pb-4">
+        <div className="overflow-x-auto pt-5 px-4 md:px-6 pb-6">
             <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                     <tr>
@@ -489,33 +497,35 @@ const GrillaCalificaciones = ({
                         <th rowSpan="2" className="px-2 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-24">Acciones</th>
                     </tr>
 
-                    {/* FILA MAESTRA */}
-                    <tr className="bg-gray-100 border-b-2 border-gray-200">
-                        {!esComportamiento ? (
-                            <>
-                                <td className="p-1 text-center">{renderMasterInput('notaAcademica', '50%')}</td>
-                                <td className="p-1 text-center">{renderMasterInput('notaAcumulativa', '20%')}</td>
-                                <td className="p-1 text-center">{renderMasterInput('notaLaboral', '15%')}</td>
-                                <td className="p-1 text-center">{renderMasterInput('notaSocial', '15%')}</td>
-                            </>
-                        ) : (
-                            <td className="p-1 text-center">{renderMasterInput('notaDefinitivaInput', 'DEF')}</td>
-                        )}
+                    {/* FILA MAESTRA - Se oculta en modo solo lectura */}
+                    {!isReadOnly && (
+                        <tr className="bg-gray-100 border-b-2 border-gray-200">
+                            {!esComportamiento ? (
+                                <>
+                                    <td className="p-1 text-center">{renderMasterInput('notaAcademica', '50%')}</td>
+                                    <td className="p-1 text-center">{renderMasterInput('notaAcumulativa', '20%')}</td>
+                                    <td className="p-1 text-center">{renderMasterInput('notaLaboral', '15%')}</td>
+                                    <td className="p-1 text-center">{renderMasterInput('notaSocial', '15%')}</td>
+                                </>
+                            ) : (
+                                <td className="p-1 text-center">{renderMasterInput('notaDefinitivaInput', 'DEF')}</td>
+                            )}
 
-                        {/* BOTÓN DE ACCIÓN MASIVA */}
-                        {/* Normal: Definitiva(1) + Fallas(1) + Obs(1) = 3 */}
-                        {/* Comportamiento: Definitiva(1) = 1 */}
-                        <td colSpan={!esComportamiento ? 3 : 1} className="p-1 text-center align-middle">
-                            <button
-                                onClick={applyGlobalMassUpdate}
-                                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-3 rounded shadow flex items-center justify-center gap-2 mx-auto transition-transform active:scale-95"
-                                title="Rellenar todos los campos vacíos con estos valores"
-                            >
-                                <FontAwesomeIcon icon={faReplyAll} />
-                                Aplicar a Todos
-                            </button>
-                        </td>
-                    </tr>
+                            {/* BOTÓN DE ACCIÓN MASIVA */}
+                            {/* Normal: Definitiva(1) + Fallas(1) + Obs(1) = 3 */}
+                            {/* Comportamiento: Definitiva(1) = 1 */}
+                            <td colSpan={!esComportamiento ? 3 : 1} className="p-1 text-center align-middle">
+                                <button
+                                    onClick={applyGlobalMassUpdate}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-3 rounded shadow flex items-center justify-center gap-2 mx-auto transition-transform active:scale-95"
+                                    title="Rellenar todos los campos vacíos con estos valores"
+                                >
+                                    <FontAwesomeIcon icon={faReplyAll} />
+                                    Aplicar a Todos
+                                </button>
+                            </td>
+                        </tr>
+                    )}
                 </thead>
 
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -571,23 +581,28 @@ const GrillaCalificaciones = ({
                                         <td className="px-2 py-2 text-center">
                                             <input type="number" min="0" value={row.fallas}
                                                 onChange={(e) => handleCellChange(index, 'fallas', e.target.value)}
-                                                onBlur={() => handleBlur(index)} disabled={row.bloqueo_notas}
-                                                className="w-12 text-center border border-gray-300 rounded text-xs py-1"
+                                                onBlur={() => handleBlur(index)}
+                                                disabled={row.bloqueo_notas || isReadOnly}
+                                                className={`w-12 text-center border border-gray-300 rounded text-xs py-1 ${isReadOnly ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''}`}
                                             />
                                         </td>
                                         <td className="px-2 py-2 text-center">
                                             <button
                                                 onClick={() => handleOpenRecommendations(row, index)}
                                                 disabled={row.bloqueo_notas}
-                                                title={row.recomendacionUno ? "Editar Recomendaciones" : "Agregar Recomendaciones"}
+                                                title={
+                                                    isReadOnly
+                                                        ? "Ver Recomendaciones (Solo Lectura)"
+                                                        : (row.recomendacionUno ? "Editar Recomendaciones" : "Agregar Recomendaciones")
+                                                }
                                                 className={`
-                                                w-8 h-8 rounded-full flex items-center justify-center transition-colors
-                                                ${row.recomendacionUno
+                                                    w-8 h-8 rounded-full flex items-center justify-center transition-colors
+                                                    ${row.recomendacionUno
                                                         ? "bg-blue-100 text-blue-600 hover:bg-blue-200"
                                                         : "bg-gray-100 text-gray-400 hover:bg-gray-200"
                                                     }
-                                                ${row.bloqueo_notas ? "opacity-50 cursor-not-allowed" : ""}
-                                            `}
+                                                    ${row.bloqueo_notas ? "opacity-50 cursor-not-allowed grayscale" : ""}
+                                                `}
                                             >
                                                 {row.recomendacionUno ? <FontAwesomeIcon icon={faCheckCircle} /> : <FontAwesomeIcon icon={faCommentDots} />}
                                             </button>
@@ -597,7 +612,7 @@ const GrillaCalificaciones = ({
 
                                 {/* --- COLUMNA ACCIONES --- */}
                                 <td className="px-2 py-2 text-center whitespace-nowrap">
-                                    {needsJustification ? (
+                                    {needsJustification && !isReadOnly ? (
                                         <button
                                             onClick={() => handleTriggerManualSave(row)}
                                             className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-3 py-1.5 rounded shadow-sm flex items-center gap-1 animate-pulse mx-auto"
@@ -631,7 +646,8 @@ const GrillaCalificaciones = ({
                 studentName={currentStudent?.nombreCompleto || ""}
                 initialRec1={currentStudent?.recomendacionUno}
                 initialRec2={currentStudent?.recomendacionDos}
-                bancoOptions={bancoRecomendaciones} // Pasamos el catálogo
+                bancoOptions={bancoRecomendaciones}
+                isReadOnly={isReadOnly}
             />
         </div >
     );

@@ -364,12 +364,12 @@ const NivelacionesPage = () => {
                 ) : filters.asignaturaId ? (
                     <div className="text-center p-10 text-gray-500 flex flex-col items-center justify-center gap-2">
                         <span className="text-4xl">🎉</span>
-                        <p>No hay estudiantes reprobados en esta asignatura.</p>
+                        <p>No hay estudiantes reprobados en esta Área.</p>
                         {/* <p className="text-xs text-gray-400">Si el año no ha finalizado, pídale al administrador que genere los consolidados.</p> */}
                     </div>
                 ) : (
                     <div className="text-center p-10 text-gray-400 italic">
-                        Seleccione una Sede, Grupo y Asignatura para comenzar.
+                        Seleccione una Sede, Grupo y Área para comenzar.
                     </div>
                 )}
             </div>

@@ -13,7 +13,7 @@ import {
     fetchBancoRecomendaciones,
     descargarPlantillaDocente,
     checkPendientesDocente,
-    //descargarReportePendientes
+    checkEstadoVentana
 } from "../../api/calificacionesService.js";
 
 import { showSuccess, showError, showWarning } from "../../utils/notifications.js";
@@ -56,6 +56,7 @@ const CalificacionesPage = () => {
     // Estados de UI (Loading)
     const [loadingCatalogs, setLoadingCatalogs] = useState(true);
     const [loadingGrilla, setLoadingGrilla] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
 
     // Estados para auditoria (Cambio de calificaciones extemporaneas)
     const [showJustificacionModal, setShowJustificacionModal] = useState(false);
@@ -69,6 +70,8 @@ const CalificacionesPage = () => {
 
     // Estado para mostrar el modal con la lista completa de pendientes del docente
     const [showModalPendientes, setShowModalPendientes] = useState(false);
+
+    const [isReadOnly, setIsReadOnly] = useState(false);
 
     // --- CARGA INICIAL DE CATÁLOGOS ---
     useEffect(() => {
@@ -161,17 +164,36 @@ const CalificacionesPage = () => {
 
         if (!grupoId || !asignaturaId || !periodo || !vigencia?.id) {
             setStudentsData([]);
-            setAlertaPendientes({ show: false, data: null }); // Limpiamos la alerta
+            setAlertaPendientes({ show: false, data: null });
+            setIsReadOnly(false); // Limpiamos la alerta
             return;
         }
 
         try {
             setLoadingGrilla(true);
+
+            // --- 1. PRE-CHECK: VERIFICAR VENTANA ---
+            const estadoVentana = await checkEstadoVentana(periodo);
+
+            // Usamos una variable local para el flujo actual
+            let isCurrentlyReadOnly = false;
+
+            // Si está cerrada y NO es admin (los admins pueden editar extemporáneo)
+            if (!estadoVentana.abierta && !esAdmin) {
+                showWarning("El periodo está cerrado. La planilla se muestra en modo Solo Lectura.");
+                setIsReadOnly(true);
+                isCurrentlyReadOnly = true;
+            } else {
+                setIsReadOnly(false);
+            }
+
+            // --- 2. CARGAR NOTAS
             const data = await fetchGrillaCalificaciones({ ...filters, vigenciaId: vigencia.id });
             setStudentsData(data);
 
-            // --- CHECK DE VUELO DEL DOCENTE ---
-            if (parseInt(periodo) > 1) {
+            // --- 3. CHECK DE VUELO DEL DOCENTE (SOLO SI NO ES LECTURA) ---
+            // Si el periodo es mayor a 1 Y la ventana está abierta (o es admin), verificamos pendientes
+            if (parseInt(periodo) > 1 && !isCurrentlyReadOnly) {
                 const auditoria = await checkPendientesDocente({ grupoId, asignaturaId, periodo });
                 if (auditoria.hayPendientes) {
                     setAlertaPendientes({ show: true, data: auditoria });
@@ -179,6 +201,7 @@ const CalificacionesPage = () => {
                     setAlertaPendientes({ show: false, data: null });
                 }
             } else {
+                // Si es periodo 1 o estamos en modo Solo Lectura, ocultamos la alerta
                 setAlertaPendientes({ show: false, data: null });
             }
         } catch (err) {
@@ -187,7 +210,7 @@ const CalificacionesPage = () => {
         } finally {
             setLoadingGrilla(false);
         }
-    }, [filters, vigencia]);
+    }, [filters, vigencia, esAdmin]);
 
     // Ejecutar carga cuando cambien los filtros completos
     useEffect(() => {
@@ -270,17 +293,21 @@ const CalificacionesPage = () => {
     // --- HANDLER: DESCARGA GLOBAL DOCENTE ---
     const handleDescargarPlantilla = async () => {
         if (!filters.periodo) {
-            showWarning("Por favor selecciona un periodo para descargar la planilla.");
+            showWarning("Por favor seleccione un periodo para descargar la planilla.");
             return;
         }
 
         try {
+            setIsDownloading(true); // Iniciamos el Spinner
+
             // Llama al nuevo servicio que descarga TODO el libro del docente para ese periodo
             await descargarPlantillaDocente(filters.periodo);
             showSuccess("Descarga iniciada. Revisa tus descargas.");
         } catch (error) {
             console.log(error)
             showError("Error al generar la plantilla. Verifica tu carga académica.");
+        } finally {
+            setIsDownloading(false); // Detenemos el Spinner (incluso si hay error)
         }
     };
 
@@ -312,7 +339,7 @@ const CalificacionesPage = () => {
                     </h1>
                     {vigencia && (
                         <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">
-                            {vigencia.anio} {esAdmin && '(Admin)'}
+                            Año Lectivo: {vigencia.anio} {esAdmin && '(Admin)'}
                         </span>
                     )}
                 </div>
@@ -379,7 +406,8 @@ const CalificacionesPage = () => {
                                 name="periodo"
                                 value={filters.periodo}
                                 onChange={handleFilterChange}
-                                className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                disabled={!filters.asignaturaId}
+                                className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:border-gray-300 disabled:cursor-not-allowed transition-colors "
                             >
                                 <option value="">-- Seleccione --</option>
                                 {[1, 2, 3, 4].map(p => <option key={p} value={p}>Periodo {p}</option>)}
@@ -401,17 +429,17 @@ const CalificacionesPage = () => {
                 </div>
 
                 {/* --- 6. ACCIONES GLOBALES (DESCARGAR / IMPORTAR) --- */}
-                <div className="flex flex-wrap justify-end gap-3 p-2 bg-blue-50/50 rounded-lg border border-blue-100">
-                    <div className="flex items-center gap-2 mr-auto text-sm text-blue-800 px-2">
-                        <FontAwesomeIcon icon={faFileExcel} />
-                        <span className="font-semibold">Gestión Masiva de Notas (Excel)</span>
-                    </div>
+                {!isReadOnly && rolUsuario === 'docente' && (
+                    <div className="flex flex-wrap justify-end gap-3 p-2 bg-blue-50/50 rounded-lg border border-blue-100">
+                        <div className="flex items-center gap-2 mr-auto text-sm text-blue-800 px-2">
+                            <FontAwesomeIcon icon={faFileExcel} />
+                            <span className="font-semibold">Gestión Masiva de Notas (Excel)</span>
+                        </div>
 
-                    {/* Botón Descargar (SOLO DOCENTES y requiere periodo) */}
-                    {rolUsuario === 'docente' && (
+                        {/* Botón Descargar (SOLO DOCENTES y requiere periodo) */}
                         <button
                             onClick={handleDescargarPlantilla}
-                            disabled={!filters.periodo}
+                            disabled={!filters.periodo || isDownloading}
                             className={`px-4 py-2 rounded-lg shadow-sm text-sm font-bold flex items-center gap-2 transition-all
                             ${!filters.periodo
                                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -419,21 +447,31 @@ const CalificacionesPage = () => {
                                 }`}
                             title={!filters.periodo ? "Selecciona un periodo primero" : "Descargar planilla completa con todas tus asignaturas"}
                         >
-                            <FontAwesomeIcon icon={faDownload} />
-                            Descargar Mi Planilla
+                            {/* Alternamos el ícono y el texto del botón */}
+                            {isDownloading ? (
+                                <>
+                                    <FontAwesomeIcon icon={faSpinner} spin />
+                                    Generando Excel...
+                                </>
+                            ) : (
+                                <>
+                                    <FontAwesomeIcon icon={faDownload} />
+                                    Descargar Mi Planilla
+                                </>
+                            )}
                         </button>
-                    )}
 
-                    {/* Botón Importar (Global) */}
-                    <button
-                        onClick={() => setShowImportModal(true)}
-                        className="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-5 rounded-lg shadow-sm flex items-center gap-2 transition-all hover:shadow-md"
-                        title="Subir archivo con múltiples hojas"
-                    >
-                        <FontAwesomeIcon icon={faUpload} />
-                        Subir Planilla
-                    </button>
-                </div>
+                        {/* Botón Importar (Global) */}
+                        <button
+                            onClick={() => setShowImportModal(true)}
+                            className="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-5 rounded-lg shadow-sm flex items-center gap-2 transition-all hover:shadow-md"
+                            title="Subir archivo con múltiples hojas"
+                        >
+                            <FontAwesomeIcon icon={faUpload} />
+                            Subir Planilla
+                        </button>
+                    </div>
+                )}
 
                 {/* ALERTA DE NOTAS PENDIENTES */}
                 {alertaPendientes.show && alertaPendientes.data && (
@@ -477,6 +515,7 @@ const CalificacionesPage = () => {
                             onManualSave={handleManualSaveRequest}
                             asignaturaNombre={asignaturasDisponibles.find(a => String(a.id) === String(filters.asignaturaId))?.nombre || ""}
                             bancoRecomendaciones={bancoRecomendaciones}
+                            isReadOnly={isReadOnly}
                         />
                     )}
                 </div>

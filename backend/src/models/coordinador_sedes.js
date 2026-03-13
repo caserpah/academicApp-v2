@@ -29,7 +29,7 @@ export const CoordinadorSedes = sequelize.define("coordinador_sedes", {
         references: { model: "vigencias", key: "id" },
     },
     jornada: {
-        type: DataTypes.ENUM("MAÑANA", "TARDE", "NOCHE", "COMPLETA"),
+        type: DataTypes.ENUM("MAÑANA", "TARDE", "NOCHE", "UNICA"),
         allowNull: true, // Null si es Académico
     },
     tipo: {
