@@ -1,4 +1,5 @@
 import apiClient from "./apiClient.js";
+import { parseError } from "../utils/errorHandler.js";
 
 /**
  * Servicio de gestión de Sedes
@@ -53,12 +54,7 @@ export const fetchInitialData = async () => {
     } catch (error) {
         console.error('Error en fetchInitialData:', error);
 
-        const msg =
-            error.response?.data?.message ||
-            error.message ||
-            'Ocurrió un error al obtener los datos iniciales.';
-
-        throw new Error(msg);
+        throw parseError(error, 'Ocurrió un error al obtener los datos iniciales.');
     }
 };
 
@@ -77,24 +73,7 @@ export const crearSede = async (sedeData) => {
 
         return apiData.data;
     } catch (error) {
-        const data = error.response?.data;
-        const status = error.response?.status;
-
-        // Error de validación (422)
-        if (status === 422 && Array.isArray(data?.errors)) {
-            const primerError = data.errors[0];
-            const mensaje =
-                primerError.message || primerError.msg || 'Error de validación.';
-            throw new Error(mensaje);
-        }
-
-        // Error controlado (404, 409, etc.)
-        if (data?.message) {
-            throw new Error(data.message);
-        }
-
-        // Genérico
-        throw new Error(`Ocurrió un error al crear la sede: ${error.message}`);
+        throw parseError(error, 'Ocurrió un error al crear la sede.');
     }
 };
 
@@ -114,21 +93,7 @@ export const actualizarSede = async (id, sedeData) => {
 
         return apiData.data;
     } catch (error) {
-        const data = error.response?.data;
-        const status = error.response?.status;
-
-        if (status === 422 && Array.isArray(data?.errors)) {
-            const primerError = data.errors[0];
-            const mensaje =
-                primerError.message || primerError.msg || 'Error de validación.';
-            throw new Error(mensaje);
-        }
-
-        if (data?.message) {
-            throw new Error(data.message);
-        }
-
-        throw new Error(`Ocurrió un error al actualizar la sede: ${error.message}`);
+        throw parseError(error, 'Ocurrió un error al actualizar la sede.');
     }
 };
 
@@ -151,6 +116,6 @@ export const eliminarSede = async (id) => {
         if (data?.message) {
             throw new Error(data.message);
         }
-        throw new Error(`Ocurrió un error al eliminar la sede: ${error.message}`);
+        throw parseError(error, "Ocurrió un error al eliminar la sede.");
     }
 };

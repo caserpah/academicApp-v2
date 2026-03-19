@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import { Usuario } from "../models/usuario.js";
 import { sendSuccess } from "../middleware/responseHandler.js";
 
@@ -9,8 +10,13 @@ export const usuarioController = {
             const offset = (page - 1) * limit;
             const where = {};
 
-            // Filtro simple por nombre
-            if (nombre) where.nombreCompleto = { [Op.like]: `%${nombre}%` };
+            // Filtro por nombre o apellidos (si se proporciona)
+            if (nombre) {
+                where[Op.or] = [
+                    { nombre: { [Op.like]: `%${nombre}%` } },
+                    { apellidos: { [Op.like]: `%${nombre}%` } }
+                ];
+            }
 
             const { rows, count } = await Usuario.findAndCountAll({
                 where,

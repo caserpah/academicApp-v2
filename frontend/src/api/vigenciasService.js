@@ -1,4 +1,5 @@
 import apiClient from "./apiClient.js";
+import { parseError } from "../utils/errorHandler.js";
 
 /**
  * Servicio de gestión de Vigencias o Años Lectivos
@@ -13,7 +14,7 @@ export const fetchVigencias = async () => {
         if (response.data.status !== 'success') throw new Error(response.data.message);
         return response.data.data.items || [];
     } catch (error) {
-        throw new Error(error.response?.data?.message || 'Error al obtener vigencias.');
+        throw parseError(error, 'Error al obtener vigencias.');
     }
 };
 
@@ -22,7 +23,7 @@ export const crearVigencia = async (data) => {
         const response = await apiClient.post(VIGENCIAS_ENDPOINT, data);
         return response.data.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al crear la vigencia");
     }
 };
 
@@ -31,7 +32,7 @@ export const actualizarVigencia = async (id, data) => {
         const response = await apiClient.put(`${VIGENCIAS_ENDPOINT}/${id}`, data);
         return response.data.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al actualizar la vigencia");
     }
 };
 
@@ -40,25 +41,24 @@ export const eliminarVigencia = async (id, anio) => {
         const response = await apiClient.delete(`${VIGENCIAS_ENDPOINT}/${id}`, { params: { anio } });
         return response.data.message;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al eliminar la vigencia");
     }
 };
 
 export const abrirVigencia = async (id) => {
-    const response = await apiClient.post(`${VIGENCIAS_ENDPOINT}/${id}/abrir`);
-    return response.data.data;
+    try {
+        const response = await apiClient.post(`${VIGENCIAS_ENDPOINT}/${id}/abrir`);
+        return response.data.data;
+    } catch (error) {
+        throw parseError(error, "Error al abrir la vigencia");
+    }
 };
 
 export const cerrarVigencia = async (id) => {
-    const response = await apiClient.post(`${VIGENCIAS_ENDPOINT}/${id}/cerrar`);
-    return response.data.data;
-};
-
-// Helper para errores
-const parseError = (error) => {
-    const apiError = error.response?.data;
-    if (apiError?.errors && Array.isArray(apiError.errors)) {
-        return new Error(apiError.errors[0].message);
+    try {
+        const response = await apiClient.post(`${VIGENCIAS_ENDPOINT}/${id}/cerrar`);
+        return response.data.data;
+    } catch (error) {
+        throw parseError(error, "Error al cerrar la vigencia");
     }
-    return new Error(apiError?.message || "Ocurrió un error en el servicio de estudiantes.");
 };

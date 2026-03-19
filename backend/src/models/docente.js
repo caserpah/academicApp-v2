@@ -1,5 +1,6 @@
 import { DataTypes } from "sequelize";
 import { sequelize } from "../database/db.connect.js";
+import { Usuario } from "./usuario.js";
 
 /**
  * Modelo: Docente
@@ -16,37 +17,8 @@ export const Docente = sequelize.define("docente", {
         allowNull: false
     },
 
-    documento: {
-        type: DataTypes.STRING(20),
-        allowNull: false,
-        unique: true,
-    },
-
-    nombre: {
-        type: DataTypes.STRING(60),
-        allowNull: false
-    },
-
-    apellidos: {
-        type: DataTypes.STRING(80),
-        allowNull: false
-    },
-
     fechaNacimiento: {
         type: DataTypes.DATEONLY,
-        validate: {
-            isDate: { msg: "Debe ingresar una fecha válida (YYYY-MM-DD)." },
-        },
-    },
-
-    email: {
-        type: DataTypes.STRING(80),
-        allowNull: true,
-        unique: true,
-    },
-
-    telefono: {
-        type: DataTypes.STRING(12),
         allowNull: true
     },
 
@@ -137,13 +109,25 @@ export const Docente = sequelize.define("docente", {
         allowNull: true,
         defaultValue: "Sin Especificar"
     },
+
+    usuarioId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        unique: true, // Esto obliga a nivel base de datos que sea 1 a 1
+        references: {
+            model: 'usuarios', // Nombre exacto de la tabla de usuarios en BD
+            key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
+    }
 }, {
     tableName: "docentes",
     timestamps: true,
     createdAt: "fechaCreacion",
     updatedAt: "fechaActualizacion",
     indexes: [
-        { unique: true, fields: ["documento"], name: "idx_documento_docente" },
+        { unique: true, fields: ["usuarioId"], name: "idx_usuario_docente" },
         { fields: ["nivelEducativo"], name: "idx_nivelEducativo" },
         { fields: ["nivelEnsenanza"], name: "idx_nivelEnsenanza" },
         { fields: ["vinculacion"], name: "idx_vinculacion" },

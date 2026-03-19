@@ -1,4 +1,5 @@
 import apiClient from './apiClient.js';
+import { parseError } from "../utils/errorHandler.js";
 
 /**
  * Servicio de gestión de Áreas Académicas
@@ -59,13 +60,7 @@ export const fetchInitialData = async (params = {}) => {
 
     } catch (error) {
         console.error('Error en fetchInitialData:', error);
-
-        const msg =
-            error.response?.data?.message ||
-            error.message ||
-            'Ocurrió un error al obtener los datos iniciales.';
-
-        throw new Error(msg);
+        throw parseError(error, "Ocurrió un error al obtener los datos iniciales.");
     }
 };
 
@@ -84,24 +79,7 @@ export const crearArea = async (areaData) => {
 
         return apiData.data;
     } catch (error) {
-        const data = error.response?.data;
-        const status = error.response?.status;
-
-        // Error de validación (422)
-        if (status === 422 && Array.isArray(data?.errors)) {
-            const primerError = data.errors[0];
-            const mensaje =
-                primerError.message || primerError.msg || 'Error de validación.';
-            throw new Error(mensaje);
-        }
-
-        // Error controlado (404, 409, etc.)
-        if (data?.message) {
-            throw new Error(data.message);
-        }
-
-        // Genérico
-        throw new Error(`Ocurrió un error al crear el área: ${error.message}`);
+        throw parseError(error, "Ocurrió un error al crear el área.");
     }
 };
 
@@ -121,21 +99,7 @@ export const actualizarArea = async (id, areaData) => {
 
         return apiData.data;
     } catch (error) {
-        const data = error.response?.data;
-        const status = error.response?.status;
-
-        if (status === 422 && Array.isArray(data?.errors)) {
-            const primerError = data.errors[0];
-            const mensaje =
-                primerError.message || primerError.msg || 'Error de validación.';
-            throw new Error(mensaje);
-        }
-
-        if (data?.message) {
-            throw new Error(data.message);
-        }
-
-        throw new Error(`Ocurrió un error al actualizar el área: ${error.message}`);
+        throw parseError(error, "Ocurrió un error al actualizar el área.");
     }
 };
 
@@ -154,10 +118,6 @@ export const eliminarArea = async (id) => {
 
         return apiData.message || 'Área eliminada correctamente.';
     } catch (error) {
-        const data = error.response?.data;
-        if (data?.message) {
-            throw new Error(data.message);
-        }
-        throw new Error(`Ocurrió un error al eliminar el área: ${error.message}`);
+        throw parseError(error, 'Ocurrió un error al eliminar el área.');
     }
 };

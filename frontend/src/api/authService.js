@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { parseError } from "../utils/errorHandler.js";
 
 // Configura la URL base para las solicitudes HTTP
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
@@ -33,9 +34,7 @@ export const login = async (email, password) => {
         }
 
     } catch (error) {
-        // Manejo de errores de credenciales (ej: 401 Unauthorized)
-        const errorMessage = error.response?.data?.message || 'Error de conexión o credenciales inválidas.';
-        throw new Error(errorMessage);
+        throw parseError(error, "Error al iniciar sesión.");
     }
 };
 
@@ -75,8 +74,7 @@ export const requestPasswordReset = async (email) => {
         return response.data.email; // Devuelve el email para pre-llenar el formulario (opcional)
     }
     catch (error) {
-        const errorMessage = error.response?.data?.message || 'Error al solicitar el restablecimiento de contraseña.';
-        throw new Error(errorMessage);
+        throw parseError(error, "Error al solicitar el restablecimiento de contraseña.");
     }
 };
 
@@ -93,7 +91,6 @@ export const confirmPasswordReset = async (email, otp, newPassword) => {
             newPassword
         });
     }   catch (error) {
-        const errorMessage = error.response?.data?.message || 'Error al restablecer la contraseña.';
-        throw new Error(errorMessage);
+        throw parseError(error, "Error al restablecer la contraseña.");
     }
 };

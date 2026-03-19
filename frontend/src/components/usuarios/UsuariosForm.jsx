@@ -20,20 +20,38 @@ const UsuariosForm = ({ formData, mode, loading, handleChange, handleSubmit, res
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                {/* Nombre Completo */}
+                {/* --- Nombre --- */}
                 <div>
                     <label className="block text-sm font-semibold text-gray-600 mb-1">
-                        Nombre Completo  {" "}
+                        Nombre {" "}
                         <span className="text-[#e74c3c] font-semibold">*</span>
                     </label>
                     <input
                         type="text"
-                        name="nombreCompleto"
-                        value={formData.nombreCompleto}
+                        name="nombre"
+                        value={formData.nombre || ""}
                         onChange={handleChange}
                         className={inputClasses}
                         required
-                        placeholder="Ej: Juan Pérez"
+                        placeholder="Ej: Juan Carlos"
+                        maxLength={80}
+                    />
+                </div>
+
+                {/* --- Apellidos --- */}
+                <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">
+                        Apellidos  {" "}
+                        <span className="text-[#e74c3c] font-semibold">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        name="apellidos"
+                        value={formData.apellidos || ""}
+                        onChange={handleChange}
+                        className={inputClasses}
+                        required
+                        placeholder="Ej: Pérez Solera"
                         maxLength={80}
                     />
                 </div>
@@ -97,8 +115,8 @@ const UsuariosForm = ({ formData, mode, loading, handleChange, handleSubmit, res
                     <label className="block text-sm font-semibold text-gray-600 mb-1">Teléfono / Celular</label>
                     <input
                         type="tel"
-                        name="contacto"
-                        value={formData.contacto || ""}
+                        name="telefono"
+                        value={formData.telefono || ""}
                         onChange={handleChange}
                         className={inputClasses}
                         placeholder="Opcional"

@@ -34,6 +34,7 @@ const menuStructure = [
         items: [
             { path: "/matriculas", label: "Matrículas", icon: "file-pen", requiredRole: 'admin' },
             { path: "/estudiantes", label: "Estudiantes", icon: "users", requiredRole: 'admin' },
+            { path: "/observador", label: "Observador del Alumno", icon: "clipboard-list", requiredRoles: ['admin', 'docente', 'coordinador'] },
             { path: "/acudientes", label: "Acudientes", icon: "hands-holding-child", requiredRole: 'admin' },
         ]
     },
@@ -78,8 +79,17 @@ const Sidebar = ({ isOpen }) => {
     // Filtrado (Igual que antes)
     const filteredMenu = menuStructure.map(group => {
         const filteredItems = group.items.filter(item => {
-            const matchesRole = item.requiredRole ? hasRole(item.requiredRole) : true;
+
+            // Buscamos en ambas propiedades por si acaso
+            const roles = item.requiredRoles || (item.requiredRole ? [item.requiredRole] : null);
+
+            // Si no hay roles definidos, es público. Si los hay, verificamos:
+            const matchesRole = roles
+                ? roles.some(role => hasRole(role))
+                : true;
+
             const matchesSearch = item.label.toLowerCase().includes(searchTerm.toLowerCase());
+
             return matchesRole && matchesSearch;
         });
         return { ...group, items: filteredItems };

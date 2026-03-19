@@ -58,12 +58,13 @@ import {
   faFilePdf,             // Boletines
 
   faEnvelope,
+  faClipboardList
 
 } from '@fortawesome/free-solid-svg-icons';
 
 // Añade TODOS los iconos a la librería global
 library.add(
-faBars, faSearch, faHome, faSignOutAlt, faChevronDown, faStar,
+faBars, faSearch, faHome, faSignOutAlt, faChevronDown, faStar, faClipboardList,
 faChevronRight,faSave, faXmark, faEdit, faPenToSquare, faChartSimple,
 faTrash, faSpinner, faInfoCircle,faUserCircle, faCirclePlus, faGavel,
 faTimesCircle, faTimes, faAnglesLeft,faAngleLeft, faAngleRight, faBalanceScale,

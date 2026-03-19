@@ -1,22 +1,7 @@
 import apiClient from './apiClient.js';
+import { parseError } from "../utils/errorHandler.js";
 
 const NIVELACIONES_ENDPOINT = '/api/nivelaciones';
-
-/* Helper: Manejo de errores (Idéntico al de calificaciones) */
-const parseError = (error) => {
-    const apiError = error.response?.data;
-    let finalError;
-
-    if (apiError?.errors && Array.isArray(apiError.errors) && apiError.errors.length > 0) {
-        const firstError = apiError.errors[0];
-        finalError = new Error(firstError.message || firstError);
-    } else {
-        finalError = new Error(apiError?.message || error.message || "Ocurrió un error en el servicio.");
-    }
-    if (apiError?.code) finalError.code = apiError.code;
-
-    return finalError;
-};
 
 /**
  * Obtiene la lista de estudiantes reprobados (pendientes de nivelar)
@@ -28,7 +13,7 @@ export const fetchPendientesNivelacion = async (params) => {
         const response = await apiClient.get(`${NIVELACIONES_ENDPOINT}/pendientes`, { params });
         return response.data.data || [];
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al obtener los estudiantes pendientes de nivelación.");
     }
 };
 
@@ -58,7 +43,7 @@ export const guardarNivelacion = async (matriculaId, asignaturaId, data) => {
         const response = await apiClient.put(`${NIVELACIONES_ENDPOINT}/${matriculaId}/${asignaturaId}`, payload, config);
         return response.data.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al guardar la nivelación.");
     }
 };
 
@@ -72,6 +57,6 @@ export const generarConsolidadosMasivos = async (payload) => {
         const response = await apiClient.post(`${NIVELACIONES_ENDPOINT}/generar-consolidados`, payload);
         return response.data; // Retorna { exito, mensaje, data: { procesados... } }
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al generar los consolidados de nivelación.");
     }
 };

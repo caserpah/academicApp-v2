@@ -1,9 +1,9 @@
 import apiClient from './apiClient.js';
+import { parseError } from "../utils/errorHandler.js";
 
 /**
  * Servicio de gestión de Asignaturas
  */
-
 const ASIGNATURAS_ENDPOINT = '/api/asignaturas';
 const AREAS_ENDPOINT = '/api/areas';
 const VIGENCIAS_ENDPOINT = '/api/vigencias';
@@ -74,13 +74,7 @@ export const fetchInitialData = async (params = {}) => {
 
     } catch (error) {
         console.error('Error en fetchInitialData:', error);
-
-        const msg =
-            error.response?.data?.message ||
-            error.message ||
-            'Ocurrió un error al obtener los datos iniciales.';
-
-        throw new Error(msg);
+        throw parseError(error, "Ocurrió un error al obtener los datos iniciales.");
     }
 };
 
@@ -99,24 +93,7 @@ export const crearAsignatura = async (asignaturaData) => {
 
         return apiData.data;
     } catch (error) {
-        const data = error.response?.data;
-        const status = error.response?.status;
-
-        // Error de validación (422)
-        if (status === 422 && Array.isArray(data?.errors)) {
-            const primerError = data.errors[0];
-            const mensaje =
-                primerError.message || primerError.msg || 'Error de validación.';
-            throw new Error(mensaje);
-        }
-
-        // Error controlado (404, 409, etc.)
-        if (data?.message) {
-            throw new Error(data.message);
-        }
-
-        // Genérico
-        throw new Error(`Ocurrió un error al crear la asignatura: ${error.message}`);
+        throw parseError(error, "Ocurrió un error al crear la asignatura.");
     }
 };
 
@@ -136,21 +113,7 @@ export const actualizarAsignatura = async (id, asignaturaData) => {
 
         return apiData.data;
     } catch (error) {
-        const data = error.response?.data;
-        const status = error.response?.status;
-
-        if (status === 422 && Array.isArray(data?.errors)) {
-            const primerError = data.errors[0];
-            const mensaje =
-                primerError.message || primerError.msg || 'Error de validación.';
-            throw new Error(mensaje);
-        }
-
-        if (data?.message) {
-            throw new Error(data.message);
-        }
-
-        throw new Error(`Ocurrió un error al actualizar la asignatura: ${error.message}`);
+        throw parseError(error, "Ocurrió un error al actualizar la asignatura.");
     }
 };
 
@@ -169,10 +132,6 @@ export const eliminarAsignatura = async (id) => {
 
         return apiData.message || 'Asignatura eliminada correctamente.';
     } catch (error) {
-        const data = error.response?.data;
-        if (data?.message) {
-            throw new Error(data.message);
-        }
-        throw new Error(`Ocurrió un error al eliminar la asignatura: ${error.message}`);
+        throw parseError(error, "Ocurrió un error al eliminar la asignatura.");
     }
 };

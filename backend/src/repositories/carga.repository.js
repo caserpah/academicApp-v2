@@ -6,6 +6,7 @@ import { Grupo } from "../models/grupo.js";
 import { Asignatura } from "../models/asignatura.js";
 import { Vigencia } from "../models/vigencia.js";
 import { Grado } from "../models/grado.js";
+import { Usuario } from "../models/usuario.js";
 
 export const cargaRepository = {
 
@@ -35,8 +36,9 @@ export const cargaRepository = {
         if (busqueda) {
             where[Op.or] = [
                 { codigo: { [Op.like]: `%${busqueda}%` } },
-                { '$docente.nombre$': { [Op.like]: `%${busqueda}%` } },
-                { '$docente.apellidos$': { [Op.like]: `%${busqueda}%` } },
+                { '$docente.identidad.nombre$': { [Op.like]: `%${busqueda}%` } },
+                { '$docente.identidad.apellidos$': { [Op.like]: `%${busqueda}%` } },
+                { '$docente.identidad.documento$': { [Op.like]: `%${busqueda}%` } },
                 { '$asignatura.nombre$': { [Op.like]: `%${busqueda}%` } },
                 { '$grupo.nombre$': { [Op.like]: `%${busqueda}%` } }
             ];
@@ -79,13 +81,17 @@ export const cargaRepository = {
                 {
                     model: Docente,
                     as: "docente",
-                    attributes: ["id", "nombre", "apellidos", "documento"]
+                    include: [{
+                        model: Usuario,
+                        as: 'identidad',
+                        attributes: ["documento", "nombre", "apellidos"] // Solo traes lo que necesitas
+                    }]
                 },
                 grupoInclude, // Usamos el objeto configurado arriba
                 {
                     model: Asignatura,
                     as: "asignatura",
-                    attributes: ["id", "nombre", "codigo"]
+                    attributes: ["id", "nombre", "codigo", "porcentual"]
                 },
                 {
                     model: Vigencia,
@@ -107,7 +113,7 @@ export const cargaRepository = {
         return Carga.findByPk(id, {
             include: [
                 { model: Sede, as: "sede", attributes: ["id", "nombre"] },
-                { model: Docente, as: "docente" },
+                { model: Docente, as: "docente", include: [{ model: Usuario, as: 'identidad', attributes: ["documento", "nombre", "apellidos"] }] },
                 { model: Grupo, as: "grupo", include: [{ model: Grado, as: "grado" }] },
                 { model: Asignatura, as: "asignatura" },
                 { model: Vigencia, as: "vigencia" }

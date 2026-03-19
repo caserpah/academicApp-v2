@@ -1,4 +1,5 @@
 import apiClient from "./apiClient.js";
+import { parseError } from "../utils/errorHandler.js";
 
 const ENDPOINT = "/api/estudiantes";
 
@@ -23,7 +24,7 @@ export const listarEstudiantes = async (params = {}) => {
 
         return apiData.data; // Retorna { items: [...], total: ... }
     } catch (error) {
-        throw new Error(error.response?.data?.message || "Error al conectar con el servicio de estudiantes.");
+        throw parseError(error, "Error al conectar con el servicio de estudiantes.");
     }
 };
 
@@ -37,7 +38,7 @@ export const obtenerEstudiante = async (id, params = {}) => {
         const apiData = response.data;
         return apiData.data;
     } catch (error) {
-        throw new Error(error.response?.data?.message || "Error al obtener el estudiante.");
+        throw parseError(error, "Error al obtener el estudiante.");
     }
 };
 
@@ -49,7 +50,7 @@ export const crearEstudiante = async (data) => {
         const response = await apiClient.post(ENDPOINT, data);
         return response.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al crear el estudiante.");
     }
 };
 
@@ -61,7 +62,7 @@ export const actualizarEstudiante = async (id, data) => {
         const response = await apiClient.put(`${ENDPOINT}/${id}`, data);
         return response.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al actualizar el estudiante.");
     }
 };
 
@@ -73,15 +74,6 @@ export const eliminarEstudiante = async (id) => {
         const response = await apiClient.delete(`${ENDPOINT}/${id}`);
         return response.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al eliminar el estudiante.");
     }
-};
-
-// Helper para errores
-const parseError = (error) => {
-    const apiError = error.response?.data;
-    if (apiError?.errors && Array.isArray(apiError.errors)) {
-        return new Error(apiError.errors[0].message);
-    }
-    return new Error(apiError?.message || "Ocurrió un error en el servicio de estudiantes.");
 };

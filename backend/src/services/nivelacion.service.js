@@ -6,6 +6,7 @@ import { ConfigGrado } from "../models/config_grado.js";
 import { Carga } from "../models/carga.js";
 import { Asignatura } from "../models/asignatura.js";
 import { Docente } from "../models/docente.js";
+import { Usuario } from "../models/usuario.js";
 
 export const nivelacionService = {
     /**
@@ -130,7 +131,7 @@ export const nivelacionService = {
                 where: { grupoId, vigenciaId },
                 include: [
                     { model: Asignatura, as: 'asignatura', attributes: ['id', 'nombre'] },
-                    { model: Docente, as: 'docente', attributes: ['nombre', 'apellidos'] }
+                    { model: Docente, as: 'docente', include: [{ model: Usuario, as: 'identidad', attributes: ["documento", "nombre", "apellidos"] }]},
                 ]
             });
 
@@ -171,7 +172,7 @@ export const nivelacionService = {
                     // Si le falta al menos un periodo en esta materia, agregamos UNA sola fila al reporte
                     if (periodosFaltantesDeMateria.length > 0) {
                         reporteFaltantes.push({
-                            docente: `${carga.docente?.nombre || ''} ${carga.docente?.apellidos || ''}`.trim() || 'Sin asignar',
+                            docente: `${carga.docente?.identidad?.nombre || ''} ${carga.docente?.identidad?.apellidos || ''}`.trim() || 'Sin asignar',
                             asignatura: carga.asignatura.nombre,
                             periodos: periodosFaltantesDeMateria.join(", "), // Agrupamos: "1, 2, 3"
                             estudiante: `${m.estudiante.primerNombre} ${m.estudiante.primerApellido}`

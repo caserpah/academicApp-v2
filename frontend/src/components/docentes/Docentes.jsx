@@ -159,14 +159,18 @@ const Docentes = () => {
     const handleEdit = (docente) => {
         setFormData({
             ...docente,
-            // Mapeo seguro para evitar nulls en inputs
+            // Mapeo seguro de los datos de Identidad (Usuario) para evitar nulls en inputs
+            documento: docente.identidad?.documento || "",
+            nombre: docente.identidad?.nombre || "",
+            apellidos: docente.identidad?.apellidos || "",
+            email: docente.identidad?.email || "",
+            telefono: docente.identidad?.telefono || "",
+            activo: docente.identidad?.activo !== undefined ? docente.identidad.activo : true,
+
+            // Mapeo seguro para evitar nulls en inputs (Datos Académicos)
             areaEnsenanza: docente.areaEnsenanza || "",
-            email: docente.email || "",
-            telefono: docente.telefono || "",
             direccion: docente.direccion || "",
             profesion: docente.profesion || "",
-
-            // Mapeo de campos administrativos
             decretoLey: docente.decretoLey || "",
             escalafon: docente.escalafon || "",
             decretoNombrado: docente.decretoNombrado || "",
@@ -273,14 +277,14 @@ const Docentes = () => {
                                             <tr key={d.id} className={`hover:bg-blue-50 transition-colors ${!d.activo ? 'bg-gray-50' : ''}`}>
                                                 <td className="px-4 py-3 whitespace-nowrap">
                                                     <span className={`px-2 py-1 text-[10px] rounded-full font-bold uppercase tracking-wide border
-                                                        ${d.activo ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-                                                        {d.activo ? 'Activo' : 'Inactivo'}
+                                                        ${d.identidad?.activo ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                                                        {d.identidad?.activo ? 'Activo' : 'Inactivo'}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-700 font-mono">{d.documento}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-700 font-mono">{d.identidad?.documento}</td>
                                                 <td className="px-4 py-3">
-                                                    <div className="text-sm font-medium text-gray-900">{d.apellidos} {d.nombre}</div>
-                                                    <div className="text-xs text-gray-500">{d.email}</div>
+                                                    <div className="text-sm font-medium text-gray-900">{d.identidad?.apellidos} {d.identidad?.nombre}</div>
+                                                    <div className="text-xs text-gray-500">{d.identidad?.email}</div>
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="text-sm text-gray-800 font-medium">

@@ -22,7 +22,8 @@ const GrillaCalificaciones = ({
     onManualSave,
     asignaturaNombre = "",
     bancoRecomendaciones = [],
-    isReadOnly = false
+    isReadOnly = false,
+    porcentajeArea = 100
 }) => {
     // --- Estado para la Grilla de calificaciones ---
     const [gridData, setGridData] = useState([]);
@@ -484,7 +485,16 @@ const GrillaCalificaciones = ({
                             <th className="px-2 py-2 text-center text-xs font-bold text-gray-500 uppercase tracking-wider bg-indigo-50">Nota Periodo</th>
                         )}
 
-                        <th rowSpan="2" className="px-2 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-20">Nota Periodo</th>
+                        <th rowSpan="2" className="px-2 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-20">
+                            <div className="flex flex-col items-center justify-center">
+                                <span>Nota Periodo</span>
+                                {!esComportamiento && porcentajeArea < 100 && (
+                                    <span className="mt-1 bg-blue-50 text-blue-600 text-[9px] px-2 py-0.5 rounded-full lowercase font-bold tracking-normal border border-blue-100">
+                                        {porcentajeArea}% del área
+                                    </span>
+                                )}
+                            </div>
+                        </th>
 
                         {/* OCULTAR FALLAS Y OBS SI ES COMPORTAMIENTO */}
                         {!esComportamiento && (
@@ -559,9 +569,21 @@ const GrillaCalificaciones = ({
                                         <td className="px-2 py-2 text-center">{renderInput(row, index, 'notaLaboral', WEIGHTS.laboral)}</td>
                                         <td className="px-2 py-2 text-center">{renderInput(row, index, 'notaSocial', WEIGHTS.social)}</td>
                                         <td className="px-2 py-2 text-center bg-gray-50/50">
-                                            <span className={`inline-block w-12 text-center font-bold text-lg ${parseFloat(row.notaDefinitiva) < 3.0 ? 'text-red-600' : 'text-gray-800'}`}>
-                                                {row.notaDefinitiva || "-"}
-                                            </span>
+                                            <div className="flex flex-col items-center justify-center">
+                                                <span className={`inline-block w-12 text-center font-bold text-lg leading-none ${parseFloat(row.notaDefinitiva) < 3.0 ? 'text-red-600' : 'text-gray-800'}`}>
+                                                    {row.notaDefinitiva || "-"}
+                                                </span>
+
+                                                {/* El cálculo del porcentaje */}
+                                                {porcentajeArea < 100 && row.notaDefinitiva && (
+                                                    <span
+                                                        className="text-[11px] font-mono font-bold text-blue-500 mt-1 leading-none bg-white px-1.5 py-0.5 rounded shadow-sm border border-gray-100"
+                                                        title={`Aporta ${((parseFloat(row.notaDefinitiva) * porcentajeArea) / 100).toFixed(2)} a la definitiva del Área`}
+                                                    >
+                                                        {((parseFloat(row.notaDefinitiva) * porcentajeArea) / 100).toFixed(2)}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                     </>
                                 ) : (

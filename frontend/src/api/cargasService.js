@@ -1,4 +1,5 @@
 import apiClient from "./apiClient.js";
+import { parseError } from "../utils/errorHandler.js";
 
 const CARGAS_ENDPOINT = '/api/cargas';
 
@@ -17,8 +18,8 @@ export const fetchCargas = async (params = {}) => {
         const response = await apiClient.get(`${CARGAS_ENDPOINT}?${queryParams}`);
 
         return response.data.data; // { items, total, page, limit }
-    } catch {
-        throw new Error("Error al cargar el listado de cargas académicas.");
+    } catch (error) {
+        throw parseError(error, "Error al cargar el listado de cargas académicas.");
     }
 };
 
@@ -45,7 +46,7 @@ export const fetchCargasCatalogs = async () => {
         };
     } catch (error) {
         console.error("Error cargando catálogos", error);
-        throw new Error("No se pudieron cargar los datos auxiliares (Sedes/Grados).");
+        throw parseError(error, "No se pudieron cargar los datos de sedes, grados, asignaturas o docentes para los formularios.");
     }
 };
 
@@ -54,7 +55,7 @@ export const crearCarga = async (data) => {
         const response = await apiClient.post(CARGAS_ENDPOINT, data);
         return response.data.data;
     } catch (error) {
-        handleError(error, "Error al crear la carga");
+        throw parseError(error, "Error al crear la carga");
     }
 };
 
@@ -63,7 +64,7 @@ export const actualizarCarga = async (id, data) => {
         const response = await apiClient.put(`${CARGAS_ENDPOINT}/${id}`, data);
         return response.data.data;
     } catch (error) {
-        handleError(error, "Error al actualizar la carga");
+        throw parseError(error, "Error al actualizar la carga");
     }
 };
 
@@ -72,15 +73,8 @@ export const eliminarCarga = async (id) => {
         const response = await apiClient.delete(`${CARGAS_ENDPOINT}/${id}`);
         return response.data.message;
     } catch (error) {
-        handleError(error, "Error al eliminar la carga");
+        throw parseError(error, "Error al eliminar la carga");
     }
-};
-
-// Helper de errores estándar
-const handleError = (error, actionMessage) => {
-    const data = error.response?.data;
-    if (data?.message) throw new Error(data.message);
-    throw new Error(`${actionMessage}: ${error.message}`);
 };
 
 /**

@@ -156,10 +156,20 @@ const CargasForm = ({
 
             if (selectedCarga) {
                 await actualizarCargaAPI(selectedCarga.id, payload);
+                onSuccess(true); // Notificar al padre para cerrar y recargar
             } else {
                 await crearCargaAPI(payload);
+
+                // Limpiamos solo los campos solicitados
+                setFormData(prev => ({
+                    ...prev,
+                    asignaturaId: "",
+                    horas: ""
+                }));
+                setEsComportamiento(false); // Reseteamos esta bandera por si la asignatura anterior era comportamiento
+
+                onSuccess(false); // Notificamos éxito pero indicamos NO cerrar el modal
             }
-            onSuccess(); // Notificar al padre para cerrar y recargar
         } catch (error) {
             showError(error.message || "Ocurrió un error al guardar la carga.");
         } finally {
@@ -251,7 +261,11 @@ const CargasForm = ({
                             <label className={labelClasses}>Docente Responsable <span className="text-red-500">*</span></label>
                             <select name="docenteId" value={formData.docenteId} onChange={handleChange} className={inputClasses} required>
                                 <option value="">-- Seleccione --</option>
-                                {catalogos.docentes.map(d => <option key={d.id} value={d.id}>{d.apellidos} {d.nombre} ({d.documento})</option>)}
+                                {catalogos.docentes.map(d => (
+                                    <option key={d.id} value={d.id}>
+                                        {d.identidad?.apellidos || d.apellidos} {d.identidad?.nombre || d.nombre} ({d.identidad?.documento || d.documento})
+                                    </option>
+                                ))}
                             </select>
                         </div>
                     </form>

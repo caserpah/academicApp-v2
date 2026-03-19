@@ -1,4 +1,5 @@
 import apiClient from './apiClient.js';
+import { parseError } from "../utils/errorHandler.js";
 
 /**
  * Servicio de gestión de Juicios
@@ -11,24 +12,6 @@ const GRADOS_ENDPOINT = '/api/grados';
 const DIMENSIONES_ENDPOINT = '/api/dimensiones';
 const DESEMPENOS_ENDPOINT = '/api/desempenos';
 const RANGOS_ENDPOINT = '/api/desempenos/rangos';
-
-/* ------------------------------------------------ */
-/* Helper para extraer mensajes de error detallados */
-/* ------------------------------------------------ */
-const parseError = (error) => {
-    // Intentamos leer response.data (donde el backend manda el JSON)
-    const apiError = error.response?.data;
-
-    // Si hay un array 'errors' (típico de validaciones o tu middleware), tomamos el primero
-    if (apiError?.errors && Array.isArray(apiError.errors) && apiError.errors.length > 0) {
-        // Puede venir como string directo o como objeto { message: '...' }
-        const firstError = apiError.errors[0];
-        return new Error(firstError.message || firstError);
-    }
-
-    // Si no, usamos el mensaje genérico 'message' o un fallback
-    return new Error(apiError?.message || error.message || "Ocurrió un error en el servicio de juicios.");
-};
 
 /* -------------------------------------------------------------------------- */
 /* Funciones principales del servicio                                      */
@@ -82,7 +65,7 @@ export const fetchCatalogs = async () => {
 
     } catch (error) {
         console.error('Error en fetchCatalogs:', error);
-        throw parseError(error);
+        throw parseError(error, "Error al cargar datos iniciales de juicios.");
     }
 };
 
@@ -103,7 +86,7 @@ export const fetchJuiciosPaginated = async (params) => {
         const response = await apiClient.get(JUICIOS_ENDPOINT, { params: cleanParams });
         return response.data.data; // Debe devolver { items: [], pagination: {} }
     } catch (error) {
-        throw parseError(error); // Usamos el helper
+        throw parseError(error, "Error al obtener juicios.");
     }
 };
 
@@ -114,7 +97,7 @@ export const crearJuicio = async (data) => {
         const response = await apiClient.post(JUICIOS_ENDPOINT, data);
         return response.data.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al crear el juicio.");
     }
 };
 
@@ -123,7 +106,7 @@ export const actualizarJuicio = async (id, data) => {
         const response = await apiClient.put(`${JUICIOS_ENDPOINT}/${id}`, data);
         return response.data.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al actualizar el juicio.");
     }
 };
 
@@ -132,7 +115,7 @@ export const eliminarJuicio = async (id) => {
         const response = await apiClient.delete(`${JUICIOS_ENDPOINT}/${id}`);
         return response.data.message;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al eliminar el juicio.");
     }
 };
 
@@ -153,7 +136,7 @@ export const descargarPlantilla = async () => {
         link.click();
         link.remove();
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al descargar la plantilla de juicios.");
     }
 };
 
@@ -186,6 +169,6 @@ export const importarArchivo = async (file) => {
             throw errorValidacion;
         }
 
-        throw parseError(error);
+        throw parseError(error, "Error al importar el archivo de juicios.");
     }
 };

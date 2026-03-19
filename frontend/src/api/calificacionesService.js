@@ -1,5 +1,6 @@
 import apiClient from './apiClient.js';
 import { formatearJornada } from "../utils/formatters.js"; // Importamos el formateador de jornadas
+import { parseError } from "../utils/errorHandler.js";
 
 /**
  * Servicio de gestión de Calificaciones
@@ -18,24 +19,6 @@ const RECOMENDACIONES_ENDPOINT = '/api/recomendaciones'
 const formatGrado = (nombre) => {
     if (!nombre) return "";
     return nombre.charAt(0).toUpperCase() + nombre.slice(1).toLowerCase().replace(/_/g, " ");
-};
-
-/* ------------------------------------------------ */
-/* Helper para manejo de errores                    */
-/* ------------------------------------------------ */
-const parseError = (error) => {
-    const apiError = error.response?.data;
-    let finalError;
-
-    if (apiError?.errors && Array.isArray(apiError.errors) && apiError.errors.length > 0) {
-        const firstError = apiError.errors[0];
-        finalError = new Error(firstError.message || firstError);
-    } else {
-        finalError = new Error(apiError?.message || error.message || "Ocurrió un error en el servicio.");
-    }
-    if (apiError?.code) finalError.code = apiError.code;
-
-    return finalError;
 };
 
 /* -------------------------------------------------------------------------- */
@@ -130,7 +113,7 @@ export const fetchCalificacionesCatalogs = async (rol) => {
 
     } catch (error) {
         console.error('Error en fetchCalificacionesCatalogs:', error);
-        throw parseError(error);
+        throw parseError(error, "No se pudieron cargar los datos de sedes, grupos y asignaturas."); // Mensaje genérico para el usuario
     }
 };
 
@@ -145,7 +128,7 @@ export const fetchGrillaCalificaciones = async (params) => {
         const response = await apiClient.get(`${CALIFICACIONES_ENDPOINT}/grupo`, { params });
         return response.data.data || [];
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "No se pudieron cargar los datos de la grilla de calificaciones.");
     }
 };
 
@@ -183,7 +166,7 @@ export const guardarCalificacion = async (data) => {
         const response = await apiClient.post(CALIFICACIONES_ENDPOINT, payload, config);
         return response.data.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Ocurrió un error al guardar la calificación.");
     }
 };
 
@@ -222,7 +205,7 @@ export const descargarPlantillaDocente = async (periodo) => {
         link.click();
         link.remove();
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al descargar la planilla del docente.");
     }
 };
 
@@ -247,7 +230,7 @@ export const importarArchivoDocente = async (file) => {
             errorValidacion.listaErrores = error.response.data.errors;
             throw errorValidacion;
         }
-        throw parseError(error);
+        throw parseError(error, "Error al importar el archivo del docente.");
     }
 };
 

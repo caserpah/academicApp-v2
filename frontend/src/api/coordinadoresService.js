@@ -1,4 +1,5 @@
 import apiClient from "./apiClient.js";
+import { parseError } from "../utils/errorHandler.js";
 
 const COORDINADORES_ENDPOINT = '/api/coordinadores';
 const SEDES_ENDPOINT = '/api/sedes';
@@ -19,7 +20,7 @@ export const fetchInitialData = async () => {
             vigencias: vigenciasRes.data.data.items || []
         };
     } catch (error) {
-        throw new Error(error.response?.data?.message || "Error cargando datos iniciales.");
+        throw parseError(error, "Error cargando datos iniciales.");
     }
 };
 
@@ -28,7 +29,7 @@ export const crearCoordinador = async (data) => {
         const response = await apiClient.post(COORDINADORES_ENDPOINT, data);
         return response.data.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al crear el coordinador");
     }
 };
 
@@ -37,7 +38,7 @@ export const actualizarCoordinador = async (id, data) => {
         const response = await apiClient.put(`${COORDINADORES_ENDPOINT}/${id}`, data);
         return response.data.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al actualizar el coordinador");
     }
 };
 
@@ -46,15 +47,6 @@ export const eliminarCoordinador = async (id) => {
         const response = await apiClient.delete(`${COORDINADORES_ENDPOINT}/${id}`);
         return response.data.message;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al eliminar el coordinador");
     }
-};
-
-// Helper para errores
-const parseError = (error) => {
-    const apiError = error.response?.data;
-    if (apiError?.errors && Array.isArray(apiError.errors)) {
-        return new Error(apiError.errors[0].message);
-    }
-    return new Error(apiError?.message || "Ocurrió un error en el servicio de estudiantes.");
 };

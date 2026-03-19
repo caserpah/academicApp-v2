@@ -1,7 +1,6 @@
 import { cargaService } from "../services/carga.service.js";
 import { sendSuccess } from "../middleware/responseHandler.js";
 import { Docente } from "../models/docente.js";
-import { Usuario } from "../models/usuario.js";
 
 export const cargaController = {
 
@@ -70,7 +69,7 @@ export const cargaController = {
     },
 
     /**
-     * Vincula Usuario -> Docente a través del número de documento.
+     * Vincula Usuario -> Docente a través del usuarioId.
      * Luego, lista la carga académica del docente logueado.
      */
     async listMisCargas(req, res, next) {
@@ -78,16 +77,9 @@ export const cargaController = {
             const vigenciaId = req.vigenciaActual.id;
             const usuarioId = req.user.id; // ID del usuario logueado (token)
 
-            // Buscar los datos del Usuario para obtener su documento
-            const usuario = await Usuario.findByPk(usuarioId);
-
-            if (!usuario) {
-                return res.status(404).json({ message: "Usuario no encontrado." });
-            }
-
-            // Buscar al Docente usando el documento del usuario como puente
+            // Buscar al Docente usando directamente el ID del usuario
             const docente = await Docente.findOne({
-                where: { documento: usuario.documento }
+                where: { usuarioId: usuarioId }
             });
 
             if (!docente) {

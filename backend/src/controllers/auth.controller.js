@@ -24,11 +24,12 @@ const generarJWT = (usuario) => {
  */
 export const register = async (req, res, next) => {
     // Campos permitidos del cuerpo de la solicitud
-    const { nombreCompleto, documento, contacto, email, password, role } = req.body;
+    const { nombre, apellidos, documento, contacto, email, password, role } = req.body;
 
     try {
         const nuevoUsuario = await Usuario.create({
-            nombreCompleto,
+            nombre,
+            apellidos,
             documento,
             contacto,
             email,
@@ -47,7 +48,8 @@ export const register = async (req, res, next) => {
                 id: nuevoUsuario.id,
                 email: nuevoUsuario.email,
                 role: nuevoUsuario.role,
-                nombreCompleto: nuevoUsuario.nombreCompleto
+                nombre: nuevoUsuario.nombre,
+                apellidos: nuevoUsuario.apellidos
             }
         });
 
@@ -232,7 +234,8 @@ export const verifyOtp = async (req, res, next) => {
                 id: usuario.id,
                 email: usuario.email,
                 role: usuario.role,
-                nombreCompleto: usuario.nombreCompleto
+                nombre: usuario.nombre,
+                apellidos: usuario.apellidos
             }
         });
 

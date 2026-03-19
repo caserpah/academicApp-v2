@@ -1,4 +1,5 @@
 import apiClient from "./apiClient.js";
+import { parseError } from "../utils/errorHandler.js";
 
 const VENTANAS_ENDPOINT = '/api/ventanas-calificacion';
 
@@ -14,7 +15,7 @@ export const fetchVentanas = async (params = {}) => {
         const response = await apiClient.get(`${VENTANAS_ENDPOINT}?${queryParams}`);
         return response.data.data;
     } catch (error) {
-        handleError(error, "Error al cargar las ventanas de calificación");
+        throw parseError(error, "Error al cargar las ventanas de calificación");
     }
 };
 
@@ -29,7 +30,7 @@ export const fetchVentanasCatalogs = async () => {
         };
     } catch (error) {
         console.error("Error cargando catálogos", error);
-        throw new Error("No se pudieron cargar las vigencias.");
+        throw parseError(error, "No se pudieron cargar las vigencias.");
     }
 };
 
@@ -38,7 +39,7 @@ export const crearVentana = async (data) => {
         const response = await apiClient.post(VENTANAS_ENDPOINT, data);
         return response.data.data;
     } catch (error) {
-        handleError(error, "Error al crear la ventana");
+        throw parseError(error, "Error al crear la ventana");
     }
 };
 
@@ -47,7 +48,7 @@ export const actualizarVentana = async (id, data) => {
         const response = await apiClient.put(`${VENTANAS_ENDPOINT}/${id}`, data);
         return response.data.data;
     } catch (error) {
-        handleError(error, "Error al actualizar la ventana");
+        throw parseError(error, "Error al actualizar la ventana");
     }
 };
 
@@ -56,12 +57,6 @@ export const eliminarVentana = async (id) => {
         const response = await apiClient.delete(`${VENTANAS_ENDPOINT}/${id}`);
         return response.data.message;
     } catch (error) {
-        handleError(error, "Error al eliminar la ventana");
+        throw parseError(error, "Error al eliminar la ventana");
     }
-};
-
-const handleError = (error, actionMessage) => {
-    const data = error.response?.data;
-    if (data?.message) throw new Error(data.message);
-    throw new Error(`${actionMessage}: ${error.message}`);
 };

@@ -4,9 +4,14 @@ import { validationErrorHandler } from './validationErrorHandler.js';
 // --- Validar Registro (Público) ---
 export const validarRegistro = [
     // Validación de Datos de Identificación
-    body('nombreCompleto')
+    body('nombre')
         .trim()
-        .isLength({ min: 3, max: 100 }).withMessage('El nombre completo debe tener entre 3 y 100 caracteres.')
+        .isLength({ min: 3, max: 100 }).withMessage('Ingrese el nombre.')
+        .escape(),
+
+    body('apellidos')
+        .trim()
+        .isLength({ min: 3, max: 100 }).withMessage('Ingrese el apellido.')
         .escape(),
 
     body('documento')
@@ -14,9 +19,9 @@ export const validarRegistro = [
         .isLength({ min: 5, max: 20 }).withMessage('El número de documento debe tener entre 5 y 20 caracteres.')
         .isAlphanumeric('es-ES', { ignore: ' ' }),
 
-    body('contacto')
+    body('telefono')
         .optional({ nullable: true, checkFalsy: true }) // Es opcional
-        .isMobilePhone('es-CO').withMessage('El número de contacto debe ser un formato de teléfono válido.'),
+        .isMobilePhone('es-CO').withMessage('El número de teléfono debe ser un formato de teléfono válido.'),
 
     // Validación de Credenciales
     body('email')

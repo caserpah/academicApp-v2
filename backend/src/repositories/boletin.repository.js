@@ -13,6 +13,7 @@ import { Area } from "../models/area.js";
 import { Juicio } from "../models/juicio.js";
 import { Carga } from "../models/carga.js";
 import { Docente } from "../models/docente.js";
+import { Usuario } from "../models/usuario.js";
 
 export const boletinRepository = {
 
@@ -30,7 +31,11 @@ export const boletinRepository = {
                 {
                     model: Docente,
                     as: "director",
-                    attributes: ["id", "documento", "nombre", "apellidos"]
+                    include: [{
+                        model: Usuario,
+                        as: 'identidad',
+                        attributes: ["documento", "nombre", "apellidos"] // Solo traes lo que necesitas
+                    }]
                 },
                 {
                     model: Sede,
@@ -95,7 +100,11 @@ export const boletinRepository = {
                 {
                     model: Docente,
                     as: "docente",
-                    attributes: ["id", "nombre", "apellidos"]
+                    include: [{
+                        model: Usuario,
+                        as: 'identidad',
+                        attributes: ["nombre", "apellidos"] // Solo traes lo que necesitas
+                    }]
                 },
                 {
                     model: Asignatura,

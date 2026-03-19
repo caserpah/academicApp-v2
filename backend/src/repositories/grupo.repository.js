@@ -2,6 +2,7 @@ import { Grupo } from "../models/grupo.js";
 import { Grado } from "../models/grado.js";
 import { Sede } from "../models/sede.js";
 import { Docente } from "../models/docente.js";
+import { Usuario } from "../models/usuario.js";
 
 export const grupoRepository = {
 
@@ -49,7 +50,11 @@ export const grupoRepository = {
                 {
                     model: Docente,
                     as: "director",
-                    attributes: ["id", "nombre", "apellidos"]
+                    include: [{
+                        model: Usuario,
+                        as: 'identidad',
+                        attributes: ["documento", "nombre", "apellidos"] // Solo traes lo que necesitas
+                    }]
                 }
             ]
         });
@@ -85,7 +90,11 @@ export const grupoRepository = {
                 {
                     model: Docente,
                     as: "director",
-                    attributes: ["id", "nombre", "apellidos"]
+                    include: [{
+                        model: Usuario,
+                        as: 'identidad',
+                        attributes: ["nombre", "apellidos"] // Solo traes lo que necesitas
+                    }]
                 }
             ]
         });

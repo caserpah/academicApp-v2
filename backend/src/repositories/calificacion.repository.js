@@ -4,6 +4,11 @@ import { Matricula } from "../models/matricula.js";
 import { Estudiante } from "../models/estudiante.js";
 import { Asignatura } from "../models/asignatura.js";
 import { VentanaCalificacion } from "../models/ventana_calificacion.js";
+import { Carga } from "../models/carga.js";
+import { Grupo } from "../models/grupo.js";
+import { Grado } from "../models/grado.js";
+import { Docente } from "../models/docente.js";
+import { Usuario } from "../models/usuario.js";
 
 export const calificacionRepository = {
 
@@ -92,6 +97,15 @@ export const calificacionRepository = {
         return Carga.findAll({
             where: { docenteId, vigenciaId },
             include: [
+                {
+                    model: Docente,
+                    as: "docente",
+                    include: [{
+                        model: Usuario,
+                        as: 'identidad',
+                        attributes: ["documento", "nombre", "apellidos"]
+                    }]
+                },
                 {
                     model: Asignatura,
                     as: 'asignatura',

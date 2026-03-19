@@ -21,6 +21,7 @@ const Navbar = ({ toggleSidebar }) => {
         '/docentes': 'Académico / Docentes',
         '/matriculas': 'Estudiantes / Matrículas',
         '/estudiantes': 'Estudiantes / Listado',
+        '/observador': 'Estudiantes / Observador del Alumno',
         '/acudientes': 'Estudiantes / Acudientes',
         '/calificaciones': 'Evaluación / Calificaciones',
         '/nivelaciones': 'Evaluación / Recuperaciones',

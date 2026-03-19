@@ -22,6 +22,7 @@ import { Vigencia } from "../../models/vigencia.js";
 import { VentanaCalificacion } from "../../models/ventana_calificacion.js";
 import { ConfigGrado } from "../../models/config_grado.js";
 import { DesempenoRango } from "../../models/desempeno_rango.js";
+import { Usuario } from "../../models/usuario.js";
 
 export const definirAsociaciones = () => {
 
@@ -97,6 +98,10 @@ export const definirAsociaciones = () => {
 
     Vigencia.hasMany(DesempenoRango, { foreignKey: "vigenciaId", as: "rangosDesempeno" });
     DesempenoRango.belongsTo(Vigencia, { foreignKey: "vigenciaId", as: "vigencia" });
+
+    /** 👤 Usuario ↔ Docente (1:1) - Identidad Unificada */
+    Usuario.hasOne(Docente, { foreignKey: "usuarioId", as: "perfilDocente" });
+    Docente.belongsTo(Usuario, { foreignKey: "usuarioId", as: "identidad" });
 
     /** 👨‍🏫 Docente ↔ Carga / Grupo / Calificaciones */
     Docente.hasMany(Carga, { foreignKey: "docenteId", as: "cargas" });

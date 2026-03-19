@@ -1,6 +1,5 @@
-
-
 import apiClient from "./apiClient.js";
+import { parseError } from "../utils/errorHandler.js";
 
 const BOLETINES_ENDPOINT = '/api/boletines';
 
@@ -19,7 +18,7 @@ export const fetchBoletinesCatalogs = async () => {
         };
     } catch (error) {
         console.error("Error cargando catálogos de boletines", error);
-        throw new Error("No se pudieron cargar los datos de sedes y grados.");
+        throw parseError(error, "No se pudieron cargar los datos de sedes y grados.");
     }
 };
 
@@ -84,7 +83,7 @@ export const generarBoletinesPDF = async (payload) => {
             const errorJson = JSON.parse(errorText);
             throw new Error(errorJson.message || errorJson.msg || "Error al generar los boletines");
         }
-        throw new Error("Error de conexión al generar el PDF.");
+        throw parseError(error, "Error de conexión al generar el PDF.");
     }
 };
 
@@ -101,6 +100,6 @@ export const fetchAuditoriaBoletines = async (grupoId, periodoActual) => {
         return response.data.data;
     } catch (error) {
         console.error("Error al auditar boletines:", error);
-        throw new Error(error.response?.data?.message || "Ocurrió un error al auditar las calificaciones.");
+        throw parseError(error, "Ocurrió un error al auditar las calificaciones.");
     }
 };

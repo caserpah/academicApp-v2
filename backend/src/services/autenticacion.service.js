@@ -19,7 +19,8 @@ export const AutenticacionService = {
             token,
             usuario: {
                 id: usuario.id,
-                nombreCompleto: usuario.nombreCompleto,
+                nombre: usuario.nombre,
+                apellidos: usuario.apellidos,
                 email: usuario.email,
                 role: usuario.role,
             },

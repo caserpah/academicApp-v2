@@ -58,7 +58,7 @@ export const calificacionController = {
             const usuario = await Usuario.findByPk(usuarioId);
             if (usuario && usuario.documento) {
                 const docente = await Docente.findOne({
-                    where: { documento: usuario.documento }
+                    where: { usuarioId: usuarioId }
                 });
 
                 if (docente) {
@@ -106,12 +106,12 @@ export const calificacionController = {
 
             // Buscar Docente usando el documento del usuario
             const docente = await Docente.findOne({
-                where: { documento: usuario.documento }
+                where: { usuarioId: req.user.id }
             });
 
             if (!docente) {
                 return res.status(403).json({
-                    message: "El usuario actual no tiene un perfil de docente asociado (No coincide documento)."
+                    message: "El usuario actual no tiene un perfil de docente asociado."
                 });
             }
 
@@ -136,7 +136,7 @@ export const calificacionController = {
             if (!usuario) throw new Error("Usuario no encontrado.");
 
             const docente = await Docente.findOne({
-                where: { documento: usuario.documento }
+                where: { usuarioId: req.user.id }
             });
 
             if (!docente) throw new Error("No se encontró perfil docente para este usuario.");

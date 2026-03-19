@@ -45,6 +45,7 @@ const Matriculas = () => {
     // Estado para filtros avanzados
     const [filtros, setFiltros] = useState({
         sedeId: "",
+        grupoId: "",
         estado: "",
         bloqueo_notas: "",
         es_nuevo: "",
@@ -56,8 +57,13 @@ const Matriculas = () => {
     const [vigenciaActiva, setVigenciaActiva] = useState(null);
 
     // Estados de listas auxiliares
-    const [listasAuxiliares, setListasAuxiliares] = useState({ sedes: [], grupos: [], vigencias: [] });
+    const [listasAuxiliares, setListasAuxiliares] = useState({
+        sedes: [],
+        grupos: [],
+        vigencias: []
+    });
     const [loadingGrupos, setLoadingGrupos] = useState(false);
+    const [gruposFiltro, setGruposFiltro] = useState([]);
     const [processing, setProcessing] = useState(false);
 
     const formContainerRef = useRef(null);
@@ -143,6 +149,25 @@ const Matriculas = () => {
         };
         cargarGrupos();
     }, [formData.sedeId]);
+
+    // --- EFECTO: Cargar Grupos cuando cambia la Sede en el filtro ---
+    useEffect(() => {
+        const cargarGruposFiltro = async () => {
+            if (!filtros.sedeId) {
+                setGruposFiltro([]);
+                setFiltros(prev => ({ ...prev, grupoId: "" })); // Limpia el grupo si quitan la sede
+                return;
+            }
+            try {
+                const grupos = await fetchGruposPorSede(filtros.sedeId);
+                setGruposFiltro(grupos || []);
+            } catch (error) {
+                console.error("Error cargando grupos de filtro:", error);
+                setGruposFiltro([]);
+            }
+        };
+        cargarGruposFiltro();
+    }, [filtros.sedeId]);
 
     // ----------------------------------------------------------------
     // MANEJADORES
@@ -391,7 +416,7 @@ const Matriculas = () => {
                     </div>
 
                     {/* --- Barra de Filtros Avanzados --- */}
-                    <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200 grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-3 text-sm">
+                    <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200 grid grid-cols-1 md:grid-cols-4 lg:grid-cols-8 gap-3 text-sm">
 
                         {/* Filtro Sede */}
                         <div className="col-span-1 md:col-span-2">
@@ -399,6 +424,30 @@ const Matriculas = () => {
                             <select name="sedeId" value={filtros.sedeId} onChange={handleFiltroChange} className="w-full border-gray-300 rounded-md text-sm p-1.5 focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">Todas las Sedes</option>
                                 {listasAuxiliares.sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                            </select>
+                        </div>
+
+                        {/* --- Filtro Combinado Grado y Grupo --- */}
+                        <div className="col-span-1 md:col-span-2">
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Grado y Grupo</label>
+                            <select
+                                name="grupoId"
+                                value={filtros.grupoId || ""}
+                                onChange={handleFiltroChange}
+                                disabled={!filtros.sedeId || gruposFiltro.length === 0}
+                                className="w-full border-gray-300 rounded-md text-sm p-1.5 disabled:bg-gray-200 disabled:text-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                                <option value="">Todos los grupos</option>
+                                {gruposFiltro.map(g => {
+                                    // Extraemos el nombre del grado y aseguramos que no quede en blanco
+                                    const gradoNombre = g.grado?.nombre ? g.grado.nombre.replace(/_/g, " ") : "Sin Grado";
+
+                                    return (
+                                        <option key={g.id} value={g.id}>
+                                            {gradoNombre} - {g.nombre}
+                                        </option>
+                                    );
+                                })}
                             </select>
                         </div>
 
@@ -445,10 +494,13 @@ const Matriculas = () => {
                         </div>
 
                         {/* Botón Limpiar - Ocupa todo el ancho en móvil o automático */}
-                        <div className="col-span-1 md:col-span-4 lg:col-span-6 flex justify-end mt-2">
+                        <div className="col-span-1 md:col-span-4 lg:col-span-8 flex justify-end mt-2">
                             <button
                                 onClick={() => {
-                                    setFiltros({ sedeId: "", estado: "", bloqueo_notas: "", es_nuevo: "", es_repitente: "", situacion_ano_anterior: "" });
+                                    setFiltros({
+                                        sedeId: "", grupoId: "", estado: "", bloqueo_notas: "",
+                                        es_nuevo: "", es_repitente: "", situacion_ano_anterior: ""
+                                    });
                                     setPage(1);
                                 }}
                                 className="text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center"

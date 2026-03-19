@@ -1,5 +1,6 @@
 import { Op } from "sequelize";
 import { Docente } from "../models/docente.js";
+import { Usuario } from "../models/usuario.js";
 
 export const docenteRepository = {
 
@@ -15,17 +16,19 @@ export const docenteRepository = {
             const busquedaLower = busqueda.toLowerCase();
 
             const orConditions = [
-                { nombre: { [Op.like]: term } },
-                { apellidos: { [Op.like]: term } },
-                { documento: { [Op.like]: term } },
+                { "$identidad.nombre$": { [Op.like]: term } },
+                { "$identidad.apellidos$": { [Op.like]: term } },
+                { "$identidad.documento$": { [Op.like]: term } },
+                { '$identidad.email$': { [Op.like]: term } },
                 { profesion: { [Op.like]: term } },
                 { vinculacion: { [Op.like]: term } },
                 { areaEnsenanza: { [Op.like]: term } },
                 { decretoLey: { [Op.like]: term } }
             ];
 
-            if ("activo".includes(busquedaLower)) orConditions.push({ activo: true });
-            if ("inactivo".includes(busquedaLower)) orConditions.push({ activo: false });
+            // El estado 'activo' viene desde Usuario
+            if ("activo".includes(busquedaLower)) where['$identidad.activo$'] = true;
+            if ("inactivo".includes(busquedaLower)) where['$identidad.activo$'] = false;
 
             where[Op.or] = orConditions;
         }
@@ -38,7 +41,18 @@ export const docenteRepository = {
             where,
             offset,
             limit: Number(limit),
-            order: [["apellidos", "ASC"], ["nombre", "ASC"]],
+            // Incluimos la identidad para que el frontend tenga todos los datos
+            include: [{
+                model: Usuario,
+                as: 'identidad',
+                attributes: ['id', 'nombre', 'apellidos', 'documento', 'email', 'telefono', 'activo']
+            }],
+            // Ordenamos por los apellidos y nombres del Usuario
+            order: [
+                [{ model: Usuario, as: 'identidad' }, "apellidos", "ASC"],
+                [{ model: Usuario, as: 'identidad' }, "nombre", "ASC"]
+            ],
+            subQuery: false // Obligatorio en Sequelize cuando se filtra por campos de un include
         });
 
         return {
@@ -50,10 +64,16 @@ export const docenteRepository = {
     },
 
     /**
-     * Buscar por ID
+     * Buscar por ID (Trae el docente con su identidad)
      */
     async findById(id) {
-        return Docente.findByPk(id);
+        return Docente.findByPk(id, {
+            include: [{
+                model: Usuario,
+                as: 'identidad',
+                attributes: { exclude: ['password', 'otpCode', 'otpExpires'] } // Ocultamos datos sensibles
+            }]
+        });
     },
 
     /**

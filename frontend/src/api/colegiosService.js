@@ -1,4 +1,5 @@
 import apiClient from './apiClient.js';
+import { parseError } from "../utils/errorHandler.js";
 
 /**
  * Servicio de gestión de Colegios
@@ -36,11 +37,7 @@ export const fetchColegio = async () => {
 
     } catch (error) {
         console.error("Error en fetchColegio:", error);
-        const msg =
-        error.response?.data?.message ||
-        error.message ||
-        "Error al obtener los datos iniciales.";
-        throw new Error(msg);
+        throw parseError(error, "Error al obtener los datos iniciales.");
     }
 };
 
@@ -58,30 +55,6 @@ export const actualizarColegio = async (id, colegioData) => {
         return apiData.data || apiData;
 
     } catch (error) {
-        const data = error.response?.data;
-        const status = error.response?.status;
-
-        // Captura error de validación desde el backend (express-validator o Sequelize)
-        if (status === 422 && Array.isArray(data?.errors)) {
-            // Tomar solo el primer mensaje para no saturar la alerta
-            const primerError = data.errors[0];
-            const mensaje = primerError.message || primerError.msg || "Error de validación.";
-            throw new Error(mensaje);
-        }
-
-        // Error de validación Sequelize (400 o similar)
-        if (status === 400 && Array.isArray(data?.errors)) {
-            const primerError = data.errors[0];
-            const mensaje = primerError.message || primerError.msg || "Error de validación de datos.";
-            throw new Error(mensaje);
-        }
-
-        // Errores controlados
-        if (data?.message) {
-            throw new Error(data.message);
-        }
-
-        // Error genérico
-        throw new Error(`Error al actualizar el colegio: ${error.message}`);
+        throw parseError(error, "Error al actualizar el colegio.");
     }
 };

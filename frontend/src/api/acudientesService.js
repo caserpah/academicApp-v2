@@ -1,4 +1,5 @@
 import apiClient from "./apiClient.js";
+import { parseError } from "../utils/errorHandler.js";
 
 const ENDPOINT_ACUDIENTES = "/api/acudientes";
 
@@ -11,7 +12,7 @@ export const listarAcudientes = async (params = {}) => {
         const response = await apiClient.get(ENDPOINT_ACUDIENTES, { params });
         return response.data.data; // Retorna { items: [...], total: ... }
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al cargar los acudientes.");
     }
 };
 
@@ -46,7 +47,7 @@ export const crearAcudiente = async (data) => {
         const response = await apiClient.post(ENDPOINT_ACUDIENTES, data);
         return response.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al crear el acudiente.");
     }
 };
 
@@ -58,7 +59,7 @@ export const actualizarAcudiente = async (id, data) => {
         const response = await apiClient.put(`${ENDPOINT_ACUDIENTES}/${id}`, data);
         return response.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error,"Error al actualizar el acudiente.");
     }
 };
 
@@ -70,7 +71,7 @@ export const eliminarAcudiente = async (id) => {
         const response = await apiClient.delete(`${ENDPOINT_ACUDIENTES}/${id}`);
         return response.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al eliminar el acudiente.");
     }
 };
 
@@ -84,7 +85,7 @@ export const asignarAcudiente = async (payload) => {
         const response = await apiClient.post(`${ENDPOINT_ACUDIENTES}/asignar`, payload);
         return response.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al asignar el acudiente al estudiante.");
     }
 };
 
@@ -98,17 +99,6 @@ export const desvincularAcudiente = async (estudianteId, acudienteId) => {
         const response = await apiClient.delete(url);
         return response.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al desvincular el acudiente del estudiante.");
     }
-};
-
-// Helper de errores
-const parseError = (error) => {
-    const apiError = error.response?.data;
-    if (apiError?.errors && Array.isArray(apiError.errors)) {
-        // Retorna el primer mensaje de validación del array
-        return new Error(apiError.errors[0].message);
-    }
-    // Retorna mensaje genérico o el que envíe el backend
-    return new Error(apiError?.message || "Ocurrió un error en el servicio de acudientes.");
 };

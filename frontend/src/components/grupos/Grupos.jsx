@@ -32,7 +32,7 @@ const Grupos = () => {
         nombre: "",
         gradoId: "",
         jornada: "",
-        cupos: 45,
+        cupos: 50,
         sobrecupoPermitido: false,
         sedeId: "",
         directorId: ""

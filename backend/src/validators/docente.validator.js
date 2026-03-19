@@ -1,5 +1,7 @@
 import { body, param } from "express-validator";
 import { Docente } from "../models/docente.js";
+import { Usuario } from "../models/usuario.js";
+import { Op } from "sequelize";
 import {
     validarCampoRequerido,
     validarCampoOpcionalRequerido,
@@ -30,7 +32,7 @@ export const ValidarCrearDocente = [
         .matches(regexDocumento)
         .withMessage("El documento debe contener mínimo 4 dígitos.")
         .bail()
-        .custom(validarCampoUnico(Docente, "documento", "un docente", false, null, "número de documento")),
+        .custom(validarCampoUnico(Usuario, "documento", "un docente", false, null, "número de documento")),
 
     /** Nombre y Apellidos */
     validarCampoRequerido("nombre", "Ingrese el nombre del docente.")
@@ -46,7 +48,7 @@ export const ValidarCrearDocente = [
     validarCampoRequerido("email", "Ingrese el correo electrónico")
         .isEmail().withMessage("Ingrese un correo electrónico válido.")
         .bail()
-        .custom(validarCampoUnico(Docente, "email", "un docente", false, null, "correo electrónico")),
+        .custom(validarCampoUnico(Usuario, "email", "un docente", false, null, "correo electrónico")),
 
     /** Teléfono */
     validarCampoOpcional("telefono")
@@ -101,14 +103,39 @@ export const ValidarActualizarDocente = [
         .bail()
         .custom(verificarExistenciaPorId(Docente, "id", "el docente")),
 
-    /** Documento y Email (Validación de unicidad excluyendo el propio ID) */
+    /** Documento (Validación cruzada con la tabla Usuario) */
     validarCampoOpcionalRequerido("documento", "Ingrese el número de documento.")
         .matches(regexDocumento).withMessage("El documento debe contener mínimo 4 dígitos.")
-        .custom(validarCampoUnico(Docente, "documento", "un docente", true, null, "número de documento")),
+        .custom(async (value, { req }) => {
+            // 1. Buscamos al docente para saber cuál es su 'usuarioId' real
+            const docente = await Docente.findByPk(req.params.id);
+            if (!docente) return true;
 
+            // 2. Buscamos si el documento existe en OTRO usuario
+            const existe = await Usuario.findOne({
+                where: {
+                    documento: value,
+                    id: { [Op.ne]: docente.usuarioId } // ¡Excluimos su verdadero ID de usuario!
+                }
+            });
+            if (existe) throw new Error("Ya existe un docente con este número de documento.");
+        }),
+
+    /** Email (Validación cruzada con la tabla Usuario) */
     validarCampoOpcionalRequerido("email", "Ingrese el correo electrónico.")
-        .isEmail().withMessage("correo electrónico inválido.")
-        .custom(validarCampoUnico(Docente, "email", "un docente", true, null, "correo electrónico")),
+        .isEmail().withMessage("Correo electrónico inválido.")
+        .custom(async (value, { req }) => {
+            const docente = await Docente.findByPk(req.params.id);
+            if (!docente) return true;
+
+            const existe = await Usuario.findOne({
+                where: {
+                    email: value,
+                    id: { [Op.ne]: docente.usuarioId } // ¡Excluimos su verdadero ID de usuario!
+                }
+            });
+            if (existe) throw new Error("Ya existe un docente con este correo electrónico.");
+        }),
 
     /** Nombre */
     validarCampoOpcionalRequerido("nombre", "Ingrese el nombre del docente.")
@@ -139,13 +166,13 @@ export const ValidarActualizarDocente = [
 
     /** Administrativos en edición */
     body("decretoLey").optional({ checkFalsy: true })
-    .isLength({ max: 10 }).withMessage("El Decreto Ley no puede exceder 10 caracteres."),
+        .isLength({ max: 10 }).withMessage("El Decreto Ley no puede exceder 10 caracteres."),
 
     body("escalafon").optional({ checkFalsy: true })
-    .isLength({ max: 10 }).withMessage("El Escalafón no puede exceder 10 caracteres."),
+        .isLength({ max: 10 }).withMessage("El Escalafón no puede exceder 10 caracteres."),
 
     body("decretoNombrado").optional({ checkFalsy: true })
-    .isLength({ max: 10 }).withMessage("El Decreto de Nombramiento no puede exceder 10 caracteres."),
+        .isLength({ max: 10 }).withMessage("El Decreto de Nombramiento no puede exceder 10 caracteres."),
 
     /** Nivel educativo */
     validarCampoOpcionalRequerido("nivelEducativo", "Seleccione el nivel educativo.")

@@ -54,38 +54,39 @@ const AppRoutes = () => {
                     <Route path="bienvenida" element={<Bienvenida />} />
 
                     {/* === INSTITUCIONAL === */}
-                    <Route path="colegios" element={<ProtectedRoute requiredRole={["admin", "secretaria"]}><Colegios /></ProtectedRoute>} />
-                    <Route path="sedes" element={<ProtectedRoute requiredRole={["admin", "secretaria"]}><Sedes /></ProtectedRoute>} />
-                    <Route path="usuarios" element={<ProtectedRoute requiredRole={["admin"]}><Usuarios /></ProtectedRoute>} />
-                    <Route path="coordinadores" element={<ProtectedRoute requiredRole={["admin", "secretaria"]}><Coordinadores /></ProtectedRoute>} />
-                    <Route path="vigencias" element={<ProtectedRoute requiredRole={["admin", "secretaria"]}><Vigencias /></ProtectedRoute>} />
+                    <Route path="colegios" element={<ProtectedRoute requiredRoles={["admin", "secretaria"]}><Colegios /></ProtectedRoute>} />
+                    <Route path="sedes" element={<ProtectedRoute requiredRoles={["admin", "secretaria"]}><Sedes /></ProtectedRoute>} />
+                    <Route path="usuarios" element={<ProtectedRoute requiredRoles={["admin"]}><Usuarios /></ProtectedRoute>} />
+                    <Route path="coordinadores" element={<ProtectedRoute requiredRoles={["admin", "secretaria"]}><Coordinadores /></ProtectedRoute>} />
+                    <Route path="vigencias" element={<ProtectedRoute requiredRoles={["admin", "secretaria"]}><Vigencias /></ProtectedRoute>} />
 
                     {/* === GESTIÓN ACADÉMICA === */}
-                    <Route path="areas" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador"]}><Areas /></ProtectedRoute>} />
-                    <Route path="asignaturas" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador"]}><Asignaturas /></ProtectedRoute>} />
+                    <Route path="areas" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador"]}><Areas /></ProtectedRoute>} />
+                    <Route path="asignaturas" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador"]}><Asignaturas /></ProtectedRoute>} />
 
                     {/* Nuevas rutas agregadas del Sidebar */}
-                    <Route path="grupos" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador"]}><Grupos /></ProtectedRoute>} />
-                    <Route path="carga-academica" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador"]}><Cargas /></ProtectedRoute>} />
-                    <Route path="docentes" element={<ProtectedRoute requiredRole={["admin", "secretaria"]}><Docentes /></ProtectedRoute>} />
+                    <Route path="grupos" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador"]}><Grupos /></ProtectedRoute>} />
+                    <Route path="carga-academica" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador"]}><Cargas /></ProtectedRoute>} />
+                    <Route path="docentes" element={<ProtectedRoute requiredRoles={["admin", "secretaria"]}><Docentes /></ProtectedRoute>} />
 
                     {/* === ESTUDIANTES & MATRÍCULAS === */}
-                    <Route path="estudiantes" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador", "docente"]}><Estudiantes /></ProtectedRoute>} />
-                    <Route path="estudiantes/acudientes" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador"]}><AsignarAcudientes /></ProtectedRoute>} />
-                    <Route path="acudientes" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador"]}><Acudientes /></ProtectedRoute>} />
-                    <Route path="matriculas" element={<ProtectedRoute requiredRole="admin"><Matriculas /></ProtectedRoute>} />
-                    <Route path="matriculas/masivo" element={<ProtectedRoute requiredRole="admin"><PromocionMasiva /></ProtectedRoute>} />
+                    <Route path="estudiantes" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador", "docente"]}><Estudiantes /></ProtectedRoute>} />
+                    <Route path="observador" element={<ProtectedRoute requiredRoles={["admin", "docente", "coordinador"]}><PaginaEnConstruccion titulo="Observador del Alumno" /></ProtectedRoute>} />
+                    <Route path="estudiantes/acudientes" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador"]}><AsignarAcudientes /></ProtectedRoute>} />
+                    <Route path="acudientes" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador"]}><Acudientes /></ProtectedRoute>} />
+                    <Route path="matriculas" element={<ProtectedRoute requiredRoles="admin"><Matriculas /></ProtectedRoute>} />
+                    <Route path="matriculas/masivo" element={<ProtectedRoute requiredRoles="admin"><PromocionMasiva /></ProtectedRoute>} />
 
                     {/* === EVALUACIÓN === */}
-                    <Route path="juicios" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador", "docente"]}><Juicios /></ProtectedRoute>} />
-                    <Route path="calificaciones" element={<ProtectedRoute requiredRole={["admin", "secretaria", "docente"]}><Calificaciones /></ProtectedRoute>} />
-                    <Route path="nivelaciones" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador", "docente"]}><Nivelaciones /></ProtectedRoute>} />
-                    <Route path="ventanas" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador"]}><Ventanas /></ProtectedRoute>} />
-                    <Route path="boletines" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador"]}><GenerarBoletines /></ProtectedRoute>} />
+                    <Route path="juicios" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador", "docente"]}><Juicios /></ProtectedRoute>} />
+                    <Route path="calificaciones" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "docente"]}><Calificaciones /></ProtectedRoute>} />
+                    <Route path="nivelaciones" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador", "docente"]}><Nivelaciones /></ProtectedRoute>} />
+                    <Route path="ventanas" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador"]}><Ventanas /></ProtectedRoute>} />
+                    <Route path="boletines" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador"]}><GenerarBoletines /></ProtectedRoute>} />
 
                     {/* RUTAS TEMPORALES PARA MÓDULOS EN DESARROLLO */}
-                    <Route path="reportes" element={<ProtectedRoute requiredRole={["admin", "secretaria", "coordinador"]}><PaginaEnConstruccion titulo="Reportes" /></ProtectedRoute>} />
-                    <Route path="configuracion" element={<ProtectedRoute requiredRole="admin"><PaginaEnConstruccion titulo="Configuración" /></ProtectedRoute>} />
+                    <Route path="reportes" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador"]}><PaginaEnConstruccion titulo="Reportes" /></ProtectedRoute>} />
+                    <Route path="configuracion" element={<ProtectedRoute requiredRoles="admin"><PaginaEnConstruccion titulo="Configuración" /></ProtectedRoute>} />
 
                 </Route>
             </Route>

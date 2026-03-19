@@ -15,15 +15,18 @@ export const Usuario = sequelize.define(
             allowNull: false,
         },
         // Datos de identificación
-        nombreCompleto: {
+        nombre: {
+            type: DataTypes.STRING(60),
+            allowNull: false,
+            validate: {
+                notEmpty: { msg: "El nombre es obligatorio." },
+            },
+        },
+        apellidos: {
             type: DataTypes.STRING(80),
             allowNull: false,
             validate: {
-                notEmpty: { msg: "El nombre completo es obligatorio." },
-                len: {
-                    args: [3, 80],
-                    msg: "El nombre completo debe tener entre 3 y 80 caracteres.",
-                },
+                notEmpty: { msg: "Los apellidos son obligatorios." },
             },
         },
         documento: {
@@ -41,12 +44,9 @@ export const Usuario = sequelize.define(
                 },
             },
         },
-        contacto: {
+        telefono: {
             type: DataTypes.STRING(12),
             allowNull: true,
-            set(value) {
-                this.setDataValue("contacto", value?.trim());
-            }
         },
         // Credenciales y Roles
         email: {

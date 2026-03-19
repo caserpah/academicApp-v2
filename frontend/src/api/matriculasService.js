@@ -1,4 +1,5 @@
 import apiClient from "./apiClient.js";
+import { parseError } from "../utils/errorHandler.js";
 
 const MATRICULAS_ENDPOINT = "/api/matriculas";
 
@@ -19,7 +20,7 @@ export const listarMatriculas = async (params = {}) => {
         const response = await apiClient.get(MATRICULAS_ENDPOINT, { params });
         return response.data.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al listar las matrículas.");
     }
 };
 
@@ -33,7 +34,7 @@ export const obtenerMatricula = async (id) => {
         const response = await apiClient.get(`${MATRICULAS_ENDPOINT}/${id}`);
         return response.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al obtener la matrícula.");
     }
 };
 
@@ -53,7 +54,7 @@ export const crearMatricula = async (data) => {
         const response = await apiClient.post(MATRICULAS_ENDPOINT, data);
         return response.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al crear la matrícula.");
     }
 };
 
@@ -68,7 +69,7 @@ export const actualizarMatricula = async (id, data) => {
         const response = await apiClient.put(`${MATRICULAS_ENDPOINT}/${id}`, data);
         return response.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al actualizar la matrícula.");
     }
 };
 
@@ -82,7 +83,7 @@ export const eliminarMatricula = async (id) => {
         const response = await apiClient.delete(`${MATRICULAS_ENDPOINT}/${id}`);
         return response.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al eliminar la matrícula.");
     }
 };
 
@@ -99,28 +100,6 @@ export const crearMatriculaMasiva = async (payload) => {
         const response = await apiClient.post(`${MATRICULAS_ENDPOINT}/masivo`, payload);
         return response.data;
     } catch (error) {
-        throw parseError(error);
+        throw parseError(error, "Error al procesar matrículas masivamente.");
     }
-};
-
-/**
- * Helper: Parseo de Errores
- * Extrae el mensaje más relevante de la respuesta del backend.
- * Soporta el formato de 'validationErrorHandler' ({ errors: [...] }).
- */
-const parseError = (error) => {
-    const apiError = error.response?.data;
-
-    // Si es error de validación (422), devolvemos el primer mensaje específico
-    if (apiError?.errors && Array.isArray(apiError.errors) && apiError.errors.length > 0) {
-        return new Error(apiError.errors[0].message);
-    }
-
-    // Si es error lógico (409, 400, 500), devolvemos el mensaje general
-    if (apiError?.message) {
-        return new Error(apiError.message);
-    }
-
-    // Fallback genérico
-    return new Error("Ocurrió un error inesperado al procesar la solicitud.");
 };

@@ -514,6 +514,7 @@ const CalificacionesPage = () => {
                             onSave={handleSaveCalificacion}
                             onManualSave={handleManualSaveRequest}
                             asignaturaNombre={asignaturasDisponibles.find(a => String(a.id) === String(filters.asignaturaId))?.nombre || ""}
+                            porcentajeArea={asignaturasDisponibles.find(a => String(a.id) === String(filters.asignaturaId))?.porcentual || 100}
                             bancoRecomendaciones={bancoRecomendaciones}
                             isReadOnly={isReadOnly}
                         />

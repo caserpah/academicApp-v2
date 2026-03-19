@@ -236,7 +236,7 @@ const Cargas = () => {
                                                     <div className="text-sm font-medium text-gray-900">{c.asignatura?.nombre}</div>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <div className="text-sm text-gray-800">{c.docente?.apellidos} {c.docente?.nombre}</div>
+                                                    <div className="text-sm text-gray-800">{c.docente?.identidad?.apellidos} {c.docente?.identidad?.nombre}</div>
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="text-xs text-gray-500">{c.sede?.nombre}</div>
@@ -273,10 +273,14 @@ const Cargas = () => {
                 {(mode === 'agregar' || mode === 'editar') && (
                     <CargasForm
                         selectedCarga={selectedCarga}
-                        onSuccess={() => {
+                        onSuccess={(closeModal = true) => {
                             showSuccess(selectedCarga ? "Carga actualizada exitosamente." : "Carga registrada exitosamente.");
-                            setMode("lista");
-                            loadData();
+                            loadData(); // Siempre recargamos la tabla para ver el nuevo registro de fondo
+
+                            // Solo cerramos el modal si se indica explícitamente
+                            if (closeModal) {
+                                setMode("lista");
+                            }
                         }}
                         onCancel={() => setMode("lista")}
                         crearCargaAPI={crearCarga}

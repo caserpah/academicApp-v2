@@ -16,7 +16,6 @@ export const handleSequelizeError = (error) => {
     if (error instanceof UniqueConstraintError) {
 
         const indexName = Object.keys(error.fields || {})[0] || null;
-        console.log("⚠️ EL NOMBRE DEL ÍNDICE QUE FALLA ES:", indexName);
 
         // Caso 1: coordinador_sedes (coordinador + sede + vigencia)
         if (indexName === "uq_sede_vigencia") {

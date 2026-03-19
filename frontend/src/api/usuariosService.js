@@ -1,4 +1,5 @@
 import apiClient from "./apiClient.js";
+import { parseError } from "../utils/errorHandler.js";
 
 const USERS_ENDPOINT = '/api/usuarios';
 
@@ -11,7 +12,7 @@ export const fetchUsers = async () => {
         }
         return [];
     } catch (error) {
-        throw new Error(error.response?.data?.message || "Error al cargar usuarios");
+        throw parseError(error, "Error al cargar usuarios");
     }
 };
 
@@ -21,7 +22,7 @@ export const crearUsuario = async (userData) => {
         const response = await apiClient.post('/api/auth/registro', userData);
         return response.data;
     } catch (error) {
-        throw new Error(error.response?.data?.message || "Error al crear usuario");
+        throw parseError(error, "Error al crear el usuario");
     }
 };
 
@@ -31,7 +32,7 @@ export const actualizarUsuario = async (id, userData) => {
         const response = await apiClient.put(`${USERS_ENDPOINT}/${id}`, userData);
         return response.data.data;
     } catch (error) {
-        throw new Error(error.response?.data?.message || "Error al actualizar usuario");
+        throw parseError(error, "Error al actualizar el usuario");
     }
 };
 
@@ -41,6 +42,6 @@ export const eliminarUsuario = async (id) => {
         const response = await apiClient.delete(`${USERS_ENDPOINT}/${id}`);
         return response.data;
     } catch (error) {
-        throw new Error(error.response?.data?.message || "Error al eliminar usuario");
+        throw parseError(error, "Error al eliminar el usuario");
     }
 };

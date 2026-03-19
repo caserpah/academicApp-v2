@@ -11,12 +11,13 @@ import LoadingSpinner from "../common/LoadingSpinner";
 const Usuarios = () => {
     // Estado inicial para el formulario
     const initialState = {
-        nombreCompleto: "",
+        nombre: "",
+        apellidos: "",
         documento: "",
         email: "",
         role: "acudiente",
         password: "",
-        contacto: "",
+        telefono: "",
         activo: true
     };
 
@@ -94,8 +95,9 @@ const Usuarios = () => {
 
     // Filtrado local por nombre o documento
     const filteredUsers = usuarios.filter(user =>
-        user.nombreCompleto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.documento.includes(searchTerm)
+        (user.nombre?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+        (user.apellidos?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+        (user.documento || "").includes(searchTerm)
     );
 
     // ===============================
@@ -177,7 +179,7 @@ const Usuarios = () => {
                                     {filteredUsers.length > 0 ? filteredUsers.map((user) => (
                                         <tr key={user.id} className="hover:bg-slate-50 transition">
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900">{user.nombreCompleto}</div>
+                                                <div className="text-sm font-medium text-gray-900">{user.apellidos} {user.nombre}</div>
                                                 <div className="text-sm text-gray-500">{user.email}</div>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-500">{user.documento}</td>

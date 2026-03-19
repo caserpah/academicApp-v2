@@ -1,4 +1,5 @@
 import apiClient from "./apiClient.js";
+import { parseError } from "../utils/errorHandler.js";
 
 const GRUPOS_ENDPOINT = "/api/grupos";
 const GRADOS_ENDPOINT = "/api/grados";
@@ -28,11 +29,7 @@ export const fetchGruposPorSede = async (sedeId) => {
         return apiData.data.items || [];
 
     } catch (error) {
-        throw new Error(
-            error.response?.data?.message ||
-            error.message ||
-            "Error al obtener grupos"
-        );
+        throw parseError(error, "Error al obtener grupos");
     }
 };
 
@@ -67,7 +64,7 @@ export const fetchInitialData = async (filtros = {}) => {
         };
     } catch (error) {
         console.error("Error en fetchInitialData (Grupos):", error);
-        throw new Error(error.response?.data?.message || "Error al cargar datos iniciales.");
+        throw parseError(error, "Error al cargar datos iniciales.");
     }
 };
 
@@ -76,7 +73,7 @@ export const crearGrupo = async (data) => {
         const response = await apiClient.post(GRUPOS_ENDPOINT, data);
         return response.data.data;
     } catch (error) {
-        throw manejarError(error);
+        throw parseError(error, "Error al crear el grupo");
     }
 };
 
@@ -85,7 +82,7 @@ export const actualizarGrupo = async (id, data) => {
         const response = await apiClient.put(`${GRUPOS_ENDPOINT}/${id}`, data);
         return response.data.data;
     } catch (error) {
-        throw manejarError(error);
+        throw parseError(error, "Error al actualizar el grupo");
     }
 };
 
@@ -94,15 +91,6 @@ export const eliminarGrupo = async (id) => {
         const response = await apiClient.delete(`${GRUPOS_ENDPOINT}/${id}`);
         return response.data.message;
     } catch (error) {
-        throw manejarError(error);
+        throw parseError(error, "Error al eliminar el grupo");
     }
-};
-
-// Helper para errores consistente con tu estilo
-const manejarError = (error) => {
-    const data = error.response?.data;
-    if (error.response?.status === 422 && data?.errors) {
-        return new Error(data.errors[0].msg || "Error de validación.");
-    }
-    return new Error(data?.message || error.message || "Ocurrió un error inesperado.");
 };
