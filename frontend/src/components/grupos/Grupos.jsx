@@ -368,7 +368,7 @@ const Grupos = () => {
                                             <td className="px-3 py-3 text-sm text-gray-600 capitalize">{grupo.jornada.toLowerCase()}</td>
                                             <td className="px-3 py-3 text-sm text-gray-600">
                                                 {grupo.director ?
-                                                    `${grupo.director.nombre} ${grupo.director.apellidos}` :
+                                                    `${grupo.director.identidad?.nombre || grupo.director.nombre || ''} ${grupo.director.identidad?.apellidos || grupo.director.apellidos || ''}` :
                                                     <span className="text-gray-400 italic">Sin asignar</span>
                                                 }
                                             </td>

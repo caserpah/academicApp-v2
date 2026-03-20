@@ -15,6 +15,7 @@ export const grupoRepository = {
         jornada,
         sedeId,
         vigenciaId,
+        directorId,
         page,
         limit,
         orderBy,
@@ -28,6 +29,7 @@ export const grupoRepository = {
         if (gradoId) where.gradoId = gradoId;
         if (jornada) where.jornada = jornada;
         if (sedeId) where.sedeId = sedeId;
+        if (directorId) where.directorId = directorId;
 
         const offset = (page - 1) * limit;
 

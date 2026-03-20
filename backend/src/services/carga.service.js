@@ -2,6 +2,7 @@ import { cargaRepository } from "../repositories/carga.repository.js";
 import { asignaturaRepository } from "../repositories/asignatura.repository.js";
 import { docenteRepository } from "../repositories/docente.repository.js";
 import { Vigencia } from "../models/vigencia.js";
+import { grupoRepository } from "../repositories/grupo.repository.js";
 import { handleSequelizeError } from "../middleware/handleSequelizeError.js";
 import { sequelize } from "../database/db.connect.js";
 
@@ -17,7 +18,72 @@ export const cargaService = {
             }
         }
 
-        return await cargaRepository.findAll(filtros);
+        // Obtener las cargas reales del repositorio
+        let resultado = await cargaRepository.findAll(filtros);
+
+        // INYECCIÓN DE CARGAS VIRTUALES (COMPORTAMIENTO)
+        if (filtros.docenteId) {
+            // Buscamos si el docente dirige algún grupo
+            const gruposResult = await grupoRepository.findAll({
+                directorId: filtros.docenteId,
+                vigenciaId: filtros.vigenciaId,
+                limit: 100,
+                page: 1,
+                orderBy: 'id',
+                order: 'ASC'
+            });
+
+            const gruposDirigidos = gruposResult.items || [];
+
+            if (gruposDirigidos.length > 0) {
+                // Buscamos la asignatura COMPORTAMIENTO
+                const asignaturasResult = await asignaturaRepository.findAll({
+                    nombre: 'COMPORTAMIENTO',
+                    vigenciaId: filtros.vigenciaId,
+                    limit: 150,
+                    page: 1
+                });
+
+                const listaAsignaturas = asignaturasResult.items || asignaturasResult;
+                const asignaturaComportamiento = listaAsignaturas.find(
+                    a => a.nombre.toUpperCase() === 'COMPORTAMIENTO'
+                );
+
+                if (asignaturaComportamiento) {
+                    const cargasReales = Array.isArray(resultado) ? resultado : (resultado.items || []);
+
+                    for (const grupo of gruposDirigidos) {
+                        const yaTieneCarga = cargasReales.some(
+                            c => c.grupoId === grupo.id && c.asignaturaId === asignaturaComportamiento.id
+                        );
+
+                        if (!yaTieneCarga) {
+                            // Creamos la carga virtual
+                            const cargaVirtual = {
+                                id: `virtual-${grupo.id}-${asignaturaComportamiento.id}`,
+                                docenteId: filtros.docenteId,
+                                grupoId: grupo.id,
+                                asignaturaId: asignaturaComportamiento.id,
+                                vigenciaId: filtros.vigenciaId,
+                                horas: 0,
+                                esVirtual: true,
+                                grupo: grupo,
+                                asignatura: asignaturaComportamiento
+                            };
+                            cargasReales.push(cargaVirtual);
+                        }
+                    }
+
+                    if (!Array.isArray(resultado) && resultado.items) {
+                        resultado.items = cargasReales;
+                    } else {
+                        resultado = cargasReales;
+                    }
+                }
+            }
+        }
+
+        return resultado;
     },
 
     async get(id) {

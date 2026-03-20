@@ -84,18 +84,31 @@ const GrillaCalificaciones = ({
         setGridData(mappedData);
     }, [students]);
 
-    // --- CÁLCULOS ---
+    // --- HELPER DE REDONDEO ESTÁNDAR (Obliga a JS a redondear como Excel) ---
+    const roundExcel = (num) => {
+        const parsed = parseFloat(num);
+        if (isNaN(parsed)) return "-";
+        // La notación "e+2" evita el bug del punto flotante de JS.
+        // Convertirá 4.195 exactamente en 4.20
+        return Number(Math.round(parsed + "e+2") + "e-2").toFixed(2);
+    };
+
+
+    // --- CÁLCULOS MATEMÁTICOS ---
     const calcularDefinitiva = (row) => {
         const nAcad = parseFloat(row.notaAcademica || 0);
         const nAcum = parseFloat(row.notaAcumulativa || 0);
         const nLab = parseFloat(row.notaLaboral || 0);
         const nSoc = parseFloat(row.notaSocial || 0);
 
+        // Sumamos los porcentajes
         const def = (nAcad * WEIGHTS.academica) +
             (nAcum * WEIGHTS.acumulativa) +
             (nLab * WEIGHTS.laboral) +
             (nSoc * WEIGHTS.social);
-        return def.toFixed(2);
+
+        // Pasamos el resultado por el redondeo estándar
+        return roundExcel(def);
     };
 
     // --- HANDLERS INDIVIDUALES ---
@@ -273,9 +286,9 @@ const GrillaCalificaciones = ({
         // 1. Validaciones previas
         if (!esComportamiento) {
             const { notaAcademica, notaAcumulativa, notaLaboral, notaSocial } = masterValues;
-            // Validar que TODOS los campos tengan valor
-            if (!notaAcademica || !notaAcumulativa || !notaLaboral || !notaSocial) {
-                showWarning("Para aplicar masivamente, debes diligenciar las 4 notas (Académica, Acumulativa, Laboral y Social).");
+            // Validar que AL MENOS UN campo tenga valor
+            if (!notaAcademica && !notaAcumulativa && !notaLaboral && !notaSocial) {
+                showWarning("Para aplicar masivamente, debes diligenciar al menos una nota (Académica, Acumulativa, Laboral o Social).");
                 return;
             }
         } else {
@@ -287,9 +300,6 @@ const GrillaCalificaciones = ({
 
         if (!(await showConfirm("¿Estás seguro de sobrescribir las notas de todos los estudiantes habilitados?", "Aplicar Masivamente"))) return;
 
-        // NO actualizamos gridData visualmente todavía para evitar falsos positivos masivos.
-        // o lo actualizamos pero sabiendo que revertiremos si falla.
-
         // Iteramos sobre los datos actuales
         const habilitados = gridData.filter(r => !r.bloqueo_notas);
 
@@ -298,9 +308,8 @@ const GrillaCalificaciones = ({
         let adminJustificationCount = 0; // Solo para Admins (Botón Naranja)
         let teacherBlockedCount = 0;     // Solo para Docentes (Bloqueo Rojo)
         let otherErrorCount = 0;
-        /*let failCount = 0;
-        let closedWindowCount = 0;*/
 
+        // --- 2. Actualización Visual (Preview) ---
         const previewData = gridData.map(row => {
             if (row.bloqueo_notas) return row;
             const updatedRow = { ...row, isDirty: true };
@@ -308,16 +317,20 @@ const GrillaCalificaciones = ({
             if (esComportamiento) {
                 updatedRow.notaDefinitiva = masterValues.notaDefinitivaInput;
             } else {
-                updatedRow.notaAcademica = masterValues.notaAcademica;
-                updatedRow.notaAcumulativa = masterValues.notaAcumulativa;
-                updatedRow.notaLaboral = masterValues.notaLaboral;
-                updatedRow.notaSocial = masterValues.notaSocial;
+                // Solo sobrescribimos si el docente ingresó un valor en la fila maestra.
+                // Si el campo está vacío, respetamos el valor individual para no perder datos.
+                if (masterValues.notaAcademica) updatedRow.notaAcademica = masterValues.notaAcademica;
+                if (masterValues.notaAcumulativa) updatedRow.notaAcumulativa = masterValues.notaAcumulativa;
+                if (masterValues.notaLaboral) updatedRow.notaLaboral = masterValues.notaLaboral;
+                if (masterValues.notaSocial) updatedRow.notaSocial = masterValues.notaSocial;
+
                 updatedRow.notaDefinitiva = calcularDefinitiva(updatedRow);
             }
             return updatedRow;
         });
         setGridData(previewData);
 
+        // --- 3. Guardado en Base de Datos ---
         for (const row of habilitados) {
             setSavingIds(prev => ({ ...prev, [row.estudianteId]: true }));
             try {
@@ -331,10 +344,12 @@ const GrillaCalificaciones = ({
                 if (esComportamiento) {
                     payload.notaDefinitivaInput = masterValues.notaDefinitivaInput;
                 } else {
-                    payload.notaAcademica = masterValues.notaAcademica;
-                    payload.notaAcumulativa = masterValues.notaAcumulativa;
-                    payload.notaLaboral = masterValues.notaLaboral;
-                    payload.notaSocial = masterValues.notaSocial;
+                    // Enviamos el valor maestro si existe.
+                    // Si está vacío, enviamos el valor que el estudiante ya tenía para no borrarle sus notas previas.
+                    payload.notaAcademica = masterValues.notaAcademica || row.notaAcademica;
+                    payload.notaAcumulativa = masterValues.notaAcumulativa || row.notaAcumulativa;
+                    payload.notaLaboral = masterValues.notaLaboral || row.notaLaboral;
+                    payload.notaSocial = masterValues.notaSocial || row.notaSocial;
                 }
                 await onSave(payload);
                 successCount++;
@@ -348,15 +363,6 @@ const GrillaCalificaciones = ({
                 });
 
             } catch (err) {
-                /*failCount++;
-
-                // Detectamos si el error es por ventana de calificaciones cerrada
-                // El backend puede enviar 'REQ_JUSTIFICACION' o un mensaje de texto sobre "cerrado"
-                const errorMsg = err.message || "";
-                if (err.code === 'REQ_JUSTIFICACION' || errorMsg.includes("cerrado") || errorMsg.includes("fecha")) {
-                    closedWindowCount++;
-                    setPendingJustificationRows(prev => ({ ...prev, [row.estudianteId]: true }));
-                }*/
                 // --- LÓGICA DE CLASIFICACIÓN DE ERRORES ---
 
                 // CASO 1: ADMIN - Backend pide justificación explícita
@@ -367,15 +373,12 @@ const GrillaCalificaciones = ({
                 // CASO 2: DOCENTE - Backend dice "Cerrado" (Bloqueo total)
                 else if (err.message && (err.message.toLowerCase().includes("cerrado") || err.message.toLowerCase().includes("finalizó"))) {
                     teacherBlockedCount++;
-                    // IMPORTANTE: NO activamos setPendingJustificationRows aquí.
-                    // El docente solo verá que falló y el mensaje final le dirá porqué.
                 }
                 // CASO 3: Otros Errores
                 else {
                     otherErrorCount++;
                     console.error(err);
                 }
-
             } finally {
                 setSavingIds(prev => ({ ...prev, [row.estudianteId]: false }));
             }
@@ -384,7 +387,16 @@ const GrillaCalificaciones = ({
         // --- ALERTAS FINALES ---
         if (successCount > 0) {
             showSuccess(`Se actualizaron ${successCount} registros exitosamente.`);
-        }
+
+            // Limpiamos los 4 campos (y el de comportamiento)
+            setMasterValues({
+                notaAcademica: "",
+                notaAcumulativa: "",
+                notaLaboral: "",
+                notaSocial: "",
+                notaDefinitivaInput: ""
+            });
+        };
 
         // Mensaje para ADMIN (Naranja)
         if (adminJustificationCount > 0) {
@@ -411,7 +423,7 @@ const GrillaCalificaciones = ({
         let calculatedValue = null;
         if (weight !== null) {
             const val = parseFloat(row[field]);
-            calculatedValue = !isNaN(val) ? (val * weight).toFixed(2) : "-";
+            calculatedValue = !isNaN(val) ? roundExcel(val * weight) : "-";
         }
 
         return (
@@ -578,9 +590,9 @@ const GrillaCalificaciones = ({
                                                 {porcentajeArea < 100 && row.notaDefinitiva && (
                                                     <span
                                                         className="text-[11px] font-mono font-bold text-blue-500 mt-1 leading-none bg-white px-1.5 py-0.5 rounded shadow-sm border border-gray-100"
-                                                        title={`Aporta ${((parseFloat(row.notaDefinitiva) * porcentajeArea) / 100).toFixed(2)} a la definitiva del Área`}
+                                                        title={`Aporta ${roundExcel((parseFloat(row.notaDefinitiva) * porcentajeArea) / 100)} a la definitiva del Área`}
                                                     >
-                                                        {((parseFloat(row.notaDefinitiva) * porcentajeArea) / 100).toFixed(2)}
+                                                        {roundExcel((parseFloat(row.notaDefinitiva) * porcentajeArea) / 100)}
                                                     </span>
                                                 )}
                                             </div>

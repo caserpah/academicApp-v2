@@ -406,9 +406,7 @@ export const calificacionService = {
      * Crea un libro con una hoja por cada registro en la tabla CARGA del docente.
      */
     async generarPlantillaDocente(docenteId, periodo, vigenciaId) {
-
-        // Consultar la Carga Académica
-        const cargas = await Carga.findAll({
+        const cargasReales = await Carga.findAll({
             where: { docenteId, vigenciaId },
             include: [
                 { model: Grupo, as: 'grupo', include: [{ model: Grado, as: 'grado' }] },
@@ -416,37 +414,60 @@ export const calificacionService = {
             ]
         });
 
-        if (!cargas.length) throw new Error("El docente no tiene carga académica asignada.");
+        let cargasTotales = [...cargasReales];
+
+        // Inyectar Comportamiento si es director
+        const gruposDirigidos = await Grupo.findAll({
+            where: { directorId: docenteId, vigenciaId },
+            include: [{ model: Grado, as: 'grado' }]
+        });
+
+        if (gruposDirigidos.length > 0) {
+            const asignaturaComportamiento = await Asignatura.findOne({
+                where: { nombre: 'COMPORTAMIENTO', vigenciaId: vigenciaId }
+            });
+
+            if (asignaturaComportamiento) {
+                for (const grupo of gruposDirigidos) {
+                    const yaTieneCarga = cargasTotales.some(
+                        c => c.grupoId === grupo.id && c.asignaturaId === asignaturaComportamiento.id
+                    );
+
+                    if (!yaTieneCarga) {
+                        cargasTotales.push({
+                            grupoId: grupo.id,
+                            asignaturaId: asignaturaComportamiento.id,
+                            grupo: grupo,
+                            asignatura: asignaturaComportamiento,
+                            esVirtual: true
+                        });
+                    }
+                }
+            }
+        }
+
+        if (!cargasTotales.length) throw new Error("El docente no tiene carga académica asignada ni es director de ningún grupo.");
 
         const workbook = new ExcelJS.Workbook();
-
-        // Diccionario para rastrear nombres generados
         const hojasGeneradas = {};
 
-        // Iterar sobre cada Carga para crear su Hoja (Worksheet)
-        for (const carga of cargas) {
-
-            // Construir nombre de hoja: "QUIMICA 6A"
+        for (const carga of cargasTotales) {
             const codigoGrado = carga.grupo.grado.codigo ? carga.grupo.grado.codigo.trim() : "";
             const nombreRaw = `${carga.asignatura.nombre} ${codigoGrado}${carga.grupo.nombre}`;
             let nombreHoja = _limpiarNombreHoja(nombreRaw);
 
-            // Garantizar nombre único (Contador). Si "ARITMETICA 6A" existe, prueba "ARITMETICA 6A (1)"
             let counter = 1;
             const originalName = nombreHoja;
             while (workbook.getWorksheet(nombreHoja)) {
                 const sufijo = ` (${counter})`;
-                const maxLen = 31 - sufijo.length; // Excel limita nombres a 31 caracteres
+                const maxLen = 31 - sufijo.length;
                 nombreHoja = `${originalName.substring(0, maxLen)}${sufijo}`;
                 counter++;
             }
 
-            const worksheet = workbook.addWorksheet(nombreHoja); // Creamos nueva hoja
+            const worksheet = workbook.addWorksheet(nombreHoja);
+            const esComportamiento = _esComportamiento(carga.asignatura.nombre);
 
-            const esComportamiento = _esComportamiento(carga.asignatura.nombre); // Verificar si es Comportamiento
-
-            // SEGURIDAD (METADATOS OCULTOS EN A1) ---
-            // Guardamos IDs clave para saber dónde guardar los datos al importar
             const securityMetadata = JSON.stringify({
                 gid: carga.grupoId,
                 aid: carga.asignaturaId,
@@ -458,14 +479,8 @@ export const calificacionService = {
             worksheet.getCell('A1').value = securityMetadata;
             worksheet.getRow(1).hidden = true;
 
-            // Datos de Estudiantes
             const matriculas = await Matricula.findAll({
-                where: {
-                    grupoId: carga.grupoId,
-                    vigenciaId: vigenciaId,
-                    estado: 'ACTIVA',
-                    bloqueo_notas: false
-                },
+                where: { grupoId: carga.grupoId, vigenciaId: vigenciaId, estado: 'ACTIVA', bloqueo_notas: false },
                 include: [{
                     model: Estudiante, as: 'estudiante',
                     attributes: ['documento', 'primerApellido', 'segundoApellido', 'primerNombre', 'segundoNombre']
@@ -476,15 +491,12 @@ export const calificacionService = {
                 ]
             });
 
-            // --- CASO COMPORTAMIENTO ---
             if (esComportamiento) {
-                // Encabezados Simples
                 worksheet.getCell('A2').value = 'ESTUDIANTE';
                 worksheet.getCell('B2').value = 'IDENTIFICACIÓN';
                 worksheet.getCell('C2').value = 'VALORACIÓN';
                 worksheet.getCell('D2').value = 'OBSERVACIONES';
 
-                // Estilos
                 ['A2', 'B2', 'C2', 'D2'].forEach(c => {
                     const cell = worksheet.getCell(c);
                     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE699' } };
@@ -493,7 +505,6 @@ export const calificacionService = {
                     cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
                 });
 
-                // Anchos
                 worksheet.getColumn('A').width = 45;
                 worksheet.getColumn('B').width = 15;
                 worksheet.getColumn('C').width = 15;
@@ -509,18 +520,16 @@ export const calificacionService = {
                     row.getCell(1).value = nombre;
                     row.getCell(2).value = doc;
 
-                    // Bloqueos
                     row.getCell(1).protection = { locked: !esReserva };
                     row.getCell(2).protection = { locked: !esReserva };
-                    row.getCell(3).protection = { locked: false }; // Nota desbloqueada
-                    row.getCell(4).protection = { locked: false }; // Obs desbloqueada
+                    row.getCell(3).protection = { locked: false };
+                    row.getCell(4).protection = { locked: false };
 
                     if (esReserva) {
                         row.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE0' } };
                         row.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE0' } };
                     }
 
-                    // Bordes
                     [1, 2, 3, 4].forEach(c => row.getCell(c).border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } });
                     currentRow++;
                 };
@@ -528,8 +537,6 @@ export const calificacionService = {
                 matriculas.forEach(m => dibujarFilaSimple(m.estudiante, false));
                 for (let k = 0; k < 5; k++) dibujarFilaSimple(null, true);
 
-                // Validación de datos (Solo Columna C)
-                const totalRows = currentRow - 1;
                 for (let r = 3; r < currentRow; r++) {
                     worksheet.getCell(`C${r}`).dataValidation = {
                         type: 'decimal', operator: 'between', formulae: [1, 5],
@@ -537,77 +544,75 @@ export const calificacionService = {
                     };
                 }
             }
-
-            // --- CASO ASIGNATURA NORMAL ---
             else {
-                // Títulos Agrupadores
+                // --- AJUSTE: NUEVO ORDEN DE COLUMNAS ---
                 worksheet.mergeCells('A2:A3'); worksheet.getCell('A2').value = 'ESTUDIANTE';
-                worksheet.mergeCells('B2:B3'); worksheet.getCell('B2').value = 'IDENTIF.';
+                worksheet.mergeCells('B2:B3'); worksheet.getCell('B2').value = 'DOCUMENTO';
 
-                worksheet.mergeCells('C2:I2'); worksheet.getCell('C2').value = 'ACADEMICA';
-                worksheet.mergeCells('J2:J3'); worksheet.getCell('J2').value = 'EVAL.\nACUM';
-                worksheet.mergeCells('K2:O2'); worksheet.getCell('K2').value = 'LABORAL';
-                worksheet.mergeCells('P2:T2'); worksheet.getCell('P2').value = 'SOCIAL';
+                worksheet.mergeCells('C2:L2'); worksheet.getCell('C2').value = 'ACADEMICA';
+                worksheet.mergeCells('M2:M3'); worksheet.getCell('M2').value = 'PROM.\nACAD';
+                worksheet.mergeCells('N2:N3'); worksheet.getCell('N2').value = 'EVAL.\nACUM';
+                worksheet.mergeCells('O2:S2'); worksheet.getCell('O2').value = 'LABORAL';
+                worksheet.mergeCells('T2:X2'); worksheet.getCell('T2').value = 'SOCIAL';
 
-                worksheet.mergeCells('U2:U3'); worksheet.getCell('U2').value = 'NOTA\nPRD.';
-                worksheet.mergeCells('V2:V3'); worksheet.getCell('V2').value = 'FALLAS';
+                worksheet.mergeCells('Y2:Y3'); worksheet.getCell('Y2').value = 'NOTA\nPRD.';
+                worksheet.mergeCells('Z2:Z3'); worksheet.getCell('Z2').value = 'DESEMPEÑO';
+                worksheet.mergeCells('AA2:AA3'); worksheet.getCell('AA2').value = 'FALLAS';
+                worksheet.mergeCells('AB2:AC2'); worksheet.getCell('AB2').value = 'RECOMENDACIÓN';
+                worksheet.mergeCells('AD2:AD3'); worksheet.getCell('AD2').value = 'OBSERVACIONES';
 
-                worksheet.mergeCells('W2:X2'); worksheet.getCell('W2').value = 'RECOMENDACIÓN';
-                worksheet.mergeCells('Y2:Y3'); worksheet.getCell('Y2').value = 'OBSERVACIONES';
-
-                // Sub-títulos (1, 2, 3, Nota...)
                 const row3 = worksheet.getRow(3);
 
-                // Académica (6 notas + Promedio)
-                ['C', 'D', 'E', 'F', 'G', 'H'].forEach((col, i) => row3.getCell(col).value = (i + 1));
-                row3.getCell('I').value = 'NOTA'; // Promedio Acad
+                // Académica (10 notas)
+                ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'].forEach((col, i) => row3.getCell(col).value = (i + 1));
+                row3.getCell('M').value = 'NOTA';
+                // Laboral (4 notas)
+                ['O', 'P', 'Q', 'R'].forEach((col, i) => row3.getCell(col).value = (i + 1));
+                row3.getCell('S').value = 'NOTA';
+                // Social (4 notas)
+                ['T', 'U', 'V', 'W'].forEach((col, i) => row3.getCell(col).value = (i + 1));
+                row3.getCell('X').value = 'NOTA';
+                // Recomendaciones
+                row3.getCell('AB').value = 'UNO';
+                row3.getCell('AC').value = 'DOS';
 
-                // Laboral (4 notas + Promedio)
-                ['K', 'L', 'M', 'N'].forEach((col, i) => row3.getCell(col).value = (i + 1));
-                row3.getCell('O').value = 'NOTA'; // Promedio Lab
-
-                // Social (4 notas + Promedio)
-                ['P', 'Q', 'R', 'S'].forEach((col, i) => row3.getCell(col).value = (i + 1));
-                row3.getCell('T').value = 'NOTA'; // Promedio Soc
-
-                // Reconmendaciones
-                row3.getCell('W').value = '1';
-                row3.getCell('X').value = '2';
-
-                // Estilos
+                // Estilos Centrales
                 const centerStyle = { vertical: 'middle', horizontal: 'center', wrapText: true };
                 const borderStyle = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
 
-                ['A2', 'B2', 'J2', 'U2', 'V2', 'Y2'].forEach(c => {
+                // Aplicar negrilla y centrado a todas las cabeceras principales
+                ['A2', 'B2', 'C2', 'M2', 'N2', 'O2', 'T2', 'Y2', 'Z2', 'AA2', 'AB2', 'AD2'].forEach(c => {
                     const cell = worksheet.getCell(c);
-                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D9E1F2' } };
                     cell.alignment = centerStyle;
                     cell.font = { bold: true, size: 9 };
                     cell.border = borderStyle;
                 });
 
-                // Colores por dimensión
+                // Colores
+                ['A2', 'B2', 'M2', 'N2', 'Y2', 'Z2', 'AA2', 'AD2'].forEach(c => worksheet.getCell(c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D9E1F2' } });
                 worksheet.getCell('C2').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D9E1F2' } }; // Azul
-                worksheet.getCell('K2').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2CC' } }; // Naranja
-                worksheet.getCell('P2').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E2EFDA' } }; // Verde
-                worksheet.getCell('W2').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FCE4D6' } }; // Rojo
+                worksheet.getCell('O2').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2CC' } }; // Naranja
+                worksheet.getCell('T2').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E2EFDA' } }; // Verde
+                worksheet.getCell('AB2').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FCE4D6' } }; // Rojo
 
                 row3.font = { bold: true, size: 9 };
                 row3.alignment = centerStyle;
 
-                // Anchos de Columna
-                worksheet.getColumn('A').width = 45; // Nombre Largo
-                worksheet.getColumn('B').width = 15; // Documento
-                ['C', 'D', 'E', 'F', 'G', 'H', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S'].forEach(c => worksheet.getColumn(c).width = 4); // Inputs
-                ['I', 'O', 'T'].forEach(c => worksheet.getColumn(c).width = 6); // Promedios
-                worksheet.getColumn('J').width = 6; // Acum
-                worksheet.getColumn('U').width = 7; // Definitiva
-                worksheet.getColumn('V').width = 7; // Fallas
-                worksheet.getColumn('Y').width = 60; // Obs
+                // Anchos
+                worksheet.getColumn('A').width = 45;
+                worksheet.getColumn('B').width = 15;
+                // Inputs: C hasta L (Acad), O hasta R (Lab), T hasta W (Soc)
+                ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'O', 'P', 'Q', 'R', 'T', 'U', 'V', 'W'].forEach(c => worksheet.getColumn(c).width = 4);
+                ['M', 'S', 'X', 'N'].forEach(c => worksheet.getColumn(c).width = 6);
+                worksheet.getColumn('Y').width = 7; // Nota Prd
+                worksheet.getColumn('Z').width = 13; // Desempeño
+                worksheet.getColumn('AA').width = 7; // Fallas
+                worksheet.getColumn('AB').width = 60;
+                worksheet.getColumn('AC').width = 60;
+                worksheet.getColumn('AD').width = 60; // Obs
 
-                let currentRow = 4; // Los datos empiezan en la fila 4
+                let currentRow = 4;
 
-                // Función Helper para dibujar filas
                 const dibujarFila = (estudiante, esFilaReserva) => {
                     const r = currentRow;
                     const row = worksheet.getRow(r);
@@ -615,63 +620,65 @@ export const calificacionService = {
                     const nombreCompleto = esFilaReserva ? "" : `${estudiante.primerApellido} ${estudiante.segundoApellido || ''} ${estudiante.primerNombre} ${estudiante.segundoNombre || ''}`.trim();
                     const documento = esFilaReserva ? "" : estudiante.documento;
 
-                    // Set Values
                     row.getCell('A').value = nombreCompleto;
                     row.getCell('B').value = documento;
 
-                    // --- Formulas para calcular los promedios (Académica, Laboral y Social) y la nota definitiva
-                    // Los promedios parciales (notas visuales) muestren 1 solo decimal
-                    row.getCell('I').value = { formula: `IFERROR(ROUND(AVERAGE(C${r}:H${r}), 1), 0)` };
-                    row.getCell('O').value = { formula: `IFERROR(ROUND(AVERAGE(K${r}:N${r}), 1), 0)` };
-                    row.getCell('T').value = { formula: `IFERROR(ROUND(AVERAGE(P${r}:S${r}), 1), 0)` };
+                    // Fórmulas de Promedio para Académica, Laboral y Social
+                    row.getCell('M').value = { formula: `IFERROR(ROUND(AVERAGE(C${r}:L${r}), 1), 0)` };
+                    row.getCell('S').value = { formula: `IFERROR(ROUND(AVERAGE(O${r}:R${r}), 1), 0)` };
+                    row.getCell('X').value = { formula: `IFERROR(ROUND(AVERAGE(T${r}:W${r}), 1), 0)` };
 
-                    // --- Fórmula para la nota definitiva
-                    // Redondeamos CADA fragmento a 2 decimales antes de sumarlos
-                    row.getCell('U').value = {
-                        formula: `ROUND(ROUND(I${r}*0.5, 2) +
-                        ROUND(IF(ISNUMBER(J${r}),J${r},0)*0.2, 2) +
-                        ROUND(O${r}*0.15, 2) +
-                        ROUND(T${r}*0.15, 2), 2)`
+                    row.getCell('Y').value = {
+                        formula: `ROUND((M${r}*0.5) + (IF(ISNUMBER(N${r}),N${r},0)*0.2) + (S${r}*0.15) + (X${r}*0.15), 2)`
                     };
 
-                    // Nombre y Documento: Bloqueados si es estudiante existente, Desbloqueados si es Reserva
+                    // Fórmula de Desempeño
+                    row.getCell('Z').value = {
+                        formula: `IF(Y${r}<=0,"",IF(Y${r}<3,"BAJO",IF(Y${r}<4,"BÁSICO",IF(Y${r}<4.6,"ALTO","SUPERIOR"))))`
+                    };
+
                     row.getCell('A').protection = { locked: !esFilaReserva };
                     row.getCell('B').protection = { locked: !esFilaReserva };
 
-                    // Si es reserva, coloreamos suavemente para indicar "Escriba aquí"
                     if (esFilaReserva) {
                         row.getCell('A').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE0' } };
                         row.getCell('B').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE0' } };
                     }
 
-                    // Inputs de Notas: SIEMPRE DESBLOQUEADOS
-                    const inputCols = ['C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'V', 'W', 'X', 'Y'];
+                    // Entradas desbloqueadas
+                    const inputCols = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'N', 'O', 'P', 'Q', 'R', 'T', 'U', 'V', 'W', 'AA', 'AB', 'AC', 'AD'];
                     inputCols.forEach(col => row.getCell(col).protection = { locked: false });
 
-                    ['J'].forEach(col => {
+                    // Eval Acum (N) con color de promedios, pero desbloqueado
+                    ['N'].forEach(col => {
                         const cell = row.getCell(col);
                         cell.font = { bold: true };
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F2F2F2' } };
                     });
 
-                    // Celdas Calculadas (Promedios): BLOQUEADAS y Grisáceas
-                    ['I', 'O', 'T', 'U'].forEach(col => {
+                    // Celdas Calculadas (Promedios y Desempeño): BLOQUEADAS
+                    ['M', 'S', 'X', 'Y'].forEach(col => {
                         const cell = row.getCell(col);
                         cell.protection = { locked: true };
                         cell.font = { bold: true };
                         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F2F2F2' } };
                     });
 
-                    // Bordes a toda la fila (hasta col Y=25)
-                    for (let i = 1; i <= 25; i++) row.getCell(i).border = borderStyle;
+                    // Columna de Desempeño (Z): Bloqueada y centrada, pero SIN color gris base
+                    const cellZ = row.getCell('Z');
+                    cellZ.protection = { locked: true };
+                    cellZ.font = { bold: true };
+                    cellZ.alignment = centerStyle;
+
+                    for (let i = 1; i <= 30; i++) row.getCell(i).border = borderStyle;
                     currentRow++;
                 };
 
-                // Dibujar Estudiantes Matriculados
                 matriculas.forEach(m => dibujarFila(m.estudiante, false));
-                for (let k = 0; k < 5; k++) dibujarFila(null, true); // Dibujar 5 Filas de Reserva (Para estudiantes nuevos)
+                for (let k = 0; k < 5; k++) dibujarFila(null, true);
 
-                // Rango 1.0 a 5.0
-                const notasCols = ['C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S'];
+                // Validación Notas (1.0 a 5.0)
+                const notasCols = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'N', 'O', 'P', 'Q', 'R', 'T', 'U', 'V', 'W'];
                 notasCols.forEach(col => {
                     for (let r = 4; r < currentRow; r++) {
                         worksheet.getCell(`${col}${r}`).dataValidation = {
@@ -680,18 +687,47 @@ export const calificacionService = {
                         };
                     }
                 });
-                // IDs de Recomendación (Enteros positivos)
-                ['W', 'X'].forEach(col => {
-                    for (let r = 4; r < currentRow; r++) {
-                        worksheet.getCell(`${col}${r}`).dataValidation = {
-                            type: 'whole', operator: 'greaterThanOrEqual', formulae: [1],
-                            showErrorMessage: true, error: 'ID Recomendación'
-                        };
-                    }
+
+                // Semáforo Condicional Rojo si < 3.0 en Columna Y
+                worksheet.addConditionalFormatting({
+                    ref: `Y4:Y${currentRow - 1}`,
+                    rules: [{
+                        type: 'cellIs', operator: 'between', formulae: [0.01, 2.99],
+                        style: {
+                            font: { color: { argb: 'FF9C0006' }, bold: true },
+                            fill: { type: 'pattern', pattern: 'solid', bgColor: { argb: 'FFFFC7CE' } }
+                        }
+                    }]
+                });
+
+                // --- SEMÁFORO DE DESEMPEÑO (Columna Z) ---
+                worksheet.addConditionalFormatting({
+                    ref: `Z4:Z${currentRow - 1}`,
+                    rules: [
+                        {
+                            // BAJO: Fondo Rojo Claro, Letra Roja Oscura
+                            type: 'cellIs', operator: 'equal', formulae: ['"BAJO"'],
+                            style: { fill: { type: 'pattern', pattern: 'solid', bgColor: { argb: 'FFFFC7CE' } }, font: { color: { argb: 'FF9C0006' }, bold: true } }
+                        },
+                        {
+                            // BÁSICO: Fondo Amarillo Claro, Letra Naranja/Café
+                            type: 'cellIs', operator: 'equal', formulae: ['"BÁSICO"'],
+                            style: { fill: { type: 'pattern', pattern: 'solid', bgColor: { argb: 'FFFFEB9C' } }, font: { color: { argb: 'FF9C6500' }, bold: true } }
+                        },
+                        {
+                            // ALTO: Fondo Verde Claro, Letra Verde Oscura
+                            type: 'cellIs', operator: 'equal', formulae: ['"ALTO"'],
+                            style: { fill: { type: 'pattern', pattern: 'solid', bgColor: { argb: 'FFC6EFCE' } }, font: { color: { argb: 'FF006100' }, bold: true } }
+                        },
+                        {
+                            // SUPERIOR: Fondo Azul Claro, Letra Azul Oscura (Para distinguirlo del Alto)
+                            type: 'cellIs', operator: 'equal', formulae: ['"SUPERIOR"'],
+                            style: { fill: { type: 'pattern', pattern: 'solid', bgColor: { argb: 'FF9BC2E6' } }, font: { color: { argb: 'FF1F4E78' }, bold: true } }
+                        }
+                    ]
                 });
             }
 
-            // Proteger Hoja
             worksheet.protect('SecretSystemPass', {
                 selectLockedCells: true, selectUnlockedCells: true, formatCells: false, insertRows: false
             });
@@ -823,11 +859,37 @@ export const calificacionService = {
                     } else {
                         // --- CASO ASIGNATURA NORMAL ---
                         // Extraer notas (Aceptamos null si vienen vacías)
-                        const nAcad = v(8) ? parseFloat(v(8)) : null;
-                        const nAcum = v(9) ? parseFloat(v(9)) : null;
-                        const nLab = v(14) ? parseFloat(v(14)) : null;
-                        const nSoc = v(19) ? parseFloat(v(19)) : null;
-                        const fallas = parseInt(v(21) || 0);
+                        const nAcad = v(12) ? parseFloat(v(12)) : null; // M (Prom Acad)
+                        const nAcum = v(13) ? parseFloat(v(13)) : null; // N (Eval Acum)
+                        const nLab = v(18) ? parseFloat(v(18)) : null;  // S (Prom Lab)
+                        const nSoc = v(23) ? parseFloat(v(23)) : null;  // X (Prom Soc)
+                        const fallas = parseInt(v(26) || 0);            // AA (Fallas)
+
+                        // Extraer Recomendaciones como texto libre o ID
+                        const rec1Raw = v(27); // AB
+                        const rec2Raw = v(28); // AC
+
+                        // Función auxiliar para procesar texto o ID
+                        const procesarRecomendacion = (val) => {
+                            if (val === undefined || val === null || val === "") return null;
+                            const strVal = String(val).trim();
+
+                            // Verificamos si la celda contiene ÚNICAMENTE números enteros (es un intento de ID)
+                            const esSoloNumero = /^\d+$/.test(strVal);
+
+                            if (esSoloNumero) {
+                                const id = parseInt(strVal, 10);
+                                // Si digitó un número y existe en el banco, usamos la descripción
+                                if (recomendacionesCache.has(id)) {
+                                    return recomendacionesCache.get(id);
+                                }
+                                // Si digitó un número pero NO existe en el banco, lo descartamos
+                                return null;
+                            }
+
+                            // Si no es solo número (contiene letras/palabras), asumimos que es texto libre y lo guardamos tal cual
+                            return strVal;
+                        };
 
                         // Porcentajes para base de datos (conservan el null)
                         const pAcad = nAcad !== null ? (nAcad * 0.50) : null;
@@ -852,28 +914,36 @@ export const calificacionService = {
                             _obtenerJuicio(nSoc, rangosCache, contextJuicio, DIM.SOCIAL)
                         ]);
 
+                        // Función para redondear al formato Excel (2 decimales, con .00)
+                        const roundExcel = (num) => {
+                            if (num === null || num === undefined) return null;
+                            return Number(Math.round(parseFloat(num) + "e+2") + "e-2").toFixed(2);
+                        };
+
+
                         dataToSave = {
                             ...dataToSave,
-                            notaAcademica: nAcad ? nAcad.toFixed(2) : null,
-                            promedioAcademica: pAcad !== null ? pAcad.toFixed(2) : null,
+                            notaAcademica: roundExcel(nAcad),
+                            promedioAcademica: roundExcel(pAcad),
                             juicioAcademica: jAcad,
 
-                            notaAcumulativa: nAcum ? nAcum.toFixed(2) : null,
-                            promedioAcumulativa: pAcum !== null ? pAcum.toFixed(2) : null,
+                            notaAcumulativa: roundExcel(nAcum),
+                            promedioAcumulativa: roundExcel(pAcum),
                             juicioAcumulativa: jAcum,
 
-                            notaLaboral: nLab ? nLab.toFixed(2) : null,
-                            promedioLaboral: pLab !== null ? pLab.toFixed(2) : null,
+                            notaLaboral: roundExcel(nLab),
+                            promedioLaboral: roundExcel(pLab),
                             juicioLaboral: jLab,
 
-                            notaSocial: nSoc ? nSoc.toFixed(2) : null,
-                            promedioSocial: pSoc !== null ? pSoc.toFixed(2) : null,
+                            notaSocial: roundExcel(nSoc),
+                            promedioSocial: roundExcel(pSoc),
                             juicioSocial: jSoc,
 
-                            notaDefinitiva: def ? def.toFixed(2) : null,
+                            notaDefinitiva: roundExcel(def),
                             fallas: fallas,
-                            recomendacionUno: v(22) ? recomendacionesCache.get(v(22)) : null,
-                            recomendacionDos: v(23) ? recomendacionesCache.get(v(23)) : null
+
+                            recomendacionUno: procesarRecomendacion(rec1Raw),
+                            recomendacionDos: procesarRecomendacion(rec2Raw)
                         };
                     }
 

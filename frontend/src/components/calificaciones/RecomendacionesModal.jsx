@@ -28,7 +28,7 @@ const RecomendacionesModal = ({
     const clearRec1 = () => setRec1("");
     const clearRec2 = () => setRec2("");
 
-    // Manejadores de Select
+    // Manejadores de Select (Funcionan como plantillas que sobreescriben el texto)
     const handleSelectRec1 = (e) => setRec1(e.target.value);
     const handleSelectRec2 = (e) => setRec2(e.target.value);
 
@@ -79,10 +79,14 @@ const RecomendacionesModal = ({
 
                         <div className="relative">
                             <textarea
-                                className="w-full border border-gray-300 rounded p-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none pr-10 bg-gray-50"
+                                className={`w-full border border-gray-300 rounded p-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none pr-10 
+                                    ${isReadOnly ? 'bg-gray-100 cursor-not-allowed text-gray-500' : 'bg-white'}
+                                `}
                                 rows="3"
                                 value={rec1}
-                                readOnly // Solo lectura
+                                onChange={(e) => setRec1(e.target.value)}
+                                readOnly={isReadOnly}
+                                placeholder={!isReadOnly ? "Escribe una observación o selecciona una del banco..." : ""}
                             />
                             {/* OCULTAMOS LA PAPELERA SI ES SOLO LECTURA */}
                             {!isReadOnly && rec1 && (
@@ -119,10 +123,14 @@ const RecomendacionesModal = ({
 
                         <div className="relative">
                             <textarea
-                                className="w-full border border-gray-300 rounded p-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none pr-10 bg-gray-50"
+                                className={`w-full border border-gray-300 rounded p-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none pr-10 
+                                    ${isReadOnly ? 'bg-gray-100 cursor-not-allowed text-gray-500' : 'bg-white'}
+                                `}
                                 rows="3"
                                 value={rec2}
-                                readOnly
+                                onChange={(e) => setRec2(e.target.value)}
+                                readOnly={isReadOnly}
+                                placeholder={!isReadOnly ? "Escribe una observación o selecciona una del banco..." : ""}
                             />
                             {/* OCULTAMOS LA PAPELERA SI ES SOLO LECTURA */}
                             {!isReadOnly && rec2 && (
@@ -156,7 +164,7 @@ const RecomendacionesModal = ({
                         onClick={onClose}
                         className={`${isReadOnly ? 'bg-gray-500 hover:bg-gray-600' : 'bg-red-500 hover:bg-red-600'} text-white px-5 py-2 rounded-lg transition flex items-center shadow-md`}
                     >
-                        Cancelar
+                        {isReadOnly ? "Cerrar" : "Cancelar"}
                     </button>
                 </div>
             </div>

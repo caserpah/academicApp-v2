@@ -246,7 +246,13 @@ const CargasForm = ({
                                 <label className={labelClasses}>Asignatura <span className="text-red-500">*</span></label>
                                 <select name="asignaturaId" value={formData.asignaturaId} onChange={handleChange} className={inputClasses} required>
                                     <option value="">-- Seleccione --</option>
-                                    {catalogos.asignaturas.map(a => <option key={a.id} value={a.id}>{a.nombre} - {a.codigo}</option>)}
+                                    {catalogos.asignaturas
+                                        .filter(asig => asig.nombre.toUpperCase() !== "COMPORTAMIENTO")
+                                        .map((asig) => (
+                                            <option key={asig.id} value={asig.id}>
+                                                {asig.nombre} - {asig.codigo}
+                                            </option>
+                                        ))}
                                 </select>
                                 {esComportamiento && <p className="text-xs text-orange-600 mt-1 font-semibold">* Horas fijas en 0.</p>}
                             </div>

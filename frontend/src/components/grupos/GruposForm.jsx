@@ -134,7 +134,7 @@ const GruposForm = ({
                             <option value="">-- Sin asignar --</option>
                             {catalogos.docentes.map((doc) => (
                                 <option key={doc.id} value={doc.id}>
-                                    {doc.nombre} {doc.apellidos}
+                                    {doc.identidad?.nombre || doc.nombre || ''} {doc.identidad?.apellidos || doc.apellidos || ''}
                                 </option>
                             ))}
                         </select>

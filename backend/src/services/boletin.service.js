@@ -110,7 +110,7 @@ export const boletinService = {
                 grupoNombre: grupo.nombre,
                 jornada: grupo.jornada === 'MANANA' ? 'MAÑANA' : grupo.jornada,
                 sede: grupo.sede?.nombre ? grupo.sede.nombre.toUpperCase() : 'Sede no asignada',
-                directorGrupo: grupo.director ? `${grupo.director.nombre} ${grupo.director.apellidos}` : 'SIN ASIGNAR',
+                directorGrupo: grupo.director ? `${grupo.director.identidad?.nombre || grupo.director.nombre || ''} ${grupo.director.identidad?.apellidos || grupo.director.apellidos || ''}`.trim() : 'SIN ASIGNAR',
                 promedioGrupoHistorico: promediosGrupo
             },
             rangosDesempeno,
@@ -184,7 +184,7 @@ export const boletinService = {
                     // Si le falta algo, va para el reporte
                     if (notasFaltantesDetalle.length > 0) {
                         reporteFaltantes.push({
-                            docente: carga.docente ? `${carga.docente.nombre} ${carga.docente.apellidos}` : 'Sin asignar',
+                            docente: carga.docente ? `${carga.docente.identidad?.nombre || carga.docente.nombre || ''} ${carga.docente.identidad?.apellidos || carga.docente.apellidos || ''}`.trim() : 'Sin asignar',
                             asignatura: carga.asignatura.nombre,
                             periodo: `Periodo ${periodo}`,
                             detalle: notasFaltantesDetalle.join(" / "),
@@ -233,7 +233,7 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
             areaRef.asignaturasObj[asigNombre] = {
                 nombreAsignatura: asigNombre,
                 esComportamiento: esComportamiento,
-                docente: cargaAsig?.docente ? `${cargaAsig.docente.nombre} ${cargaAsig.docente.apellidos}` : 'SIN DOCENTE',
+                docente: cargaAsig?.docente ? `${cargaAsig.docente.identidad?.nombre || cargaAsig.docente.nombre || ''} ${cargaAsig.docente.identidad?.apellidos || cargaAsig.docente.apellidos || ''}`.trim() : 'SIN DOCENTE',
                 intensidadHoraria: esPreescolar ? cargaAsig?.horas : null,
                 porcentajePeso: porcentaje,
                 notasHistoricas: { p1: null, p2: null, p3: null, p4: null },
