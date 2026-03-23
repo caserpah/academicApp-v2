@@ -39,12 +39,31 @@ export const validarRegistro = [
 
 // --- Reglas de Validación para el Login ---
 export const validarLogin = [
-    body('email')
+    body('identificador')
         .trim()
-        .isEmail().withMessage('Debe proporcionar un correo electrónico válido.'),
+        .notEmpty().withMessage('Ingrese su número de documento o correo electrónico.'),
 
     body('password')
         .notEmpty().withMessage('La contraseña es requerida.'),
+
+    validationErrorHandler
+];
+
+// --- Validar Onboarding ---
+export const validarOnboarding = [
+    body('usuarioId')
+        .notEmpty().withMessage('El usuario es requerido.')
+        .isInt().withMessage('El usuario indicado no es válido.'),
+
+    body('email')
+        .trim()
+        .notEmpty().withMessage('El correo electrónico es obligatorio.')
+        .isEmail().withMessage('Debe proporcionar un correo electrónico válido.')
+        .normalizeEmail(),
+
+    body('newPassword')
+        .isLength({ min: 8 }).withMessage('La nueva contraseña debe tener al menos 8 caracteres.')
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage('La contraseña debe incluir mayúsculas, minúsculas y números.'),
 
     validationErrorHandler
 ];

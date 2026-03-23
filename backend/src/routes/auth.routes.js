@@ -6,7 +6,8 @@ import {
     login,
     verifyOtp,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    completarOnboarding
 } from '../controllers/auth.controller.js';
 
 // Importamos las funciones de validación
@@ -15,7 +16,8 @@ import {
     validarLogin,
     validarOTP,
     validarForgotPassword,
-    validarResetPassword
+    validarResetPassword,
+    validarOnboarding
 } from '../validators/auth.validator.js';
 
 const router = Router();
@@ -34,5 +36,8 @@ router.post('/forgot-password', validarForgotPassword, forgotPassword);
 
 // Ruta para restablecer la contraseña (Verificar OTP y Cambiar Password)
 router.post('/reset-password', validarResetPassword, resetPassword);
+
+// Ruta para completar el onboarding (establecer nueva contraseña en el primer acceso)
+router.post('/onboarding', validarOnboarding, completarOnboarding);
 
 export default router;

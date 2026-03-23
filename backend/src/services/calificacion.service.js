@@ -453,7 +453,8 @@ export const calificacionService = {
 
         for (const carga of cargasTotales) {
             const codigoGrado = carga.grupo.grado.codigo ? carga.grupo.grado.codigo.trim() : "";
-            const nombreRaw = `${carga.asignatura.nombre} ${codigoGrado}${carga.grupo.nombre}`;
+            const nombreAsignatura = carga.asignatura.nombreCorto || carga.asignatura.nombre;
+            const nombreRaw = `${nombreAsignatura} ${codigoGrado}${carga.grupo.nombre}`;
             let nombreHoja = _limpiarNombreHoja(nombreRaw);
 
             let counter = 1;

@@ -7,9 +7,10 @@ import { useAuth } from '../../context/AuthContext.jsx';
 
 const Login = () => {
     const [step, setStep] = useState(1); // 1: Credenciales, 2: OTP
-    const [email, setEmail] = useState('');
+    const [identificador, setIdentificador] = useState('');
     const [password, setPassword] = useState('');
     const [otp, setOtp] = useState('');
+    const [correoDestino, setCorreoDestino] = useState('');
     const [loading, setLoading] = useState(false);
 
     const { login, verifyOtp } = useAuth();
@@ -20,10 +21,24 @@ const Login = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            const response = await login(email, password);
+            const response = await login(identificador, password);
+
+            // Si el backend pide Onboarding o pide OTP, simplemente devolvemos la respuesta al componente
+            if (response.requireOnboarding) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Actualización Requerida',
+                    text: response.message,
+                    confirmButtonColor: '#1e293b'
+                });
+                // Redirigimos a la nueva vista y le pasamos el ID oculto en el state
+                navigate('/onboarding', { state: { usuarioId: response.usuarioId } });
+                return;
+            }
 
             if (response.requireOTP) {
                 setStep(2); // Cambiamos al formulario de OTP
+                setCorreoDestino(response.email); // Guardamos el correo para mostrarlo en el paso 2
                 const Toast = Swal.mixin({
                     toast: true, position: 'top-end', showConfirmButton: false, timer: 3000
                 });
@@ -49,7 +64,7 @@ const Login = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            await verifyOtp(email, otp);
+            await verifyOtp(correoDestino, otp);
             // Si no hay error, el contexto actualiza el estado y redirigimos
             navigate('/bienvenida');
         } catch (error) {
@@ -82,15 +97,15 @@ const Login = () => {
                         /* --- FORMULARIO PASO 1 --- */
                         <form onSubmit={handleCredentialsSubmit} className="space-y-5">
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1">Correo electrónico</label>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1">Usuario</label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-3 text-slate-400"><FontAwesomeIcon icon={faEnvelope} /></span>
                                     <input
-                                        type="email"
+                                        type="text"
                                         className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-slate-50 focus:bg-white"
-                                        placeholder="usuario@institucion.edu.co"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
+                                        placeholder='Documento o Correo electrónico'
+                                        value={identificador}
+                                        onChange={(e) => setIdentificador(e.target.value)}
                                         required
                                         disabled={loading}
                                     />
@@ -133,7 +148,7 @@ const Login = () => {
                             <div className="text-center bg-blue-50 p-3 rounded-lg border border-blue-100">
                                 <p className="text-sm text-blue-800">
                                     Hemos enviado un código a: <br />
-                                    <span className="font-bold">{email}</span>
+                                    <span className="font-bold">{correoDestino}</span>
                                 </p>
                             </div>
 

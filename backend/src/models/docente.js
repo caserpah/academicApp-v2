@@ -23,7 +23,7 @@ export const Docente = sequelize.define("docente", {
     },
 
     nivelEducativo: {
-        type: DataTypes.ENUM("NS", "TC", "LC", "PF", "MA", "DO", "OT"),
+        type: DataTypes.ENUM("NS", "TC", "LC", "PF", "ES", "MA", "DO", "OT"),
         allowNull: false,
         validate: {
             isIn: {
@@ -113,7 +113,6 @@ export const Docente = sequelize.define("docente", {
     usuarioId: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        unique: true, // Esto obliga a nivel base de datos que sea 1 a 1
         references: {
             model: 'usuarios', // Nombre exacto de la tabla de usuarios en BD
             key: 'id'

@@ -43,11 +43,12 @@ export const asignaturaRepository = {
             where[Op.or] = [
                 { codigo: { [Op.like]: term } },
                 { nombre: { [Op.like]: term } },
-                { abreviatura: { [Op.like]: term } }
+                { abreviatura: { [Op.like]: term } },
+                { nombreCorto: { [Op.like]: term } }
             ];
         }
 
-        const validOrderFields = ["id", "codigo", "nombre", "abreviatura", "promociona", "porcentual"];
+        const validOrderFields = ["id", "codigo", "nombre", "abreviatura", "nombreCorto", "promociona", "porcentual"];
         const safeOrderBy = validOrderFields.includes(orderBy) ? orderBy : "codigo";
         const safeOrder = order?.toUpperCase() === "DESC" ? "DESC" : "ASC";
 

@@ -172,7 +172,8 @@ const Acudientes = () => {
                                 </tr>
                             ) : (
                                 acudientes.map((item) => {
-                                    const iniciales = getInitials(item.primerNombre, item.primerApellido);
+                                    const identidad = item.identidad || {};
+                                    const iniciales = getInitials(identidad.nombre, identidad.apellidos);
 
                                     return (
                                         <tr key={item.id} className="hover:bg-gray-50 transition-colors group">
@@ -185,7 +186,7 @@ const Acudientes = () => {
                                                     </div>
                                                     <div className="ml-4">
                                                         <div className="text-sm font-medium text-gray-900 uppercase">
-                                                            {item.primerApellido} {item.segundoApellido} {item.primerNombre} {item.segundoNombre}
+                                                            {identidad.apellidos} {identidad.nombre}
                                                         </div>
                                                         <div className="text-xs text-gray-500">
                                                             Acudiente / Tutor
@@ -195,14 +196,14 @@ const Acudientes = () => {
                                             </td>
 
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900 font-medium">{item.documento}</div>
+                                                <div className="text-sm text-gray-900 font-medium">{identidad.documento}</div>
                                                 <div className="text-xs text-gray-500">{item.tipoDocumento}</div>
                                             </td>
 
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">{item.contacto || 'Sin teléfono'}</div>
-                                                <div className="text-xs text-blue-500 lowercase truncate max-w-[150px]" title={item.email}>
-                                                    {item.email || 'Sin email'}
+                                                <div className="text-sm text-gray-900">{identidad.telefono || 'Sin teléfono'}</div>
+                                                <div className="text-xs text-blue-500 lowercase truncate max-w-[150px]" title={identidad.email}>
+                                                    {identidad.email || 'Sin email'}
                                                 </div>
                                             </td>
 

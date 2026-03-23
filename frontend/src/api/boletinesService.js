@@ -103,3 +103,64 @@ export const fetchAuditoriaBoletines = async (grupoId, periodoActual) => {
         throw parseError(error, "Ocurrió un error al auditar las calificaciones.");
     }
 };
+
+/**
+ * Descarga el PDF del boletín usando el código público del acudiente.
+ * Al ser un endpoint público, devolverá el PDF o un JSON con el error.
+ */
+export const descargarBoletinPorCodigo = async (codigo) => {
+    try {
+        const response = await apiClient.get(`/api/codigos-boletines/publico/${codigo}`, {
+            responseType: 'blob' // Esperamos el PDF
+        });
+
+        // Convertimos la respuesta en un archivo PDF
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+
+        // Lo abrimos en una nueva pestaña (Ideal para celulares y PC)
+        window.open(url, '_blank');
+
+        // Limpiamos la URL temporal de la memoria después de unos segundos
+        setTimeout(() => window.URL.revokeObjectURL(url), 2000);
+
+        return true;
+    } catch (error) {
+        // Si el backend devuelve un error (ej. 404 Código Inválido),
+        // como pedimos un 'blob', debemos leerlo como texto para extraer el JSON
+        if (error.response && error.response.data instanceof Blob) {
+            const errorText = await error.response.data.text();
+            const errorJson = JSON.parse(errorText);
+            throw new Error(errorJson.message || "Código inválido o expirado.");
+        }
+        throw parseError(error, "Error de conexión al descargar el boletín.");
+    }
+};
+
+/**
+ * Obtiene la lista de códigos generados para un grupo y periodo.
+ */
+export const fetchCodigosPorGrupo = async (grupoId, periodo, busqueda = "") => {
+    try {
+        const response = await apiClient.get(`/api/codigos-boletines/grupo/${grupoId}/periodo/${periodo}`, {
+            params: { busqueda }
+        });
+
+        // Retornamos el arreglo de códigos o un arreglo vacío si no hay datos
+        return response.data || [];
+    } catch (error) {
+        throw parseError(error, "Error al obtener los códigos del grupo.");
+    }
+};
+
+/**
+ * Cambia el estado de un código (Botón de pánico: Activo / Inactivo)
+ */
+export const toggleEstadoCodigo = async (codigoId, nuevoEstado) => {
+    try {
+        const response = await apiClient.patch(`/api/codigos-boletines/${codigoId}/estado`, { activo: nuevoEstado });
+        return response.data;
+    } catch (error) {
+        throw parseError(error, "Error al actualizar el estado del código.");
+    }
+};

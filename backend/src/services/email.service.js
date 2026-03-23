@@ -1,23 +1,22 @@
 import { Resend } from 'resend';
 import nodemailer from 'nodemailer';
 
-// Leemos las variables de entorno
-const isProduction = process.env.NODE_ENV === 'production';
+// Evaluamos el proveedor de correo desde las variables de entorno
+const useSmtp = process.env.EMAIL_PROVIDER === 'smtp';
 
-// Configurar Cliente RESEND (Para Desarrollo)
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Configurar Cliente RESEND (Solo si NO usamos SMTP)
+const resend = !useSmtp ? new Resend(process.env.RESEND_API_KEY) : null;
 
-// Configurar Cliente NODEMAILER (Para Producción)
-// Esto solo se activará cuando se cambie NODE_ENV a 'production'
-const transporter = nodemailer.createTransport({
+// Configurar Cliente NODEMAILER (Solo si USAMOS SMTP)
+const transporter = useSmtp ? nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    secure: false, // true para puerto 465, false para otros
+    port: Number(process.env.SMTP_PORT),
+    secure: true, // Usamos TLS (Obligatorio para el puerto 465 de Hostinger)
     auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
     },
-});
+}) : null;
 
 export const emailService = {
     /**
@@ -34,7 +33,7 @@ export const emailService = {
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
                 <h2 style="color: #2563eb; text-align: center;">Control de Acceso</h2>
                 <p style="font-size: 16px; color: #333;">Hola,</p>
-                <p style="font-size: 16px; color: #333;">Estás intentando iniciar sesión en el sistema académico. Utiliza el siguiente código para completar el proceso:</p>
+                <p style="font-size: 16px; color: #333;">Estás intentando iniciar sesión en el sistema académico de Instecau. Utiliza el siguiente código para completar el proceso:</p>
 
                 <div style="background-color: #f3f4f6; padding: 15px; text-align: center; border-radius: 8px; margin: 20px 0;">
                     <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1f2937;">${otpCode}</span>
@@ -47,7 +46,7 @@ export const emailService = {
         `;
 
         try {
-            if (!isProduction) {
+            if (!useSmtp) {
                 // === MODO DESARROLLO (Resend) ===
                 console.log(`📡 Enviando email vía Resend a: ${email}`);
 
@@ -101,7 +100,7 @@ export const emailService = {
         // HTML Específico para Recuperación (Tono de seguridad/alerta en Rojo)
         const htmlContent = `
             <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 0; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; background-color: #ffffff;">
-                
+
                 <div style="background-color: #dc2626; padding: 20px; text-align: center;">
                     <h2 style="color: #ffffff; margin: 0; font-size: 24px;">Restablecer Contraseña</h2>
                 </div>
@@ -110,14 +109,14 @@ export const emailService = {
                     <p style="font-size: 16px; color: #374151; margin-bottom: 20px; text-align: center;">
                         Hola, hemos recibido una solicitud para cambiar tu contraseña.
                     </p>
-                    
+
                     <div style="background-color: #fef2f2; padding: 20px; text-align: center; border-radius: 8px; margin: 25px 0; border: 1px dashed #fca5a5;">
                         <span style="display: block; font-size: 14px; color: #7f1d1d; margin-bottom: 5px;">Tu código de seguridad es:</span>
                         <span style="font-size: 36px; font-weight: 800; letter-spacing: 6px; color: #991b1b;">${otpCode}</span>
                     </div>
-                    
+
                     <p style="font-size: 14px; color: #6b7280; text-align: center;">
-                        Este código expira en <strong>10 minutos</strong>.
+                        Este código expira en <strong>5 minutos</strong>.
                     </p>
                 </div>
 
@@ -134,7 +133,7 @@ export const emailService = {
             // 🛑 LÓGICA HÍBRIDA (DEV vs PROD)
             // ==========================================
 
-            if (!isProduction) {
+            if (!useSmtp) {
                 // CASO A: DESARROLLO (Resend)
                 console.log(`🔄 [DEV - RESEND] Enviando código de recuperación a: ${email}`);
 

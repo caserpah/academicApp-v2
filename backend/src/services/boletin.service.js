@@ -1,4 +1,5 @@
 import { boletinRepository } from "../repositories/boletin.repository.js";
+import { codigoBoletinService } from "./codigoBoletin.service.js";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -12,7 +13,7 @@ export const boletinService = {
     /**
      * Función principal orquestadora.
      */
-    async generarDatosBoletinLote(grupoId, vigenciaId, anioLectivo, periodoActual, tipoBoletinReq, estudianteId) {
+    async generarDatosBoletinLote(grupoId, vigenciaId, anioLectivo, periodoActual, tipoBoletinReq, estudianteId, usuarioId) {
 
         // =========================================================
         // FASE 1: EXTRACCIÓN MASIVA DE DATOS DESDE LA BASE DE DATOS
@@ -67,10 +68,23 @@ export const boletinService = {
             matriculasImprimir = matriculasTotales.filter(m => m.estudiante.id === Number(estudianteId));
         }
 
-        const boletinesGenerados = matriculasImprimir.map(matricula => {
+        const boletinesGenerados = await Promise.all(matriculasImprimir.map(async (matricula) => {
             const estId = matricula.estudiante.id;
             const notasEstudiante = notasAgrupadas[estId] || [];
             const estadisticas = rankingEstudiantes[estId] || {};
+
+            // Buscamos si ya existe un código para este estudiante en este periodo, para incluirlo en el boletín (puede ser null)
+            let registroCodigo = await codigoBoletinService.obtenerCodigoPorMatricula(matricula.id, periodoActual);
+
+            // Si no existe, lo creamos "al vuelo" (silenciosamente)
+            if (!registroCodigo) {
+                registroCodigo = await codigoBoletinService.generarCodigoUnitario(
+                    matricula.id,
+                    vigenciaId,
+                    periodoActual,
+                    usuarioId
+                );
+            }
 
             return {
                 infoPersonal: {
@@ -78,15 +92,17 @@ export const boletinService = {
                     documento: matricula.estudiante.documento,
                     estadoPromocion: matricula.estado
                 },
+                // Inyectamos el código alfanumérico para que Handlebars lo use
+                codigoVerificacion: registroCodigo.codigo,
+
                 cuadroHistorico: esPreescolar ? null : {
                     promediosEstudiante: estadisticas.promedios,
                     puestosEstudiante: estadisticas.puestos,
-                    // IMPORTANTE: El total es sobre el grupo completo, no sobre los impresos
-                    totalEstudiantes: matriculasTotales.length
+                    totalEstudiantes: matriculasTotales.length // Para mostrar "Puesto X de Y"
                 },
                 areas: notasEstudiante
             };
-        });
+        }));
 
         const logoBase64 = await _obtenerLogoBase64();
 

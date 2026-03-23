@@ -22,6 +22,7 @@ const Asignaturas = () => {
         id: null,
         codigo: "",
         nombre: "",
+        nombreCorto: "",
         abreviatura: "",
         porcentual: 0,
         areaId: "",
@@ -135,7 +136,7 @@ const Asignaturas = () => {
      * Validación antes de enviar
      */
     const validateForm = () => {
-        if (!formData.codigo || !formData.nombre || !formData.abreviatura || !formData.areaId || !formData.vigenciaId) {
+        if (!formData.codigo || !formData.nombre || !formData.nombreCorto || !formData.abreviatura || !formData.areaId || !formData.vigenciaId) {
             return "Todos los campos obligatorios (<span class='text-[#e74c3c]'>*</span>) deben completarse.";
         }
 
@@ -145,6 +146,10 @@ const Asignaturas = () => {
 
         if (formData.nombre.length > 60) {
             return "El nombre no puede tener más de 60 caracteres.";
+        }
+
+        if (formData.nombreCorto.length > 15) {
+            return "El nombre corto no puede tener más de 15 caracteres.";
         }
 
         if (formData.abreviatura.length > 6) {
@@ -174,7 +179,7 @@ const Asignaturas = () => {
             setLoading(true);
             const data = normalizeEmptyFields(formData);
             if (mode === "agregar") {
-                const { id, ...rest } = data;
+                const { _id, ...rest } = data;
                 await crearAsignatura(rest);
                 showSuccess("Asignatura creada exitosamente.");
             } else if (mode === "editar") {
@@ -197,6 +202,7 @@ const Asignaturas = () => {
     const handleEdit = (item) => {
         setFormData({
             ...item,
+            nombreCorto: item.nombreCorto ?? "",
             abreviatura: item.abreviatura ?? "",
             porcentual: item.porcentual ?? 0,
         });

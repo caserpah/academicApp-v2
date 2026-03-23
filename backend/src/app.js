@@ -7,6 +7,8 @@ import { syncModels } from './database/syncRelations.js'; // Importa la función
 import { errorHandler } from "./middleware/errorHandler.js";
 import path from 'path';
 import { fileURLToPath } from 'url';
+import helmet from 'helmet'; // Importa Helmet para mejorar la seguridad de la aplicación
+import rateLimit from 'express-rate-limit'; // Importa express-rate-limit para limitar la cantidad de solicitudes
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,6 +17,21 @@ const __dirname = path.dirname(__filename);
 dotenv.config();
 
 const app = express(); // Crea una instancia de Express
+
+// Configuración para confiar en el proxy (Nginx o en plataformas como Heroku)
+app.set('trust proxy', 1);
+
+// 1. Ocultar información del servidor y proteger cabeceras HTTP
+app.use(helmet());
+
+// 2. Limitar peticiones (Ej: máximo 100 peticiones por ventana de 15 minutos por IP)
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: "Demasiadas peticiones desde esta IP, por favor intenta de nuevo más tarde."
+});
+// Aplicar el limitador a todas las rutas de la API
+app.use('/api', limiter);
 
 // *** Configuracion de CORS ***
 // Los orígenes permitidos se obtienen de una variable de entorno.
@@ -32,8 +49,8 @@ app.use(cors({
             callback(new Error(`Origen ${origin} no permitido por CORS`));
         }
     },
-    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Métodos HTTP permitidos
-    allowedHeaders: ['Content-Type', 'Authorization'], // Encabezados permitidos
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], // Métodos HTTP permitidos
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-vigencia-id'], // Encabezados permitidos
 }));
 
 // --- Middlewares para parsear el cuerpo de las solicitudes ---

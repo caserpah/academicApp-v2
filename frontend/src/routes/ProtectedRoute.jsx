@@ -5,10 +5,10 @@ import Swal from 'sweetalert2';
 
 /**
  * Componente que protege rutas según autenticación y rol.
- * @param {string} requiredRole - El rol que se requiere para acceder a la ruta (ej: 'admin').
+ * @param {string} requiredRoles - El rol que se requiere para acceder a la ruta (ej: 'admin').
  * @param {object} props - Propiedades de la ruta.
  */
-const ProtectedRoute = ({ requiredRole, children }) => {
+const ProtectedRoute = ({ requiredRoles, children }) => {
     // Obtenemos el estado del contexto
     const { isAuthenticated, hasRole, user, loading } = useAuth();
 
@@ -24,7 +24,7 @@ const ProtectedRoute = ({ requiredRole, children }) => {
     }
 
     // 3. Verificación de Rol
-    if (requiredRole && !hasRole(requiredRole)) {
+    if (requiredRoles && !hasRole(requiredRoles)) {
         Swal.fire({
             icon: 'warning',
             title: 'Acceso Denegado',

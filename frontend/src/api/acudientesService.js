@@ -5,7 +5,6 @@ const ENDPOINT_ACUDIENTES = "/api/acudientes";
 
 /**
  * Listar Acudientes (Buscador)
- * @param {Object} params - { page, limit, busqueda }
  */
 export const listarAcudientes = async (params = {}) => {
     try {
@@ -22,7 +21,6 @@ export const listarAcudientes = async (params = {}) => {
  */
 export const buscarAcudientePorDocumento = async (documento) => {
     try {
-        // Reutilizamos el endpoint de lista filtrando por búsqueda
         const response = await apiClient.get(ENDPOINT_ACUDIENTES, {
             params: { busqueda: documento, limit: 1 }
         });
@@ -30,11 +28,10 @@ export const buscarAcudientePorDocumento = async (documento) => {
         const data = response.data.data || response.data;
         const items = data.items || [];
 
-        // Verificamos que sea el documento exacto (para evitar coincidencias parciales)
-        return items.find(a => a.documento === documento) || null;
+        // Retorna el primer resultado que coincida exactamente con el documento, o null si no se encuentra
+        return items.find(a => a.identidad?.documento === documento) || null;
     } catch (error) {
         console.error("Error buscando acudiente por documento:", error);
-        // Si falla la búsqueda silenciosa, retornamos null para no bloquear el UI
         return null;
     }
 };
@@ -78,7 +75,6 @@ export const eliminarAcudiente = async (id) => {
 /**
  * Asignar Acudiente (HÍBRIDO)
  * Busca, crea (si no existe) y vincula al estudiante en un solo paso.
- * @param {Object} payload - { estudianteId, afinidad, documento, primerNombre... }
  */
 export const asignarAcudiente = async (payload) => {
     try {

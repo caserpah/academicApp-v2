@@ -12,51 +12,19 @@ export const Acudiente = sequelize.define("acudiente", {
         type: DataTypes.ENUM('CC', 'CE', 'PA', 'TI', 'RC'),
         allowNull: false
     },
-    documento: {
-        type: DataTypes.STRING(20),
-        allowNull: false
-    },
-
-    /** Nombres y apellidos (normalizados a mayúscula) */
-    primerNombre: {
-        type: DataTypes.STRING(30),
-        allowNull: false,
-        set(value) {
-            this.setDataValue("primerNombre", value?.trim().toUpperCase());
-        }
-    },
-    segundoNombre: {
-        type: DataTypes.STRING(30),
-        allowNull: true,
-        set(value) {
-            this.setDataValue("segundoNombre", value ? value.trim().toUpperCase() : null);
-        }
-    },
-    primerApellido: {
-        type: DataTypes.STRING(30),
-        allowNull: false,
-        set(value) {
-            this.setDataValue("primerApellido", value?.trim().toUpperCase());
-        }
-    },
-    segundoApellido: {
-        type: DataTypes.STRING(30),
-        allowNull: true,
-        set(value) {
-            this.setDataValue("segundoApellido", value ? value.trim().toUpperCase() : null);
-        }
-    },
     direccion: {
         type: DataTypes.STRING(80),
         allowNull: true
     },
-    contacto: {
-        type: DataTypes.STRING(12),
-        allowNull: true
-    },
-    email: {
-        type: DataTypes.STRING(80),
-        allowNull: true
+    usuarioId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'usuarios',
+            key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
     }
 }, {
     tableName: "acudientes",
@@ -70,12 +38,8 @@ export const Acudiente = sequelize.define("acudiente", {
         },
         {
             unique: true,
-            fields: ["tipoDocumento", "documento"],
-            name: "idx_unique_acudiente_documento",
-        },
-        {
-            fields: ["primerApellido", "primerNombre"],
-            name: "idx_nombre_apellido",
-        },
+            fields: ["usuarioId"],
+            name: "idx_unique_usuario_acudiente",
+        }
     ],
 });

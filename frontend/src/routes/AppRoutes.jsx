@@ -5,8 +5,10 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import DashboardLayout from '../layouts/DashboardLayout.jsx';
 import Bienvenida from '../pages/Bienvenida/Bienvenida.jsx';
 import Login from '../pages/Auth/login.jsx';
+import Onboarding from '../pages/Auth/Onboarding.jsx';
 import RecuperarPassword from '../pages/Auth/RecuperarPassword.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
+import OnboardingGuard from './OnboardingGuard.jsx';
 
 // Componentes Existentes
 import Colegios from '../components/colegios/Colegios.jsx';
@@ -22,6 +24,8 @@ import Juicios from '../components/juicios/Juicios.jsx';
 import Calificaciones from '../components/calificaciones/CalificacionesPage.jsx';
 import Nivelaciones from '../components/nivelaciones/NivelacionesPage.jsx';
 import GenerarBoletines from "../components/boletines/GenerarBoletines.jsx";
+import PortalAcudiente from "../components/boletines/PortalAcudiente.jsx";
+import AdministrarCodigos from "../components/boletines/AdministrarCodigos.jsx";
 import Estudiantes from '../components/estudiantes/Estudiantes.jsx';
 import Acudientes from '../components/acudientes/Acudientes.jsx';
 import AsignarAcudientes from '../components/estudiantes/AcudientesTab.jsx';
@@ -45,8 +49,12 @@ const AppRoutes = () => {
             {/* RUTA PÚBLICA */}
             <Route path="/login" element={<Login />} />
             <Route path="/recuperar-password" element={<RecuperarPassword />} />
+            <Route path="/descargar-boletin" element={<PortalAcudiente />} />
 
-            {/* RUTAS PROTEGIDAS */}
+            {/* RUTA DE TRANSICIÓN PROTEGIDA (Sin token, pero con usuarioId) */}
+                <Route path="/onboarding" element={<OnboardingGuard><Onboarding /></OnboardingGuard>} />
+
+            {/* RUTAS PROTEGIDAS POR JWT (Sidebar) */}
             <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<DashboardLayout />}>
 
@@ -83,6 +91,7 @@ const AppRoutes = () => {
                     <Route path="nivelaciones" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador", "docente"]}><Nivelaciones /></ProtectedRoute>} />
                     <Route path="ventanas" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador"]}><Ventanas /></ProtectedRoute>} />
                     <Route path="boletines" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador"]}><GenerarBoletines /></ProtectedRoute>} />
+                    <Route path="administrar-codigos" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador"]}><AdministrarCodigos /></ProtectedRoute>} />
 
                     {/* RUTAS TEMPORALES PARA MÓDULOS EN DESARROLLO */}
                     <Route path="reportes" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador"]}><PaginaEnConstruccion titulo="Reportes" /></ProtectedRoute>} />

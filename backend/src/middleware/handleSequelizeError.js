@@ -120,6 +120,20 @@ export const handleSequelizeError = (error) => {
             return err;
         }
 
+        // Caso 13: Usuarios (Documento)
+        if (indexName === "unique_documento_index") {
+            const err = new Error("Este usuario ya está registrado con este número de documento.");
+            err.status = 409;
+            return err;
+        }
+
+        // Caso 14: Usuarios (Email)
+        if (indexName === "unique_email_index") {
+            const err = new Error("El correo electrónico ingresado ya está siendo utilizado por otro usuario.");
+            err.status = 409;
+            return err;
+        }
+
         // Caso general: Fallback genérico para claves únicas simples
         const field = error?.errors?.[0]?.path || "campo";
         const value = error?.errors?.[0]?.value || "";

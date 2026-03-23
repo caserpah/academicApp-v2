@@ -20,7 +20,6 @@ export const Vigencia = sequelize.define("vigencia", {
     anio: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        unique: true,
         validate: {
             isInt: { msg: "El año lectivo debe ser un número entero." },
             min: { args: [2025], msg: "El año lectivo no puede ser menor a 2025." },

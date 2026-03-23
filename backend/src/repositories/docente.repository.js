@@ -77,6 +77,16 @@ export const docenteRepository = {
     },
 
     /**
+     * Buscar un perfil de docente por el ID del usuario central
+     */
+    async findByUsuarioId(usuarioId, transaction = null) {
+        return await Docente.findOne({
+            where: { usuarioId },
+            transaction // Pasamos la transacción por si viene del servicio
+        });
+    },
+
+    /**
      * Crear un docente
      */
     async create(payload, transaction) {

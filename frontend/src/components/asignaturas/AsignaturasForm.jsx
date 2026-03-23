@@ -118,6 +118,23 @@ const AsignaturasForm = ({
                         />
                     </div>
 
+                    {/* Nombre Corto */}
+                    <div className="col-span-1">
+                        <label className="block text-sm font-medium text-[#4a5568] mb-1">
+                            Nombre Corto <span className="text-[#e74c3c] font-semibold">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            name="nombreCorto"
+                            value={formData.nombreCorto}
+                            onChange={(e) => handleUpperCaseInput(e, 15)}
+                            placeholder="Ej: Educ. Fisica"
+                            maxLength={15}
+                            required
+                            className={getInputClasses()}
+                        />
+                    </div>
+
                     {/* Abreviatura */}
                     <div className="col-span-1">
                         <label className="block text-sm font-medium text-[#4a5568] mb-1">

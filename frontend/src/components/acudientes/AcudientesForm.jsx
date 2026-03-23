@@ -8,11 +8,9 @@ import { faTimes, faSave, faUserCheck } from "@fortawesome/free-solid-svg-icons"
 const INITIAL_STATE = {
     tipoDocumento: "CC",
     documento: "",
-    primerNombre: "",
-    segundoNombre: "",
-    primerApellido: "",
-    segundoApellido: "",
-    contacto: "",
+    nombre: "",
+    apellidos: "",
+    telefono: "",
     email: "",
     direccion: ""
 };
@@ -25,26 +23,31 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
     useEffect(() => {
         if (registro) {
             setFormData({
-                ...INITIAL_STATE, // Asegura que existan todos los campos
-                ...registro,
+                id: registro.id,
+                tipoDocumento: registro.tipoDocumento || "CC",
+                direccion: registro.direccion || "",
+                documento: registro.identidad?.documento || "",
+                nombre: registro.identidad?.nombre || "",
+                apellidos: registro.identidad?.apellidos || "",
+                telefono: registro.identidad?.telefono || "",
+                email: registro.identidad?.email || ""
             });
+        } else {
+            setFormData(INITIAL_STATE);
         }
     }, [registro]);
 
     // Manejo de cambios en inputs
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         // Validaciones Manuales Básicas
-        if (!formData.tipoDocumento || !formData.documento || !formData.primerNombre || !formData.primerApellido) {
+        if (!formData.tipoDocumento || !formData.documento || !formData.nombre || !formData.apellidos) {
             showWarning("Todos los campos obligatorios (<span class='text-[#e74c3c]'>*</span>) deben completarse.");
             return;
         }
@@ -52,7 +55,7 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
         setLoading(true);
         try {
             if (registro || formData.id) {
-                await actualizarAcudiente(registro.id, formData);
+                await actualizarAcudiente(formData.id, formData);
                 showSuccess("Acudiente actualizado exitosamente.");
             } else {
                 await crearAcudiente(formData);
@@ -76,7 +79,7 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
 
             {/* Contenedor del Modal */}
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-full max-h-[90vh] flex flex-col">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-full max-h-[83vh] flex flex-col">
 
                 {/* Encabezado */}
                 <div className="flex justify-between items-center p-5 border-b border-gray-300 bg-gray-50 rounded-t-lg">
@@ -99,15 +102,8 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
 
                         {/* Fila 1: Documento */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1 required">Tipo Documento {" "}
-                                <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                                name="tipoDocumento"
-                                value={formData.tipoDocumento}
-                                onChange={handleChange}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                            >
+                            <label className="block text-sm font-medium text-gray-700 mb-1 required">Tipo Documento <span className="text-red-500">*</span></label>
+                            <select name="tipoDocumento" value={formData.tipoDocumento} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
                                 <option value="CC">Cédula de Ciudadanía</option>
                                 <option value="CE">Cédula de Extranjería</option>
                                 <option value="TI">Tarjeta de Identidad</option>
@@ -115,59 +111,35 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1 required">Número de Documento {" "}
-                                <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                name="documento"
-                                value={formData.documento}
-                                onChange={handleChange}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                                placeholder="Máx. 20 dígitos"
-                            />
+                            <label className="block text-sm font-medium text-gray-700 mb-1 required">Número de Documento <span className="text-red-500">*</span></label>
+                            <input type="text" name="documento" value={formData.documento} onChange={handleChange} required className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Máx. 20 dígitos" />
                         </div>
 
-                        {/* Fila 2: Nombres */}
+                        {/* Fila 2: Nombres y Apellidos */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Primer Nombre {" "}
-                                <span className="text-red-500">*</span>
-                            </label>
-                            <input type="text" name="primerNombre" value={formData.primerNombre} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none uppercase" />
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Nombres Completos <span className="text-red-500">*</span></label>
+                            <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} required className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Segundo Nombre</label>
-                            <input type="text" name="segundoNombre" value={formData.segundoNombre} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none uppercase" />
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Apellidos Completos <span className="text-red-500">*</span></label>
+                            <input type="text" name="apellidos" value={formData.apellidos} onChange={handleChange} required className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
                         </div>
 
-                        {/* Fila 3: Apellidos */}
+                        {/* Fila 3: Contacto y Email */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Primer Apellido {" "}
-                                <span className="text-red-500">*</span>
-                            </label>
-                            <input type="text" name="primerApellido" value={formData.primerApellido} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none uppercase" />
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono (Opcional)</label>
+                            <input type="text" name="telefono" value={formData.telefono} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Número de contacto" />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Segundo Apellido</label>
-                            <input type="text" name="segundoApellido" value={formData.segundoApellido} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none uppercase" />
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico (Opcional)</label>
+                            <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none lowercase" placeholder="ejemplo@correo.com" />
                         </div>
 
-                        {/* Fila 4: Contacto */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Contacto (10-12 dígitos, opcional)</label>
-                            <input type="text" name="contacto" value={formData.contacto} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Teléfono de contacto" />
-                        </div>
-
-                        {/* Fila 5: Datos Extra (Full Width) */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
-                            <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none lowercase" placeholder="ejemplo@colegio.edu.co" />
-                        </div>
-                        <div>
+                        {/* Fila 4: Dirección */}
+                        <div className="md:col-span-2">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Dirección de Residencia</label>
                             <input type="text" name="direccion" value={formData.direccion} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Ej: Calle 10 # 5-20" />
                         </div>
-
                     </form>
                 </div>
 

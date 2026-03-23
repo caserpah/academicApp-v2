@@ -10,7 +10,7 @@ const dbConfig = {
     PORT: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 3306, // Asegurarse de que el puerto sea un número
     dialect: process.env.DB_DIALECT || 'mysql',
     pool: { // Configuración del pool de conexiones de Sequelize
-        max: 5, // Máximo número de conexiones en el pool
+        max: 30, // Máximo número de conexiones en el pool
         min: 0, // Mínimo número de conexiones en el pool
         acquire: 30000, // Tiempo máximo en milisegundos que Sequelize intentará adquirir una conexión antes de lanzar un error
         idle: 10000 // Tiempo máximo en milisegundos que una conexión puede estar inactiva antes de ser liberada

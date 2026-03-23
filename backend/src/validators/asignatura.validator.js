@@ -21,6 +21,10 @@ export const validarCrearAsignatura = [
         .isLength({ min: 3, max: 60 })
         .withMessage("El nombre de la asignatura debe tener entre 3 y 60 caracteres."),
 
+    validarCampoRequerido("nombreCorto", "Ingrese el nombre corto de la asignatura.")
+        .isLength({ min: 3, max: 15 })
+        .withMessage("El nombre corto de la asignatura debe tener entre 3 y 15 caracteres."),
+
     validarCampoRequerido("abreviatura", "Ingrese la abreviatura de la asignatura.")
         .isLength({ min: 3, max: 6 }).withMessage("La abreviatura de la asignatura debe tener entre 3 y 6 caracteres.")
         .isAlphanumeric().withMessage("La abreviatura de la asignatura solo puede contener letras y números.")
@@ -56,6 +60,10 @@ export const validarActualizarAsignatura = [
 
     validarCampoOpcionalRequerido("nombre", "Ingrese el nombre de la asignatura si desea actualizarlo.")
         .isLength({ min: 3, max: 60 }).withMessage("El nombre de la asignatura debe tener entre 3 y 60 caracteres."),
+
+    validarCampoOpcionalRequerido("nombreCorto", "Ingrese el nombre corto de la asignatura si desea actualizarlo.")
+        .isLength({ min: 3, max: 15 })
+        .withMessage("El nombre corto de la asignatura debe tener entre 3 y 15 caracteres."),
 
     validarCampoOpcionalRequerido("abreviatura", "Ingrese la abreviatura de la asignatura si desea actualizarla.")
         .isLength({ min: 3, max: 6 }).withMessage("La abreviatura de la asignatura debe tener entre 3 y 6 caracteres.")

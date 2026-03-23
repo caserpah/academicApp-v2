@@ -10,7 +10,6 @@ export const Colegio = sequelize.define('colegio', {
     },
     registroDane: {
         type: DataTypes.STRING(20),
-        unique: true,
         allowNull: false,
         validate: {
             isAlphanumeric: {
@@ -78,5 +77,13 @@ export const Colegio = sequelize.define('colegio', {
     tableName: 'colegios', // Nombre de la tabla en la base de datos
     timestamps: true, // Habilita createdAt y updatedAt automáticamente
     createdAt: 'fechaCreacion', // Renombra el campo createdAt
-    updatedAt: 'fechaActualizacion' // Renombra el campo updatedAt
+    updatedAt: 'fechaActualizacion', // Renombra el campo updatedAt
+
+    indexes: [
+        {
+            unique: true,
+            fields: ['registroDane'],
+            name: 'idx_registroDane_unico'
+        }
+    ]
 });

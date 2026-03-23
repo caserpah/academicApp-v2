@@ -82,6 +82,7 @@ import dimensionRoutes from "./dimension.routes.js";
 import desempenoRoutes from "./desempeno.routes.js";
 import desempenoRangoRoutes from "./desempenoRango.routes.js";
 import recomendacionRoutes from "./banco.routes.js";
+import codigoBoletinRoutes from "./codigoBoletin.routes.js";
 
 router.use("/vigencias-config", vigenciaConfigRoutes); // Configuración de vigencias
 router.use("/grupos", vigenciaContext, grupoRoutes);
@@ -97,6 +98,7 @@ router.use("/dimensiones", dimensionRoutes);
 router.use("/desempenos", desempenoRoutes);
 router.use("/desempenos/rangos", vigenciaContext, desempenoRangoRoutes);
 router.use("/recomendaciones", recomendacionRoutes)
+router.use("/codigos-boletines", codigoBoletinRoutes);
 
 /* ============================================================
     🧭 EXPORTACIÓN DEL ENRUTADOR PRINCIPAL

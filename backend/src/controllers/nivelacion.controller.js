@@ -35,7 +35,7 @@ export const nivelacionController = {
     async registrar(req, res, next) {
         try {
             const { matriculaId, asignaturaId } = req.params;
-            const usuarioId = req.user.id; // Asumiendo que viene del token de autenticación
+            const usuarioId = req.user.id;
 
             // 1. Manejo del archivo de evidencia (Si el middleware lo procesó)
             let fileUrl = null;

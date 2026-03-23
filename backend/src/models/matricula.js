@@ -17,7 +17,6 @@ export const Matricula = sequelize.define("matricula", {
     folio: {
         type: DataTypes.STRING(25),
         allowNull: false,
-        unique: true,
         comment: "Código único de matrícula. Se genera automáticamente (MAT-AAAA-XXXXX)."
     },
 
@@ -186,5 +185,10 @@ export const Matricula = sequelize.define("matricula", {
             name: "idx_unique_estudiante_vigencia",
             fields: ["estudianteId", "vigenciaId"]
         },
+        {
+            unique: true,
+            name: "idx_unique_matricula_folio",
+            fields: ["folio"]
+        }
     ]
 });

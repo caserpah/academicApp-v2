@@ -89,8 +89,8 @@ const DocentesForm = ({
                     </div>
 
                     <div>
-                        <label className={labelClasses}>Fecha Nacimiento <span className="text-red-500">*</span></label>
-                        <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className={inputClasses} required />
+                        <label className={labelClasses}>Fecha Nacimiento</label>
+                        <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className={inputClasses} />
                     </div>
 
                     <div>

@@ -16,6 +16,8 @@ export const boletinController = {
             // 2. Extraemos los parámetros del body ya validados
             const { grupoId, periodoActual, tipoBoletin, estudianteId } = req.body;
 
+            const usuarioId = req.user.id; // Extraes el ID de quien hizo la petición
+
             // 3. Llamamos al servicio para que arme el Mega-Objeto JSON
             const dataBoletines = await boletinService.generarDatosBoletinLote(
                 grupoId,
@@ -23,7 +25,8 @@ export const boletinController = {
                 anioLectivo,
                 periodoActual,
                 tipoBoletin,
-                estudianteId
+                estudianteId,
+                usuarioId
             );
 
             // Limpiamos los espacios y caracteres raros para crear un nombre de archivo seguro

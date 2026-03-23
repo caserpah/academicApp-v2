@@ -1,10 +1,11 @@
 import { body, param } from "express-validator";
+import { Usuario } from "../models/usuario.js";
 import { Acudiente } from "../models/acudiente.js";
+
 
 import {
     validarCampoRequerido,
     validarCampoOpcionalRequerido,
-    validarCampoUnico,
     validarCampoContactoOpcional
 } from "../utils/dbUtils.js";
 
@@ -23,30 +24,34 @@ export const ValidarCrearAcudiente = [
         .isIn(ENUM_TIPO_DOC)
         .withMessage("El tipo de documento no es válido."),
 
-    /** Documento único global */
+    /** Documento (Validación Inteligente para Creación Múltiple) */
     validarCampoRequerido("documento", "Ingrese el número de documento.")
         .matches(regexDocumento)
         .withMessage("El documento debe contener entre 4 y 20 caracteres alfanuméricos, sin espacios.")
         .bail()
-        .custom(
-            validarCampoUnico(Acudiente, "documento", "un acudiente", false, null, "número de documento")
-        ),
+        .custom(async (value) => {
+            // Buscamos si la persona ya existe
+            const usuarioExistente = await Usuario.findOne({ where: { documento: value } });
 
-    /** Primer nombre */
-    validarCampoRequerido("primerNombre", "Ingrese el primer nombre.")
+            if (usuarioExistente) {
+                // Si existe, verificamos si YA es Acudiente. Si lo es, bloqueamos. Si no, dejamos pasar.
+                const acudienteExistente = await Acudiente.findOne({ where: { usuarioId: usuarioExistente.id } });
+                if (acudienteExistente) {
+                    throw new Error("Ya existe un acudiente registrado con este número de documento.");
+                }
+            }
+            return true;
+        }),
+
+    /** Nombres unificados */
+    validarCampoRequerido("nombre", "Ingrese el nombre completo.")
         .isLength({ min: 2 })
-        .withMessage("El primer nombre debe contener al menos 2 caracteres."),
+        .withMessage("El nombre debe contener al menos 2 caracteres."),
 
-    /** Segundo nombre opcional */
-    body("segundoNombre").optional({ checkFalsy: true }).trim().escape(),
-
-    /** Primer apellido */
-    validarCampoRequerido("primerApellido", "Ingrese el primer apellido.")
+    /** Apellidos unificados */
+    validarCampoRequerido("apellidos", "Ingrese los apellidos completos.")
         .isLength({ min: 2 })
-        .withMessage("El primer apellido debe contener al menos 2 caracteres."),
-
-    /** Segundo apellido opcional */
-    body("segundoApellido").optional({ checkFalsy: true }).trim().escape(),
+        .withMessage("Los apellidos deben contener al menos 2 caracteres."),
 
     /** Dirección */
     body("direccion")
@@ -55,7 +60,7 @@ export const ValidarCrearAcudiente = [
         .withMessage("La dirección de residencia debe tener al menos 5 caracteres."),
 
     /** Contacto */
-    validarCampoContactoOpcional("contacto"),
+    validarCampoContactoOpcional("telefono"),
 
     /** Email (Opcional pero con formato válido) */
     body("email")
@@ -84,37 +89,33 @@ export const ValidarActualizarAcudiente = [
         .matches(regexDocumento)
         .withMessage("El documento debe contener entre 4 y 20 caracteres alfanuméricos, sin espacios.")
         .bail()
-        .custom(validarCampoUnico(Acudiente, "documento", "un acudiente", true, null, "número de documento")
-        ),
+        .custom(async (value, { req }) => {
+            const acudienteId = req.params.id;
 
-    /** Primer nombre */
-    validarCampoOpcionalRequerido("primerNombre", "Ingrese el primer nombre.")
-        .isLength({ min: 2 })
-        .withMessage("El primer nombre debe contener al menos 2 caracteres."),
+            // 1. Buscamos el acudiente actual para saber cuál es su 'usuarioId' real
+            const acudiente = await Acudiente.findByPk(acudienteId);
+            if (!acudiente) throw new Error("Acudiente no encontrado.");
 
-    /** Segundo nombre opcional */
-    body("segundoNombre").optional({ checkFalsy: true }).trim().escape(),
+            // 2. Buscamos si el documento ya existe en la tabla Usuarios
+            const usuarioExistente = await Usuario.findOne({ where: { documento: value } });
 
-    /** Primer apellido */
-    validarCampoOpcionalRequerido("primerApellido", "Ingrese el primer apellido.")
-        .isLength({ min: 2 })
-        .withMessage("El primer apellido debe contener al menos 2 caracteres."),
+            // 3. Si existe, y su ID NO es el mismo que el usuario asociado a este acudiente, ¡es un clon!
+            if (usuarioExistente && usuarioExistente.id !== acudiente.usuarioId) {
+                throw new Error("Este número de documento ya está registrado por otro usuario.");
+            }
+            return true;
+        }),
 
-    /** Segundo apellido opcional */
-    body("segundoApellido").optional({ checkFalsy: true }).trim().escape(),
+    /** Nombres y Apellidos */
+    validarCampoOpcionalRequerido("nombre", "Ingrese el nombre.")
+        .isLength({ min: 2 }).withMessage("El nombre debe contener al menos 2 caracteres."),
 
-    // Dirección
+    validarCampoOpcionalRequerido("apellidos", "Ingrese los apellidos.")
+        .isLength({ min: 2 }).withMessage("Los apellidos deben contener al menos 2 caracteres."),
+
     body("direccion").optional({ checkFalsy: true }).trim().escape(),
-
-    // Contacto (Opcional)
-    validarCampoContactoOpcional("contacto"),
-
-    // Email (Opcional pero con formato válido)
-    body("email")
-        .optional({ checkFalsy: true })
-        .trim()
-        .isEmail().withMessage("Ingrese un correo electrónico válido.")
-        .normalizeEmail(),
+    validarCampoContactoOpcional("telefono"),
+    body("email").optional({ checkFalsy: true }).trim().isEmail().normalizeEmail(),
 
     validationErrorHandler
 ];
@@ -129,42 +130,13 @@ export const ValidarAsignarAcudiente = [
         .notEmpty().withMessage("Seleccione el parentesco.")
         .isIn(ENUM_AFINIDAD).withMessage("El parentesco seleccionado no es válido."),
 
-    // --- 2. DATOS DE LA PERSONA (Igual a Crear, pero SIN check de unicidad) ---
-
-    // Tipo Documento
-    validarCampoRequerido("tipoDocumento", "Seleccione el tipo de documento.")
-        .isIn(ENUM_TIPO_DOC).withMessage("El tipo de documento no es válido."),
-
-    // Documento (SOLO FORMATO, quitamos validarCampoUnico)
-    validarCampoRequerido("documento", "Ingrese el número de documento.")
-        .matches(regexDocumento) // Usamos la regex que ya definiste arriba
-        .withMessage("El documento debe contener entre 4 y 20 caracteres alfanuméricos, sin espacios."),
-
-    // Nombres
-    validarCampoRequerido("primerNombre", "Ingrese el primer nombre.")
-        .isLength({ min: 2 })
-        .withMessage("El primer nombre debe contener al menos 2 caracteres."),
-
-    body("segundoNombre").optional({ checkFalsy: true }).trim().escape(),
-
-    // Apellidos
-    validarCampoRequerido("primerApellido", "Ingrese el primer apellido.")
-        .isLength({ min: 2 })
-        .withMessage("El primer apellido debe contener al menos 2 caracteres."),
-
-    body("segundoApellido").optional({ checkFalsy: true }).trim().escape(),
-
-    // Contacto (Opcional)
-    validarCampoContactoOpcional("contacto"),
-
-    // Email
-    body("email")
-        .optional({ checkFalsy: true })
-        .trim()
-        .isEmail().withMessage("Ingrese un correo electrónico válido.")
-        .normalizeEmail(),
-
-    // Dirección
+    // --- 2. DATOS DE LA PERSONA ---
+    validarCampoRequerido("tipoDocumento", "Seleccione el tipo de documento.").isIn(ENUM_TIPO_DOC),
+    validarCampoRequerido("documento", "Ingrese el número de documento.").matches(regexDocumento),
+    validarCampoRequerido("nombre", "Ingrese el nombre completo.").isLength({ min: 2 }),
+    validarCampoRequerido("apellidos", "Ingrese los apellidos completos.").isLength({ min: 2 }),
+    validarCampoContactoOpcional("telefono"),
+    body("email").optional({ checkFalsy: true }).trim().isEmail().normalizeEmail(),
     body("direccion").optional({ checkFalsy: true }).trim().escape(),
 
     validationErrorHandler

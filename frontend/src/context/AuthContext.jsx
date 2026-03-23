@@ -3,8 +3,21 @@ import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 
-const AuthContext = createContext();
 const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
+
+// Configuramos un interceptor global para agregar el token a cada solicitud
+axios.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('userToken');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
+
+const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
@@ -53,9 +66,9 @@ export const AuthProvider = ({ children }) => {
     }, [logout]);
 
     // --- PASO 1: Login ---
-    const login = async (email, password) => {
+    const login = async (identificador, password) => {
         try {
-            const response = await axios.post(`${API_URL}/api/auth/login`, { email, password });
+            const response = await axios.post(`${API_URL}/api/auth/login`, { identificador, password });
             return response.data;
         } catch (error) {
             throw error.response?.data || new Error("Error de conexión.");

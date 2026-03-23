@@ -36,12 +36,14 @@ export const pdfService = {
             const pdfBuffer = await page.pdf({
                 format: "A4",
                 printBackground: true, // Imprime colores de fondo y bordes de tablas
+                scale: 1.15,           // Aumenta el tamaño un 11% (ajusta entre 1.1 y 1.15 según se necesite)
+                preferCSSPageSize: true, // Obliga a usar el @page definido en la plantilla boletines-lote.hbs { margin: 10mm; }
                 margin: {
-                    top: "10mm",
-                    bottom: "10mm",
-                    left: "10mm",
-                    right: "10mm"
-                }
+                    top: 0,
+                    bottom: 0,
+                    left: 0,
+                    right: 0
+                },
             });
 
             return pdfBuffer;

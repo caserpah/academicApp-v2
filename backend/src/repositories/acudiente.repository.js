@@ -1,10 +1,11 @@
-import { Op, Sequelize } from "sequelize";
+import { Op } from "sequelize";
 import { Acudiente } from "../models/acudiente.js";
+import { Usuario } from "../models/usuario.js";
 import { AcudienteEstudiantes } from "../models/acudiente_estudiantes.js";
 
 export const acudienteRepository = {
     /**
-     * Listar acudientes con búsqueda flexible (Nombre o Documento)
+     * Listar acudientes con búsqueda flexible apuntando a la tabla Usuarios
      */
     async findAll({ page = 1, limit = 10, busqueda }) {
         const offset = (page - 1) * limit;
@@ -13,19 +14,10 @@ export const acudienteRepository = {
         if (busqueda && busqueda.trim() !== "") {
             const term = `%${busqueda.trim()}%`;
             where[Op.or] = [
-                { documento: { [Op.like]: term } },
-                { primerNombre: { [Op.like]: term } },
-                { primerApellido: { [Op.like]: term } },
-                // Concatenación para buscar por nombre completo
-                Sequelize.where(
-                    Sequelize.fn('CONCAT',
-                        Sequelize.col('primerNombre'), ' ',
-                        Sequelize.fn('IFNULL', Sequelize.col('segundoNombre'), ''), ' ',
-                        Sequelize.col('primerApellido'), ' ',
-                        Sequelize.fn('IFNULL', Sequelize.col('segundoApellido'), '')
-                    ),
-                    { [Op.like]: term }
-                )
+                { "$identidad.documento$": { [Op.like]: term } },
+                { "$identidad.nombre$": { [Op.like]: term } },
+                { "$identidad.apellidos$": { [Op.like]: term } },
+                { "$identidad.email$": { [Op.like]: term } }
             ];
         }
 
@@ -33,7 +25,16 @@ export const acudienteRepository = {
             where,
             limit: Number(limit),
             offset: Number(offset),
-            order: [["primerApellido", "ASC"]]
+            include: [{
+                model: Usuario,
+                as: 'identidad',
+                attributes: ['id', 'nombre', 'apellidos', 'documento', 'email', 'telefono', 'activo']
+            }],
+            order: [
+                [{ model: Usuario, as: 'identidad' }, "apellidos", "ASC"],
+                [{ model: Usuario, as: 'identidad' }, "nombre", "ASC"]
+            ],
+            subQuery: false // Fundamental cuando se filtra por relaciones
         });
 
         return {
@@ -48,28 +49,41 @@ export const acudienteRepository = {
     },
 
     async findById(id) {
-        return await Acudiente.findByPk(id);
+        return await Acudiente.findByPk(id, {
+            include: [{
+                model: Usuario,
+                as: 'identidad',
+                attributes: ['id', 'nombre', 'apellidos', 'documento', 'email', 'telefono', 'activo']
+            }]
+        });
     },
 
     async findByDocumento(documento) {
-        return await Acudiente.findOne({ where: { documento } });
+        // Buscamos a través de la relación de identidad
+        return await Acudiente.findOne({
+            include: [{
+                model: Usuario,
+                as: 'identidad',
+                where: { documento }
+            }]
+        });
     },
 
-    async create(data) {
-        return await Acudiente.create(data);
+    // Método para crear un acudiente, asumiendo que el usuario ya fue creado en la tabla central de Usuarios
+    async create(data, transaction) {
+        return await Acudiente.create(data, { transaction });
     },
 
-    async update(id, data) {
-        const acudiente = await Acudiente.findByPk(id);
+    async update(id, data, transaction) {
+        const acudiente = await Acudiente.findByPk(id, { transaction });
         if (!acudiente) return null;
-        return await acudiente.update(data);
+        return await acudiente.update(data, { transaction });
     },
 
-    async delete(id) {
+    async delete(id, transaction) {
         const acudiente = await Acudiente.findByPk(id);
         if (!acudiente) return false;
-
-        await acudiente.destroy();
+        await acudiente.destroy({ transaction });
         return true;
     },
 
@@ -80,36 +94,24 @@ export const acudienteRepository = {
      * Útil para evitar que un papá sea registrado dos veces como 'PADRE' del mismo hijo.
      */
     async findRelacion(acudienteId, estudianteId) {
-        return await AcudienteEstudiantes.findOne({
-            where: { acudienteId, estudianteId }
-        });
+        return await AcudienteEstudiantes.findOne({ where: { acudienteId, estudianteId } });
     },
 
     /**
      * Vincular un acudiente a un estudiante.
      * Crea el registro en la tabla intermedia 'acudiente_estudiantes'.
      */
-    async crearRelacion({ acudienteId, estudianteId, afinidad }) {
-        return await AcudienteEstudiantes.create({
-            acudienteId,
-            estudianteId,
-            afinidad
-        });
+    async crearRelacion({ acudienteId, estudianteId, afinidad }, transaction) {
+        return await AcudienteEstudiantes.create({ acudienteId, estudianteId, afinidad }, { transaction });
     },
 
     /**
      * Actualiza el parentesco de una relación existente
      */
     async updateRelacion(estudianteId, acudienteId, nuevaAfinidad) {
-        // Asumiendo que importaste el modelo intermedio AcudienteEstudiantes arriba
         return await AcudienteEstudiantes.update(
             { afinidad: nuevaAfinidad },
-            {
-                where: {
-                    estudianteId,
-                    acudienteId
-                }
-            }
+            { where: { estudianteId, acudienteId } }
         );
     },
 
@@ -118,11 +120,6 @@ export const acudienteRepository = {
      * Elimina el registro de la tabla intermedia.
      */
     async desvincularAcudiente(estudianteId, acudienteId) {
-        return await AcudienteEstudiantes.destroy({
-            where: {
-                estudianteId,
-                acudienteId
-            }
-        });
+        return await AcudienteEstudiantes.destroy({ where: { estudianteId, acudienteId } });
     }
 };

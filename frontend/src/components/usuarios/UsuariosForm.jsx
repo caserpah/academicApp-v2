@@ -103,6 +103,7 @@ const UsuariosForm = ({ formData, mode, loading, handleChange, handleSubmit, res
                         className={inputClasses}
                     >
                         <option value="acudiente">Acudiente</option>
+                        <option value="secretaria">Secretaria</option>
                         <option value="docente">Docente</option>
                         <option value="coordinador">Coordinador</option>
                         <option value="director">Director</option>

@@ -1,3 +1,5 @@
+
+
 import { DataTypes } from "sequelize";
 import { sequelize } from "../database/db.connect.js";
 
@@ -32,6 +34,19 @@ export const Asignatura = sequelize.define("asignatura", {
         set(value) {
             this.setDataValue(
                 'nombre',
+                typeof value === 'string' && value.trim() !== ''
+                    ? value.toUpperCase().trim()
+                    : null
+            );
+        }
+    },
+    nombreCorto: {
+        type: DataTypes.STRING(15),
+        allowNull: false,
+        // Aplicamos SET para mayúsculas
+        set(value) {
+            this.setDataValue(
+                'nombreCorto',
                 typeof value === 'string' && value.trim() !== ''
                     ? value.toUpperCase().trim()
                     : null

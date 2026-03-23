@@ -9,7 +9,7 @@ const formatearDatos = (data) => {
     const payload = { ...data };
 
     // Lista de campos tipo FECHA que son opcionales
-    const camposFecha = ["fechaNombrado", "fechaIngreso", "fechaRetiro"];
+    const camposFecha = ["fechaNombrado", "fechaIngreso", "fechaRetiro", "fechaNacimiento"];
 
     camposFecha.forEach(campo => {
         // Si viene vacío o es un string vacío, lo forzamos a NULL
@@ -57,26 +57,65 @@ export const docenteService = {
                 ...datosDocente
             } = datosLimpios;
 
-            // 2. Creamos el Usuario primero
-            const nuevoUsuario = await Usuario.create({
-                nombre,
-                apellidos,
-                documento,
-                email,
-                telefono,
-                password: password || documento, // Contraseña por defecto
-                role: 'docente',
-                activo: activo !== undefined ? activo : true
-            }, { transaction: t });
+            let usuarioId;
 
-            // 3. Le pasamos el ID del nuevo usuario al Docente y lo creamos
-            datosDocente.usuarioId = nuevoUsuario.id;
+            // 2. Buscamos si la persona ya existe en el sistema
+            let usuarioExistente = await Usuario.findOne({
+                where: { documento },
+                transaction: t
+            });
+
+            if (usuarioExistente) {
+                // A. Verificamos si ya tiene un perfil de Docente para evitar duplicados
+                const docenteExistente = await docenteRepository.findByUsuarioId(usuarioExistente.id, t);
+
+                if (docenteExistente) {
+                    throw new Error("Ya existe un docente registrado con este número de documento.");
+                }
+
+                // Solo sobreescribimos los campos personales básicos, si vienen nuevos datos.
+                // No tocamos el password ni el rol (a menos que sea un usuario "dormido" que ahora se activa como docente).
+                if (nombre) usuarioExistente.nombre = nombre;
+                if (apellidos) usuarioExistente.apellidos = apellidos;
+                if (email) usuarioExistente.email = email;
+                if (telefono) usuarioExistente.telefono = telefono;
+
+                // B. Promoción de Rol: Si es acudiente, lo subimos a docente.
+                // Si ya es admin, director o coordinador, NO lo degradamos, le dejamos su rol superior.
+                if (usuarioExistente.role === 'acudiente') {
+                    usuarioExistente.role = 'docente';
+                }
+
+                await usuarioExistente.save({ transaction: t });
+
+                // Tomamos su ID existente
+                usuarioId = usuarioExistente.id;
+
+            } else {
+                // 3. Si no existe, creamos el Usuario desde cero
+                const nuevoUsuario = await Usuario.create({
+                    nombre,
+                    apellidos,
+                    documento,
+                    email,
+                    telefono,
+                    password: password || documento, // Contraseña por defecto
+                    role: 'docente',
+                    activo: activo !== undefined ? activo : true
+                }, { transaction: t });
+
+                usuarioId = nuevoUsuario.id;
+            }
+
+            // 4. Creamos el perfil de Docente y lo enlazamos al usuarioId (nuevo o existente)
+            datosDocente.usuarioId = usuarioId;
             const nuevoDocente = await docenteRepository.create(datosDocente, t);
 
             await t.commit();
 
             const completo = await docenteRepository.findById(nuevoDocente.id);
             return { message: "Docente registrado exitosamente.", data: completo };
+
         } catch (error) {
             await t.rollback();
             throw handleSequelizeError(error);

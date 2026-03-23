@@ -5,6 +5,7 @@ import { Grupo } from "../models/grupo.js";
 import { Sede } from "../models/sede.js";
 import { Grado } from "../models/grado.js";
 import { Acudiente } from "../models/acudiente.js";
+import { Usuario } from "../models/usuario.js";
 
 export const estudianteRepository = {
 
@@ -151,16 +152,24 @@ export const estudianteRepository = {
 
     /**
      * Buscar un estudiante por Documento.
-     * Incluye matrículas de una vigencia si se especifica.
+     * Incluye matrículas de una vigencia si se especifica y acudientes con su identidad unificada.
      */
     async findByDocumento(documento, { includeMatriculas = false, vigenciaId = null } = {}) {
         const include = [
             {
                 model: Acudiente,
                 as: "acudientes",
+                attributes: ["id", "tipoDocumento", "direccion"], // Solo campos que existen en Acudientes
                 through: {
                     attributes: ["afinidad"]
-                }
+                },
+                include: [
+                    {
+                        model: Usuario,
+                        as: "identidad", // El salto hacia la tabla central
+                        attributes: ["id", "documento", "nombre", "apellidos", "telefono", "email"]
+                    }
+                ]
             }
         ];
 
@@ -198,8 +207,7 @@ export const estudianteRepository = {
 
     /**
      * Buscar un estudiante por ID.
-     * Incluye siempre los acudientes.
-     * Opcionalmente puede incluir matrículas de una vigencia.
+     * Incluye siempre los acudientes con su identidad unificada.
      */
     async findById(id, { includeMatriculas = false, vigenciaId = null } = {}) {
 
@@ -207,10 +215,17 @@ export const estudianteRepository = {
             {
                 model: Acudiente,
                 as: "acudientes",
+                attributes: ["id", "tipoDocumento", "direccion"],
                 through: {
                     attributes: ["afinidad", "id"]
                 },
-                attributes: ["id", "tipoDocumento", "documento", "primerNombre", "primerApellido", "contacto", "email"]
+                include: [
+                    {
+                        model: Usuario,
+                        as: "identidad",
+                        attributes: ["id", "documento", "nombre", "apellidos", "telefono", "email"]
+                    }
+                ]
             }
         ];
 

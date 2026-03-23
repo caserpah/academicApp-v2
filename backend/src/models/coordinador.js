@@ -11,7 +11,6 @@ export const Coordinador = sequelize.define('coordinador', {
     documento: {
         type: DataTypes.STRING(15),
         allowNull: false,
-        unique: true,
         validate: {
             isNumeric: {
                 msg: "El documento solo debe contener dígitos numéricos."
@@ -39,5 +38,13 @@ export const Coordinador = sequelize.define('coordinador', {
     tableName: 'coordinadores', // Nombre de la tabla en la base de datos
     timestamps: true, // Habilita createdAt y updatedAt automáticamente
     createdAt: 'fechaCreacion', // Renombra el campo createdAt
-    updatedAt: 'fechaActualizacion' // Renombra el campo updatedAt
+    updatedAt: 'fechaActualizacion', // Renombra el campo updatedAt
+
+    indexes: [
+        {
+            unique: true,
+            fields: ['documento'],
+            name: 'idx_coordinador_documento_unico'
+        }
+    ]
 });

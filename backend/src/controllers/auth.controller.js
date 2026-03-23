@@ -1,4 +1,6 @@
+import { Op } from "sequelize";
 import { Usuario } from "../models/usuario.js";
+import { Acudiente } from "../models/acudiente.js";
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { emailService } from '../services/email.service.js';
@@ -14,7 +16,7 @@ const generarJWT = (usuario) => {
     return jwt.sign(
         { id: usuario.id, role: usuario.role, documento: usuario.documento },
         process.env.JWT_SECRET, // Se recomienda usar una clave secreta fuerte y rotarla
-        { expiresIn: '10h' }    // El token expira en 10 horas
+        { expiresIn: '12h' }    // El token expira en 12 horas
     );
 };
 
@@ -64,14 +66,14 @@ export const register = async (req, res, next) => {
 
 /**
  * @route POST /api/auth/login
- * @description Autentica un usuario y devuelve un token.
+ * @description Autentica un usuario (o lo crea al vuelo si es acudiente) y evalúa el Onboarding.
  */
 export const login = async (req, res, next) => {
-    const { email, password } = req.body;
+    const { identificador, password } = req.body;
 
     // Validación básica de campos requeridos (aunque se debe complementar con express-validator)
-    if (!email) {
-        return res.status(400).json({ message: 'El email es requerido.' });
+    if (!identificador) {
+        return res.status(400).json({ message: 'Ingrese número de documento o correo electrónico.' });
     }
 
     if (!password) {
@@ -79,22 +81,69 @@ export const login = async (req, res, next) => {
     }
 
     try {
-        // 1. Buscar usuario por email
-        const usuario = await Usuario.findOne({ where: { email } });
-        if (!usuario || !usuario.activo) {
-            return res.status(401).json({ message: 'Credenciales inválidas.' });
+        // 1. Buscar usuario por email o documento (identificador)
+        let usuario = await Usuario.findOne({
+            where: {
+                [Op.or]: [
+                    { email: identificador },
+                    { documento: identificador }
+                ]
+            }
+        });
+
+        // 2. AUTO-CREACIÓN (Just-In-Time Provisioning) para acudientes
+        // que no tienen cuenta pero sí un registro en la tabla Acudiente
+        if (!usuario) {
+            const acudiente = await Acudiente.findOne({ where: { documento: identificador } });
+
+            if (acudiente) {
+                // Validamos que esté usando su documento como contraseña por defecto
+                if (password !== acudiente.documento) {
+                    return res.status(401).json({ message: 'Credenciales inválidas.' });
+                }
+
+                // Creamos el usuario en la BD al instante
+                usuario = await Usuario.create({
+                    nombre: acudiente.primerNombre,
+                    apellidos: `${acudiente.primerApellido} ${acudiente.segundoApellido || ''}`.trim(),
+                    documento: acudiente.documento,
+                    email: null,
+                    password: acudiente.documento, // Tu hook beforeCreate lo hasheará
+                    role: 'acudiente',
+                    requiereCambioPassword: true,
+                    activo: true
+                });
+
+                // Enlazamos al acudiente con su nueva identidad
+                acudiente.usuarioId = usuario.id;
+                await acudiente.save();
+            } else {
+                return res.status(401).json({ message: 'Credenciales inválidas.' });
+            }
         }
 
-        // Comparar contraseña hasheada
+        if (!usuario.activo) {
+            return res.status(401).json({ message: 'Usuario inactivo. Contacte a administración.' });
+        }
+
+        // 3. Comparar contraseña hasheada (aplica para docentes creados y acudientes)
         const isMatch = await usuario.validarPassword(password);
         if (!isMatch) {
             return res.status(401).json({ message: 'Credenciales inválidas.' });
         }
 
-        // // 2. Lógica OTP (One-Time Password) para autenticación de dos factores (2FA)
+        // 4. Verificar si el usuario requiere cambio de contraseña (Onboarding)
+        if (usuario.requiereCambioPassword) {
+            return res.status(200).json({
+                status: 'success',
+                requireOnboarding: true,
+                usuarioId: usuario.id,
+                message: 'Por políticas de seguridad, debe actualizar su correo y contraseña.'
+            });
+        }
 
-        // Generar código de 6 dígitos
-        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        // 5. Lógica normal OTP (Solo llega aquí si requiereCambioPassword es false)
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString(); // Genera un OTP de 6 dígitos
         const otpExpires = new Date(Date.now() + 5 * 60000); // Expira en 5 minutos
 
         // Guardar OTP y su expiración en el usuario (puede ser en la base de datos o en memoria)
@@ -111,6 +160,46 @@ export const login = async (req, res, next) => {
             message: 'Credenciales correctas. Código de verificación enviado.',
             requireOTP: true,
             email: usuario.email
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * @route POST /api/auth/onboarding
+ * @description Procesa la primera actualización obligatoria de datos.
+ */
+export const completarOnboarding = async (req, res, next) => {
+    const { usuarioId, email, newPassword } = req.body;
+
+    try {
+        const usuario = await Usuario.findByPk(usuarioId);
+        if (!usuario) {
+            return res.status(404).json({ message: 'Usuario no encontrado.' });
+        }
+
+        // Evitar correos duplicados
+        const emailEnUso = await Usuario.findOne({ where: { email, id: { [Op.ne]: usuarioId } } });
+        if (emailEnUso) {
+            return res.status(409).json({ message: 'El correo electrónico ya está en uso.' });
+        }
+
+        // Actualizar Usuario (el hook beforeUpdate hasheará la newPassword)
+        usuario.email = email;
+        usuario.password = newPassword;
+        usuario.requiereCambioPassword = false; // ¡Desbloqueado!
+        await usuario.save();
+
+        // Si es acudiente, le sincronizamos el correo a su perfil original
+        if (usuario.role === 'acudiente') {
+            await Acudiente.update({ email: email }, { where: { usuarioId: usuario.id } });
+        }
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Datos actualizados correctamente. Por favor, inicie sesión nuevamente para recibir su código de verificación.'
         });
 
     } catch (error) {

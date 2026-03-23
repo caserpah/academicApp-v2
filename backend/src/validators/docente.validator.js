@@ -1,7 +1,8 @@
+import { Op } from "sequelize";
 import { body, param } from "express-validator";
 import { Docente } from "../models/docente.js";
 import { Usuario } from "../models/usuario.js";
-import { Op } from "sequelize";
+
 import {
     validarCampoRequerido,
     validarCampoOpcionalRequerido,
@@ -27,12 +28,24 @@ const regexTelefono = /^[0-9]{10,12}$/;
 
 export const ValidarCrearDocente = [
 
-    /** Documento */
+    /** Documento (Validación Inteligente para Creación Múltiple) */
     validarCampoRequerido("documento", "Ingrese el número de documento del docente.")
         .matches(regexDocumento)
         .withMessage("El documento debe contener mínimo 4 dígitos.")
         .bail()
-        .custom(validarCampoUnico(Usuario, "documento", "un docente", false, null, "número de documento")),
+        .custom(async (value) => {
+            // Buscamos si la persona ya existe
+            const usuarioExistente = await Usuario.findOne({ where: { documento: value } });
+
+            if (usuarioExistente) {
+                // Si existe, verificamos si YA es Docente.
+                const docenteExistente = await Docente.findOne({ where: { usuarioId: usuarioExistente.id } });
+                if (docenteExistente) {
+                    throw new Error("Ya existe un docente registrado con este número de documento.");
+                }
+            }
+            return true;
+        }),
 
     /** Nombre y Apellidos */
     validarCampoRequerido("nombre", "Ingrese el nombre del docente.")
@@ -42,7 +55,7 @@ export const ValidarCrearDocente = [
         .isLength({ min: 3 }).withMessage("Los apellidos deben tener al menos 3 caracteres."),
 
     /** Fecha nacimiento */
-    validarFechaNoFutura("fechaNacimiento", "de nacimiento"),
+    validarFechaNoFutura("fechaNacimiento", "de nacimiento", true),
 
     /** Email */
     validarCampoRequerido("email", "Ingrese el correo electrónico")
@@ -146,7 +159,7 @@ export const ValidarActualizarDocente = [
         .isLength({ min: 3 }).withMessage("Los apellidos deben tener al menos 3 caracteres."),
 
     /** Fecha de nacimiento */
-    validarFechaNoFutura("fechaNacimiento", "de nacimiento"),
+    validarFechaNoFutura("fechaNacimiento", "de nacimiento", true),
 
     /** Teléfono opcional */
     validarCampoOpcional("telefono")

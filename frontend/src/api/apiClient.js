@@ -13,7 +13,7 @@ import axios from 'axios';
  */
 
 // Define las URLs de la API
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001/api";
 
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
@@ -27,8 +27,11 @@ apiClient.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('userToken'); // Usamos la clave correcta
 
-        // Adjunta el token solo si existe y la URL no es la de login
-        if (token && config.url && !config.url.endsWith('/auth/login')) {
+        // Adjunta el token solo si existe y la URL no es la de login, verificación de OTP o onboarding (rutas públicas)
+        const rutasPublicas = ['/auth/login', '/auth/verify-otp', '/auth/onboarding'];
+        const esRutaPublica = rutasPublicas.some(ruta => config.url?.endsWith(ruta));
+
+        if (token && !esRutaPublica) {
             config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
@@ -40,14 +43,14 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
     (response) => response, // Si la respuesta es exitosa, la devuelve tal cual
     (error) => {
-            // Si el token es inválido o ha expirado, redirige al login
-            if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-                localStorage.removeItem('userToken');
-                window.location.href = '/login';
-            }
-            // Propaga el error para que los servicios o componentes puedan manejarlo también
-            return Promise.reject(error);
+        // Si el token es inválido o ha expirado, redirige al login
+        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            localStorage.removeItem('userToken');
+            window.location.href = '/login';
         }
+        // Propaga el error para que los servicios o componentes puedan manejarlo también
+        return Promise.reject(error);
+    }
 );
 
 // Exportamos la instancia configurada

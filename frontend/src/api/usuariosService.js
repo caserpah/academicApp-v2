@@ -4,13 +4,19 @@ import { parseError } from "../utils/errorHandler.js";
 const USERS_ENDPOINT = '/api/usuarios';
 
 // Obtener lista de usuarios
-export const fetchUsers = async () => {
+export const fetchUsers = async (page = 1, limit = 20, nombre = "") => {
     try {
-        const response = await apiClient.get(USERS_ENDPOINT);
+        // Construimos la URL con los parámetros de consulta
+        const params = new URLSearchParams({ page, limit });
+        if (nombre) params.append('nombre', nombre); // El backend ya espera 'nombre'
+
+        const response = await apiClient.get(`${USERS_ENDPOINT}?${params.toString()}`);
+
         if (response.data.status === 'success') {
-            return response.data.data.items;
+            // Retornamos el objeto completo que contiene { items, total }
+            return response.data.data;
         }
-        return [];
+        return { items: [], total: 0 };
     } catch (error) {
         throw parseError(error, "Error al cargar usuarios");
     }

@@ -14,7 +14,8 @@ export const usuarioController = {
             if (nombre) {
                 where[Op.or] = [
                     { nombre: { [Op.like]: `%${nombre}%` } },
-                    { apellidos: { [Op.like]: `%${nombre}%` } }
+                    { apellidos: { [Op.like]: `%${nombre}%` } },
+                    { documento: { [Op.like]: `%${nombre}%` } }
                 ];
             }
 

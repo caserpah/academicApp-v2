@@ -7,30 +7,31 @@ const LOGIN_API_URL = `${API_BASE_URL}/api/auth`;
 
 /**
  * Función para iniciar sesión y almacenar el token JWT.
- * @param {string} email - Correo electrónico del usuario.
+ * @param {string} identificador - Documento o Correo electrónico.
  * @param {string} password - Contraseña del usuario.
  * @returns {Promise<object>} Objeto con datos del usuario y el token.
  */
-export const login = async (email, password) => {
+export const login = async (identificador, password) => {
     try {
         // Petición al endpoint: POST /api/auth/login
         const response = await axios.post(`${LOGIN_API_URL}/login`, {
-            email,
+            identificador,
             password
         });
 
-        // Se desestructura la respuesta para obtener 'token' y 'usuario'
-        const { token, usuario } = response.data;
+        const data = response.data;
 
-        if (token && usuario) {
-            // 1. Almacenar el token y los datos del usuario en localStorage
-            localStorage.setItem('userToken', token);
-            localStorage.setItem('userData', JSON.stringify(usuario)); // // Guardamos el objeto 'usuario'
+        // 🚦 Si el backend pide Onboarding o pide OTP, simplemente devolvemos la respuesta al componente
+        if (data.requireOnboarding || data.requireOTP) {
+            return data;
+        }
 
-            // 2. Configurar el header de autorización por defecto para futuras peticiones
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-            return usuario; // Devolvemos los datos del usuario para el contexto
+        // Si el login es directo (sin OTP ni Onboarding), guardamos token
+        if (data.token && data.usuario) {
+            localStorage.setItem('userToken', data.token);
+            localStorage.setItem('userData', JSON.stringify(data.usuario));
+            axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
+            return data.usuario;
         }
 
     } catch (error) {
@@ -90,7 +91,27 @@ export const confirmPasswordReset = async (email, otp, newPassword) => {
             otp,
             newPassword
         });
-    }   catch (error) {
+    } catch (error) {
         throw parseError(error, "Error al restablecer la contraseña.");
+    }
+};
+
+/**
+ * Función para procesar la primera actualización de seguridad (Onboarding).
+ * @param {number} usuarioId - ID del usuario oculto.
+ * @param {string} email - Nuevo correo electrónico válido.
+ * @param {string} newPassword - Nueva contraseña secreta.
+ * @returns {Promise<object>} Respuesta de éxito del servidor.
+ */
+export const completarOnboarding = async (usuarioId, email, newPassword) => {
+    try {
+        const response = await axios.post(`${LOGIN_API_URL}/onboarding`, {
+            usuarioId,
+            email,
+            newPassword
+        });
+        return response.data;
+    } catch (error) {
+        throw parseError(error, "Error al actualizar los datos de seguridad.");
     }
 };

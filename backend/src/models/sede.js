@@ -14,22 +14,11 @@ export const Sede = sequelize.define("sede", {
     },
     codigo: {
         type: DataTypes.STRING(20),
-        allowNull: false,
-        unique: true,
-        validate: {
-            isAlphanumeric: {
-                msg: "El código de la sede solo debe contener caracteres alfanuméricos."
-            }
-        }
+        allowNull: false
     },
     nombre: {
         type: DataTypes.STRING(60),
-        allowNull: false, // El nombre es obligatorio
-        validate: {
-            notEmpty: {
-                msg: "El nombre de la sede es obligatorio."
-            }
-        }
+        allowNull: false
     },
     direccion: {
         type: DataTypes.STRING(80),

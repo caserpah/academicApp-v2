@@ -3,7 +3,7 @@ import { sequelize } from '../database/db.connect.js';
 import bcrypt from 'bcrypt';
 
 // Roles permitidos
-const ROLES = ["admin", "director", "coordinador", "docente", "acudiente"];
+const ROLES = ["admin", "director", "coordinador", "docente", "acudiente", "secretaria"];
 
 export const Usuario = sequelize.define(
     "usuario",
@@ -14,85 +14,69 @@ export const Usuario = sequelize.define(
             autoIncrement: true,
             allowNull: false,
         },
+
         // Datos de identificación
         nombre: {
             type: DataTypes.STRING(60),
-            allowNull: false,
-            validate: {
-                notEmpty: { msg: "El nombre es obligatorio." },
-            },
+            allowNull: false
         },
+
         apellidos: {
             type: DataTypes.STRING(80),
-            allowNull: false,
-            validate: {
-                notEmpty: { msg: "Los apellidos son obligatorios." },
-            },
+            allowNull: false
         },
+
         documento: {
             type: DataTypes.STRING(20),
             allowNull: false,
-            unique: true,
             set(value) {
                 this.setDataValue("documento", value?.trim());
-            },
-            validate: {
-                notEmpty: { msg: "El número de documento es obligatorio." },
-                len: {
-                    args: [5, 20],
-                    msg: "El documento debe tener entre 5 y 20 caracteres.",
-                },
-            },
+            }
         },
+
         telefono: {
             type: DataTypes.STRING(12),
             allowNull: true,
         },
         // Credenciales y Roles
+
         email: {
             type: DataTypes.STRING(80),
-            allowNull: false,
-            unique: true,
+            allowNull: true,
             set(value) {
-                this.setDataValue("email", value?.trim().toLowerCase());
-            },
-            validate: {
-                isEmail: { msg: "Debe ingresar un correo electrónico válido." },
-                notEmpty: { msg: "El correo electrónico es obligatorio." },
-            },
+                if (value) this.setDataValue("email", value.trim().toLowerCase());
+            }
         },
+
         password: {
             type: DataTypes.STRING(100), // Se usa un string largo para almacenar el hash
-            allowNull: false,
-            validate: {
-                notEmpty: { msg: "La contraseña es obligatoria." },
-                len: {
-                    args: [8, 100],
-                    msg: "La contraseña debe tener al menos 8 caracteres.",
-                },
-            },
+            allowNull: false
         },
+
         role: {
             type: DataTypes.ENUM(...ROLES),
             allowNull: false,
-            defaultValue: "acudiente",
-            validate: {
-                isIn: {
-                    args: [ROLES],
-                    msg: "El rol especificado no es válido.",
-                },
-            },
+            defaultValue: "acudiente"
         },
+
         activo: {
             type: DataTypes.BOOLEAN,
             allowNull: false,
             defaultValue: true,
         },
+
+        requiereCambioPassword: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: true,
+        },
+
         otpCode: {
             type: DataTypes.STRING(100), // Almacenamos el hash del OTP
             allowNull: true,
             comment: "Código OTP para autenticación de dos factores (2FA), almacenado como hash por seguridad.",
         },
+
         otpExpires: {
             type: DataTypes.DATE,
             allowNull: true,
@@ -102,7 +86,19 @@ export const Usuario = sequelize.define(
     timestamps: true,
     createdAt: 'fechaCreacion', // Renombra el campo createdAt
     updatedAt: 'fechaActualizacion', // Renombra el campo updatedAt
-    // Aquí puedes añadir más opciones del modelo si las necesitas
+
+    indexes: [
+            {
+                unique: true,
+                fields: ['documento'],
+                name: 'unique_documento_index'
+            },
+            {
+                unique: true,
+                fields: ['email'],
+                name: 'unique_email_index'
+            }
+        ]
 });
 
 // Hook (gancho) de Sequelize para hashear la contraseña antes de guardar

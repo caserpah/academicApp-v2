@@ -23,6 +23,7 @@ import { VentanaCalificacion } from "../../models/ventana_calificacion.js";
 import { ConfigGrado } from "../../models/config_grado.js";
 import { DesempenoRango } from "../../models/desempeno_rango.js";
 import { Usuario } from "../../models/usuario.js";
+import { CodigoBoletin } from "../../models/codigoBoletin.js";
 
 export const definirAsociaciones = () => {
 
@@ -103,6 +104,19 @@ export const definirAsociaciones = () => {
     Usuario.hasOne(Docente, { foreignKey: "usuarioId", as: "perfilDocente" });
     Docente.belongsTo(Usuario, { foreignKey: "usuarioId", as: "identidad" });
 
+    /** 👤 Usuario ↔ Acudiente (1:1) - Identidad Unificada */
+    Usuario.hasOne(Acudiente, {
+        foreignKey: "usuarioId",
+        as: "perfilAcudiente",
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
+    });
+
+    Acudiente.belongsTo(Usuario, {
+        foreignKey: "usuarioId",
+        as: "identidad"
+    });
+
     /** 👨‍🏫 Docente ↔ Carga / Grupo / Calificaciones */
     Docente.hasMany(Carga, { foreignKey: "docenteId", as: "cargas" });
     Carga.belongsTo(Docente, { foreignKey: "docenteId", as: "docente" });
@@ -117,6 +131,14 @@ export const definirAsociaciones = () => {
     Matricula.hasMany(Nivelacion, { foreignKey: "matriculaId", as: "nivelaciones" });
     Nivelacion.belongsTo(Matricula, { foreignKey: "matriculaId", as: "matricula" });
 
+    /** 📄 CodigoBoletin ↔ Matricula / Vigencia */
+    Matricula.hasMany(CodigoBoletin, { foreignKey: 'matriculaId', as: 'codigosBoletines' });
+    CodigoBoletin.belongsTo(Matricula, { foreignKey: 'matriculaId', as: 'matricula' });
+
+    Vigencia.hasMany(CodigoBoletin, { foreignKey: 'vigenciaId', as: 'codigosBoletines' });
+    CodigoBoletin.belongsTo(Vigencia, { foreignKey: "vigenciaId", as: "vigencia" });
+
+    /** Nivelación ↔ Asignatura / Docente */
     Asignatura.hasMany(Nivelacion, { foreignKey: "asignaturaId", as: "nivelaciones" });
     Nivelacion.belongsTo(Asignatura, { foreignKey: "asignaturaId", as: "asignatura" });
 

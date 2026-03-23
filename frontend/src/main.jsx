@@ -56,9 +56,11 @@ import {
   faChartSimple,      // Indicadores
   faGavel,             // Juicios
   faFilePdf,             // Boletines
+  faKey,               // Códigos de Boletín
 
   faEnvelope,
-  faClipboardList
+  faClipboardList,
+
 
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -69,7 +71,7 @@ faChevronRight,faSave, faXmark, faEdit, faPenToSquare, faChartSimple,
 faTrash, faSpinner, faInfoCircle,faUserCircle, faCirclePlus, faGavel,
 faTimesCircle, faTimes, faAnglesLeft,faAngleLeft, faAngleRight, faBalanceScale,
 faAnglesRight, faSchool, faBuilding, faUserTie, faCalendarAlt, faUserShield,
-faLayerGroup, faBookOpen, faUsersRectangle, faChalkboardUser, faFilePdf,
+faLayerGroup, faBookOpen, faUsersRectangle, faChalkboardUser, faFilePdf, faKey,
 faEnvelope, faFilePen, faUsers, faHandsHoldingChild, faPersonChalkboard
 );
 // -----------------------------------------------------------------

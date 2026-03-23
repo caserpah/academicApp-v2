@@ -61,6 +61,7 @@ export const asignaturaService = {
             const {
                 codigo,
                 nombre,
+                nombreCorto,
                 abreviatura,
                 promociona,
                 porcentual,
@@ -92,6 +93,7 @@ export const asignaturaService = {
             const asignatura = await asignaturaRepository.create({
                 codigo,
                 nombre,
+                nombreCorto,
                 abreviatura,
                 promociona,
                 porcentual,
@@ -122,6 +124,7 @@ export const asignaturaService = {
             const {
                 codigo,
                 nombre,
+                nombreCorto,
                 abreviatura,
                 promociona,
                 porcentual,
@@ -164,6 +167,7 @@ export const asignaturaService = {
             await asignatura.update({
                 codigo,
                 nombre,
+                nombreCorto,
                 abreviatura,
                 promociona,
                 porcentual,
