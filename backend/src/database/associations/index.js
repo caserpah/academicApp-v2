@@ -27,6 +27,8 @@ import { CodigoBoletin } from "../../models/codigoBoletin.js";
 
 export const definirAsociaciones = () => {
 
+try {
+
     /** 🏫 Colegio ↔ Sede */
     Colegio.hasMany(Sede, { foreignKey: "colegioId", as: "sedes" });
     Sede.belongsTo(Colegio, { foreignKey: "colegioId", as: "colegio" });
@@ -251,4 +253,11 @@ export const definirAsociaciones = () => {
         Vigencia.hasMany(Modelo, { foreignKey: "vigenciaId", as: alias });
         Modelo.belongsTo(Vigencia, { foreignKey: "vigenciaId", as: "vigencia" });
     });
+
+    // 🟢 AÑADE ESTA LÍNEA AL FINAL DEL TRY:
+        console.log("✅ TODAS LAS ASOCIACIONES SE CARGARON CON ÉXITO");
+} catch (error) {
+    console.error("Error al definir asociaciones:", error);
+}
+
 };

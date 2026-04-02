@@ -13,9 +13,9 @@ export const errorHandler = (err, req, res, next) => {
     const errorId = Date.now();
 
     // Muestra el Log detallado solo en entorno de desarrollo
-    if (env !== "production") {
+    //if (env !== "production") {
         console.error(`🧨 Error [${errorId}] capturado por errorHandler:`, err);
-    }
+    //}
 
     // Delegar manejo de errores de Sequelize
     if (

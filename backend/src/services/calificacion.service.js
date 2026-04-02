@@ -384,12 +384,23 @@ export const calificacionService = {
                 });
             }
 
-            // Persistencia (Upsert)
             let result;
             if (existingCal) {
                 result = await calificacionRepository.update(existingCal, dataToSave, t);
             } else {
-                result = await calificacionRepository.create(dataToSave, t);
+                try {
+                    // Intentamos crear la calificación (Petición A ganará aquí)
+                    result = await calificacionRepository.create(dataToSave, t);
+                } catch (err) {
+                    // Si falla por restricción única, la Petición B llegó tarde.
+                    // Solución: Buscamos la que acaba de crear la Petición A y la actualizamos.
+                    if (err.name === 'SequelizeUniqueConstraintError') {
+                        const calificacionRecuperada = await calificacionRepository.findOne(estudianteId, asignaturaId, periodo, vigenciaId, t);
+                        result = await calificacionRepository.update(calificacionRecuperada, dataToSave, t);
+                    } else {
+                        throw err; // Si es otro error real, lo dejamos pasar
+                    }
+                }
             }
 
             await t.commit();

@@ -1,4 +1,5 @@
 import React from 'react';
+import imagenFondo from '../../assets/knowledge.jpg';
 
 const Bienvenida = () => {
     return (
@@ -10,7 +11,7 @@ const Bienvenida = () => {
             {/* Contenido visual, como la imagen que mostraste */}
             <div className="mt-8">
                 <img
-                    src="/src/assets/knowledge.jpg"
+                    src={imagenFondo}
                     alt="Estudiante en clase"
                     className="w-full h-auto max-h-96 object-cover rounded-lg shadow-md"
                 />

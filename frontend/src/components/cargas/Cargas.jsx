@@ -21,16 +21,17 @@ const Cargas = () => {
     const [cargas, setCargas] = useState([]);
 
     // Catálogos para los selects de filtro
-    const [catalogos, setCatalogos] = useState({ sedes: [], grados: [] });
+    const [catalogos, setCatalogos] = useState({ sedes: [], grados: [], asignaturas: [] });
 
     // Estado de Paginación
-    const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
+    const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
 
     // Estado de Filtros (Lo que el usuario selecciona)
     const [filtros, setFiltros] = useState({
         sedeId: "",
         gradoId: "",
         jornada: "",
+        asignaturaId: "",
         busqueda: "" // El valor confirmado del debounce
     });
 
@@ -48,7 +49,8 @@ const Cargas = () => {
                 const data = await fetchCargasCatalogs();
                 setCatalogos({
                     sedes: data.sedes,
-                    grados: data.grados
+                    grados: data.grados,
+                    asignaturas: data.asignaturas
                 });
             } catch {
                 showError("Error cargando listas de filtros.");
@@ -108,6 +110,7 @@ const Cargas = () => {
             sedeId: "",
             gradoId: "",
             jornada: "",
+            asignaturaId: "",
             busqueda: ""
         });
         setSearchTerm("");
@@ -174,8 +177,8 @@ const Cargas = () => {
 
                     {/* Barra de Filtros */}
                     <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-                            {/* ... Selects de Sede, Grado, Jornada (IGUALES A ANTES) ... */}
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                            {/* ... Selects de Sede, Grado, Asignatura, Jornada (IGUALES A ANTES) ... */}
                             <div>
                                 <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Sede</label>
                                 <select name="sedeId" value={filtros.sedeId} onChange={handleFiltroChange} className="w-full border border-gray-300 rounded-md p-2 text-sm bg-white">
@@ -188,6 +191,13 @@ const Cargas = () => {
                                 <select name="gradoId" value={filtros.gradoId} onChange={handleFiltroChange} className="w-full border border-gray-300 rounded-md p-2 text-sm bg-white">
                                     <option value="">Todos los Grados</option>
                                     {catalogos.grados.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Asignatura</label>
+                                <select name="asignaturaId" value={filtros.asignaturaId} onChange={handleFiltroChange} className="w-full border border-gray-300 rounded-md p-2 text-sm bg-white">
+                                    <option value="">Todas</option>
+                                    {catalogos.asignaturas?.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
                                 </select>
                             </div>
                             <div>

@@ -1,4 +1,5 @@
 import { Op } from "sequelize";
+import { sequelize } from "../database/db.connect.js";
 import { Carga } from "../models/carga.js";
 import { Sede } from "../models/sede.js";
 import { Docente } from "../models/docente.js";
@@ -22,7 +23,8 @@ export const cargaRepository = {
         docenteId,
         grupoId,
         gradoId,
-        jornada
+        jornada,
+        asignaturaId
     } = {}) {
 
         // Filtros Directos
@@ -31,29 +33,40 @@ export const cargaRepository = {
         if (vigenciaId) where.vigenciaId = vigenciaId;
         if (docenteId) where.docenteId = docenteId;
         if (grupoId) where.grupoId = grupoId;
+        if (asignaturaId) where.asignaturaId = asignaturaId;
 
         // Búsqueda de Texto (Debounce)
         if (busqueda) {
+            const termino = `%${busqueda.trim()}%`;
             where[Op.or] = [
-                { codigo: { [Op.like]: `%${busqueda}%` } },
-                { '$docente.identidad.nombre$': { [Op.like]: `%${busqueda}%` } },
-                { '$docente.identidad.apellidos$': { [Op.like]: `%${busqueda}%` } },
-                { '$docente.identidad.documento$': { [Op.like]: `%${busqueda}%` } },
-                { '$asignatura.nombre$': { [Op.like]: `%${busqueda}%` } },
-                { '$grupo.nombre$': { [Op.like]: `%${busqueda}%` } }
+                { codigo: { [Op.like]: termino } },
+                { '$asignatura.nombre$': { [Op.like]: termino } },
+                { '$grupo.nombre$': { [Op.like]: termino } },
+                { '$docente.identidad.documento$': { [Op.like]: termino } },
+                { '$docente.identidad.nombre$': { [Op.like]: termino } },
+                { '$docente.identidad.apellidos$': { [Op.like]: termino } },
+                // Permite buscar por el nombre completo (Ej: Juan Perez)
+                sequelize.where(
+                    sequelize.fn('CONCAT', sequelize.col('docente->identidad.nombre'), ' ', sequelize.col('docente->identidad.apellidos')),
+                    { [Op.like]: termino }
+                ),
+                // Permite buscar por apellidos y luego nombres (Ej: Perez Juan)
+                sequelize.where(
+                    sequelize.fn('CONCAT', sequelize.col('docente->identidad.apellidos'), ' ', sequelize.col('docente->identidad.nombre')),
+                    { [Op.like]: termino }
+                )
             ];
         }
 
-        // Configuración del Include de Grupo (Para filtros anidados)
+        // Configuración del Include de Grupo (Agregamos duplicating: false)
         const grupoInclude = {
             model: Grupo,
             as: "grupo",
             attributes: ["id", "nombre", "jornada", "gradoId"],
-            include: [{ model: Grado, as: "grado", attributes: ["id", "nombre"] }]
+            duplicating: false,
+            include: [{ model: Grado, as: "grado", attributes: ["id", "nombre"], duplicating: false }]
         };
 
-        // Lógica de filtrado anidado:
-        // Si se envían gradoId o jornada, debo filtrar AL GRUPO, no a la carga directamente.
         if (gradoId || jornada) {
             grupoInclude.where = {};
             if (gradoId) grupoInclude.where.gradoId = gradoId;
@@ -66,7 +79,7 @@ export const cargaRepository = {
             where,
             offset,
             limit: Number(limit),
-            subQuery: false, // OBLIGATORIO: Permite filtrar por las tablas incluidas (Grupo)
+            subQuery: false,
             order: [
                 [{ model: Grupo, as: 'grupo' }, { model: Grado, as: 'grado' }, 'id', 'ASC'],
                 [{ model: Grupo, as: 'grupo' }, 'nombre', 'ASC'],
@@ -76,27 +89,32 @@ export const cargaRepository = {
                 {
                     model: Sede,
                     as: "sede",
-                    attributes: ["id", "nombre"]
+                    attributes: ["id", "nombre"],
+                    duplicating: false
                 },
                 {
                     model: Docente,
                     as: "docente",
+                    duplicating: false,
                     include: [{
                         model: Usuario,
                         as: 'identidad',
-                        attributes: ["documento", "nombre", "apellidos"] // Solo traes lo que necesitas
+                        attributes: ["documento", "nombre", "apellidos"],
+                        duplicating: false,
                     }]
                 },
-                grupoInclude, // Usamos el objeto configurado arriba
+                grupoInclude,
                 {
                     model: Asignatura,
                     as: "asignatura",
-                    attributes: ["id", "nombre", "codigo", "porcentual"]
+                    attributes: ["id", "nombre", "codigo", "porcentual"],
+                    duplicating: false
                 },
                 {
                     model: Vigencia,
                     as: "vigencia",
-                    attributes: ["id", "anio"]
+                    attributes: ["id", "anio"],
+                    duplicating: false
                 }
             ]
         });

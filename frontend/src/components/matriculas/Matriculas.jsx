@@ -25,7 +25,7 @@ const Matriculas = () => {
         sedeId: "",
         grupoId: "",
         metodologia: "TRADICIONAL",
-        estado: "PREMATRICULADO",
+        estado: "ACTIVA",
         observaciones: "",
         folio: "",
         vigenciaId: "",
@@ -218,9 +218,7 @@ const Matriculas = () => {
                 return {
                     ...prev,
                     sedeId: valorFinal,
-                    grupoId: "",
-                    estudianteId: "",
-                    estudiante: null
+                    grupoId: ""
                 };
             }
 
@@ -267,9 +265,13 @@ const Matriculas = () => {
             observaciones: mat.observaciones || ""
         });
         setMode("editar");
-        if (formContainerRef.current) {
-            formContainerRef.current.scrollIntoView({ behavior: "smooth" });
-        }
+
+        setTimeout(() => {
+            if (formContainerRef.current) {
+                // block: "start" asegura que quede bien alineado arriba
+                formContainerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+        }, 100); // 100ms es tiempo suficiente para que React termine de actualizar el DOM
     };
 
     const handleDelete = async () => {

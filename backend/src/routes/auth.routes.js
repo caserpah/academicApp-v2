@@ -7,7 +7,8 @@ import {
     verifyOtp,
     forgotPassword,
     resetPassword,
-    completarOnboarding
+    completarOnboarding,
+    hashearPasswordsImportados
 } from '../controllers/auth.controller.js';
 
 // Importamos las funciones de validación
@@ -39,5 +40,8 @@ router.post('/reset-password', validarResetPassword, resetPassword);
 
 // Ruta para completar el onboarding (establecer nueva contraseña en el primer acceso)
 router.post('/onboarding', validarOnboarding, completarOnboarding);
+
+// Ruta para hashear las contraseñas importadas (solo para uso interno)
+//router.get('/fix-passwords', hashearPasswordsImportados);
 
 export default router;

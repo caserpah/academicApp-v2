@@ -36,7 +36,7 @@ export const acudienteService = {
             let usuarioExistente = await Usuario.findOne({ where: { documento }, transaction: t });
 
             if (usuarioExistente) {
-                const acudienteExistente = await acudienteRepository.findByDocumento(documento);
+                const acudienteExistente = await acudienteRepository.findOne({ where: { usuarioId: usuarioExistente.id } });
                 if (acudienteExistente) {
                     throw new Error("Esta persona ya está registrada como acudiente en el sistema.");
                 }
@@ -194,7 +194,7 @@ export const acudienteService = {
                 await usuario.save({ transaction: t });
 
                 // Ahora revisamos si YA tiene un perfil de acudiente
-                const acudienteExistente = await acudienteRepository.findByDocumento(datosAcudiente.documento);
+                const acudienteExistente = await acudienteRepository.findOne({ where: { usuarioId: usuario.id } });
 
                 if (acudienteExistente) {
                     // Ya era acudiente. Le actualizamos los datos de su rol.

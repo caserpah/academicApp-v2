@@ -310,10 +310,10 @@ const MatriculasForm = ({
                             <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
                             <select
                                 name="estado"
-                                value={formData.estado || "PREMATRICULADO"}
+                                value={formData.estado || "ACTIVA"}
                                 onChange={handleChange}
                                 className={getInputClasses(mode === "agregar")}
-                                disabled={mode === "agregar"}
+                                // disabled={mode === "agregar"}
                             >
                                 <option value="PREMATRICULADO">Prematriculado</option>
                                 <option value="ACTIVA">Activa</option>

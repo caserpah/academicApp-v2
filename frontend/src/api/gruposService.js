@@ -16,7 +16,8 @@ export const fetchGruposPorSede = async (sedeId) => {
             params: {
                 sedeId,
                 includeGrado: true,
-                soloActivos: true
+                soloActivos: true,
+                limit: 100 // Para obtener todos los grupos sin paginación
             }
         });
 

@@ -9,6 +9,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import helmet from 'helmet'; // Importa Helmet para mejorar la seguridad de la aplicación
 import rateLimit from 'express-rate-limit'; // Importa express-rate-limit para limitar la cantidad de solicitudes
+import { definirAsociaciones } from './database/associations/index.js'; // Importa la función para definir asociaciones entre modelos
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,15 +24,6 @@ app.set('trust proxy', 1);
 
 // 1. Ocultar información del servidor y proteger cabeceras HTTP
 app.use(helmet());
-
-// 2. Limitar peticiones (Ej: máximo 100 peticiones por ventana de 15 minutos por IP)
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    message: "Demasiadas peticiones desde esta IP, por favor intenta de nuevo más tarde."
-});
-// Aplicar el limitador a todas las rutas de la API
-app.use('/api', limiter);
 
 // *** Configuracion de CORS ***
 // Los orígenes permitidos se obtienen de una variable de entorno.
@@ -53,6 +45,20 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'x-vigencia-id'], // Encabezados permitidos
 }));
 
+// Limitar peticiones a la API para prevenir abusos (Ej: máximo 2000 peticiones por ventana de 15 minutos por IP)
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 2000, // 🚀 AUMENTADO: 2000 peticiones permitidas por ventana
+    message: {
+        status: "error",
+        message: "Demasiadas peticiones desde esta IP, por favor intenta de nuevo más tarde."
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+// Aplicar el limitador a todas las rutas de la API
+app.use('/api', limiter);
+
 // --- Middlewares para parsear el cuerpo de las solicitudes ---
 app.use(express.json()); // Permite que Express maneje solicitudes JSON
 app.use(express.urlencoded({ extended: true })); // Permite que Express maneje solicitudes con datos codificados en URL
@@ -67,9 +73,13 @@ async function startServer() {
         await connectToDatabase(); // Espera a que la conexión se establezca correctamente
         console.log('Servidor iniciado correctamente.');
 
-        // Sincroniza los modelos con la base de datos (opcional, solo en desarrollo)
-        // Descomentar para sincronizar modelos, no recomendado en producción
-        await syncModels();
+        definirAsociaciones();
+        console.log('✅ Asociaciones de Sequelize cargadas con éxito.');
+
+        // Sincroniza los modelos con la base de datos (Solo en desarrollo)
+        // if (process.env.NODE_ENV !== 'production') {
+        //     await syncModels();
+        // }
 
         // Montar el enrutador centralizado de las rutas bajo el prefijo /api
         app.use('/api', apiRoutes);

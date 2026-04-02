@@ -113,8 +113,16 @@ const GrillaCalificaciones = ({
 
     // --- HANDLERS INDIVIDUALES ---
     const handleCellChange = (index, field, value) => {
-        if (!/^\d*\.?\d*$/.test(value)) return;
-        if (parseFloat(value) > 5) return;
+        // Lógica EXCLUSIVA para Fallas (Solo enteros, sin límite de 5)
+        if (field === 'fallas') {
+            if (!/^\d*$/.test(value)) return; // Solo permite dígitos (bloquea puntos y letras)
+            if (value.length > 2) return; // Opcional: Evita que digiten más de 99 fallas por error
+        }
+        // Lógica EXCLUSIVA para Notas (Permite decimales, bloquea si es mayor a 5)
+        else {
+            if (!/^\d*\.?\d*$/.test(value)) return;
+            if (parseFloat(value) > 5) return;
+        }
 
         const newData = [...gridData];
         newData[index][field] = value;
@@ -139,6 +147,10 @@ const GrillaCalificaciones = ({
             return;
         }
 
+        // Si este estudiante ya está en proceso de guardado, aborta el segundo disparo.
+        if (savingIds[row.estudianteId]) return;
+
+        // Activamos el estado de guardado (esto deshabilitará el input y causará el segundo onBlur falso, pero ya estamos protegidos)
         setSavingIds(prev => ({ ...prev, [row.estudianteId]: true }));
 
         try {
@@ -613,7 +625,7 @@ const GrillaCalificaciones = ({
                                 {!esComportamiento && (
                                     <>
                                         <td className="px-2 py-2 text-center">
-                                            <input type="number" min="0" value={row.fallas}
+                                            <input type="number" min="0" max="99" value={row.fallas}
                                                 onChange={(e) => handleCellChange(index, 'fallas', e.target.value)}
                                                 onBlur={() => handleBlur(index)}
                                                 disabled={row.bloqueo_notas || isReadOnly}
