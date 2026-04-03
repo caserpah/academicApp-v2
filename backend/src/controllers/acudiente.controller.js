@@ -102,4 +102,17 @@ export const acudienteController = {
             next(error);
         }
     },
+
+    /**
+     * Habilitar acceso web para un acudiente
+     */
+    async habilitarAcceso(req, res, next) {
+        try {
+            const id = Number(req.params.id);
+            const data = await acudienteService.habilitarAccesoWeb(id);
+            return sendSuccess(res, data, data.mensaje, 201);
+        } catch (error) {
+            next(error);
+        }
+    },
 };

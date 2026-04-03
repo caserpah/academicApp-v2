@@ -8,10 +8,11 @@ import {
     faHandsHoldingChild,
     faChevronLeft,
     faChevronRight,
-    faSpinner
+    faSpinner,
+    faKey,
 } from "@fortawesome/free-solid-svg-icons";
 
-import { listarAcudientes, eliminarAcudiente } from '../../api/acudientesService.js';
+import { listarAcudientes, eliminarAcudiente, habilitarAccesoWeb } from '../../api/acudientesService.js';
 import { showSuccess, showError, showConfirm } from "../../utils/notifications.js";
 import AcudientesForm from '../acudientes/AcudientesForm.jsx';
 
@@ -80,6 +81,23 @@ const Acudientes = () => {
         } catch (error) {
             console.error(error);
             showError("No se pudo eliminar. Verifique si el acudiente tiene estudiantes asociados.");
+        }
+    };
+
+    // Habilitar acceso web a un acudiente
+    const handleHabilitarAcceso = async (id) => {
+        const confirmado = await showConfirm(
+            "Se creará una cuenta de usuario usando el número de documento como contraseña inicial.",
+            "¿Habilitar acceso web?"
+        );
+        if (!confirmado) return;
+
+        try {
+            await habilitarAccesoWeb(id);
+            showSuccess("Acceso web habilitado exitosamente.");
+            fetchAcudientes(pagination.page); // Recargar la tabla
+        } catch (error) {
+            showError(error.message || "No se pudo habilitar el acceso.");
         }
     };
 
@@ -172,8 +190,7 @@ const Acudientes = () => {
                                 </tr>
                             ) : (
                                 acudientes.map((item) => {
-                                    const identidad = item.identidad || {};
-                                    const iniciales = getInitials(identidad.nombre, identidad.apellidos);
+                                    const iniciales = getInitials(item.nombres, item.apellidos);
 
                                     return (
                                         <tr key={item.id} className="hover:bg-gray-50 transition-colors group">
@@ -186,7 +203,7 @@ const Acudientes = () => {
                                                     </div>
                                                     <div className="ml-4">
                                                         <div className="text-sm font-medium text-gray-900 uppercase">
-                                                            {identidad.apellidos} {identidad.nombre}
+                                                            {item.apellidos} {item.nombres}
                                                         </div>
                                                         <div className="text-xs text-gray-500">
                                                             Acudiente / Tutor
@@ -196,14 +213,14 @@ const Acudientes = () => {
                                             </td>
 
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900 font-medium">{identidad.documento}</div>
+                                                <div className="text-sm text-gray-900 font-medium">{item.documento}</div>
                                                 <div className="text-xs text-gray-500">{item.tipoDocumento}</div>
                                             </td>
 
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">{identidad.telefono || 'Sin teléfono'}</div>
-                                                <div className="text-xs text-blue-500 lowercase truncate max-w-[150px]" title={identidad.email}>
-                                                    {identidad.email || 'Sin email'}
+                                                <div className="text-sm text-gray-900">{item.telefono || 'Sin teléfono'}</div>
+                                                <div className="text-xs text-blue-500 lowercase truncate max-w-[150px]" title={item.email}>
+                                                    {item.email || 'Sin email'}
                                                 </div>
                                             </td>
 
@@ -214,6 +231,7 @@ const Acudientes = () => {
                                             </td>
 
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                {/* Botones de Editar y Eliminar (que ya tenías) */}
                                                 <button
                                                     onClick={() => openModal(item)}
                                                     className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50 transition"
@@ -228,6 +246,21 @@ const Acudientes = () => {
                                                 >
                                                     <FontAwesomeIcon icon={faTrash} />
                                                 </button>
+
+                                                {/* Botón de Acceso Web */}
+                                                {item.identidad || item.usuarioId ? (
+                                                    <span className="text-xs text-green-700 font-bold bg-green-100 px-2 py-1 rounded-full mr-3 border border-green-200" title="Este acudiente ya puede iniciar sesión">
+                                                        Con Acceso
+                                                    </span>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleHabilitarAcceso(item.id)}
+                                                        className="text-emerald-600 hover:text-emerald-800 p-1 mr-2 rounded-full hover:bg-emerald-50 transition"
+                                                        title="Habilitar Acceso Web"
+                                                    >
+                                                        <FontAwesomeIcon icon={faKey} />
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     );

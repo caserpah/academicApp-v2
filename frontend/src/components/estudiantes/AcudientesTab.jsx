@@ -12,7 +12,7 @@ const AFINIDADES = [
 
 // ESTADO INICIAL DEL FORMULARIO
 const INITIAL_FORM = {
-    tipoDocumento: 'CC', documento: '', nombre: '', apellidos: '',
+    tipoDocumento: 'CC', documento: '', nombres: '', apellidos: '',
     telefono: '', direccion: '', email: '', afinidad: ''
 };
 
@@ -42,19 +42,17 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
             const encontrado = await buscarAcudientePorDocumento(doc);
 
             if (encontrado) {
-                // MAPEAMOS LOS DATOS DESDE LA FUENTE ÚNICA DE VERDAD (Usuarios)
-                const identidad = encontrado.identidad || {};
 
                 setFormData(prev => ({
                     ...prev,
                     tipoDocumento: encontrado.tipoDocumento || 'CC',
                     direccion: encontrado.direccion || '',
-                    documento: identidad.documento || doc,
-                    nombre: identidad.nombre || '',
-                    apellidos: identidad.apellidos || '',
-                    telefono: identidad.telefono || '',
-                    email: identidad.email || '',
-                    afinidad: prev.afinidad // Mantiene lo que eligió la secretaria
+                    documento: encontrado.documento || doc,
+                    nombres: encontrado.nombres || '',
+                    apellidos: encontrado.apellidos || '',
+                    telefono: encontrado.telefono || '',
+                    email: encontrado.email || '',
+                    afinidad: prev.afinidad
                 }));
                 setExisteEnBD(true);
             } else {
@@ -189,7 +187,7 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                             <label className="block text-xs text-gray-500 mb-1">Nombres Completos <span className="text-red-500">*</span></label>
-                            <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} className="w-full border border-gray-300 rounded px-2 py-1.5 uppercase focus:ring-1 focus:ring-blue-500 outline-none" />
+                            <input type="text" name="nombres" value={formData.nombres} onChange={handleChange} className="w-full border border-gray-300 rounded px-2 py-1.5 uppercase focus:ring-1 focus:ring-blue-500 outline-none" />
                         </div>
                         <div>
                             <label className="block text-xs text-gray-500 mb-1">Apellidos Completos <span className="text-red-500">*</span></label>
@@ -240,8 +238,6 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
             ) : (
                 <div className="grid gap-3 md:grid-cols-2">
                     {estudiante.acudientes.map((acu) => {
-                        // ACCEDEMOS A LA IDENTIDAD UNIFICADA
-                        const identidad = acu.identidad || {};
 
                         return (
                             <div key={acu.id} className="flex flex-col justify-between p-3 bg-white border border-gray-200 rounded shadow-sm hover:shadow-md transition-shadow">
@@ -252,10 +248,10 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
                                         </div>
                                         <div>
                                             <p className="text-sm font-bold text-gray-800 uppercase">
-                                                {identidad.apellidos} {identidad.nombre}
+                                                {acu.apellidos} {acu.nombres}
                                             </p>
                                             <p className="text-xs text-gray-500">
-                                                {acu.tipoDocumento} {identidad.documento}
+                                                {acu.tipoDocumento} {acu.documento}
                                             </p>
                                         </div>
                                     </div>
@@ -266,8 +262,8 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
 
                                 <div className="mt-3 pt-2 border-t border-gray-100 flex justify-between items-center">
                                     <div className="text-xs text-gray-500 flex flex-col">
-                                        <span>📞 {identidad.telefono || "Sin teléfono"}</span>
-                                        <span>📧 {identidad.email || "Sin email"}</span>
+                                        <span>📞 {acu.telefono || "Sin teléfono"}</span>
+                                        <span>📧 {acu.email || "Sin email"}</span>
                                     </div>
                                     <button
                                         type="button"

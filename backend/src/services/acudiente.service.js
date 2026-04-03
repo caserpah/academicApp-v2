@@ -20,126 +20,51 @@ export const acudienteService = {
     },
 
     /**
-     * Crear Acudiente (Arquitectura de Fuente Única de Verdad)
+     * Crear Acudiente (Independiente para Matrículas)
      */
     async create(data) {
-        const t = await sequelize.transaction();
-
         try {
-            const {
-                tipoDocumento, documento, nombre, apellidos,
-                direccion, telefono, email
-            } = data;
-
-            let usuarioId;
-            // Verificar si el documento ya existe en la tabla de Usuarios (podría ser un docente o admin que ahora se registra como papá)
-            let usuarioExistente = await Usuario.findOne({ where: { documento }, transaction: t });
-
-            if (usuarioExistente) {
-                const acudienteExistente = await acudienteRepository.findOne({ where: { usuarioId: usuarioExistente.id } });
-                if (acudienteExistente) {
-                    throw new Error("Esta persona ya está registrada como acudiente en el sistema.");
-                }
-
-                // Solo sobrescribimos los campos personales básicos, si vienen nuevos datos.
-                // No tocamos el password ni el rol (a menos que sea un usuario "dormido" que ahora se activa como acudiente).
-                if (nombre) usuarioExistente.nombre = nombre;
-                if (apellidos) usuarioExistente.apellidos = apellidos;
-                if (email) usuarioExistente.email = email;
-                if (telefono) usuarioExistente.telefono = telefono;
-
-                // Guardamos los cambios en la tabla usuarios asegurando la transacción
-                await usuarioExistente.save({ transaction: t });
-
-                usuarioId = usuarioExistente.id;
-            } else {
-                // Creamos el usuario "dormido" (esperando Onboarding)
-                const nuevoUsuario = await Usuario.create({
-                    nombre,
-                    apellidos,
-                    documento,
-                    email,
-                    telefono,
-                    password: documento, // Por defecto
-                    role: 'acudiente',
-                    requiereCambioPassword: true,
-                    activo: true
-                }, { transaction: t });
-
-                usuarioId = nuevoUsuario.id;
+            // Verificar si el acudiente ya existe por documento
+            const existente = await acudienteRepository.findOne({ where: { documento: data.documento } });
+            if (existente) {
+                const error = new Error("Ya existe un acudiente registrado con este número de documento.");
+                error.status = 409;
+                throw error;
             }
 
-            // Creamos el Acudiente apuntando al ID central
-            const nuevoAcudiente = await acudienteRepository.create({
-                usuarioId,
-                tipoDocumento,
-                direccion
-            }, t);
-
-            await t.commit();
+            // Crear directamente en la tabla Acudientes (usuarioId quedará en NULL)
+            const nuevoAcudiente = await acudienteRepository.create(data);
             return await acudienteRepository.findById(nuevoAcudiente.id);
 
         } catch (error) {
-            await t.rollback();
             throw handleSequelizeError(error);
         }
     },
 
     /**
-     * Actualizar Acudiente (Separando datos en las 2 tablas)
+     * Actualizar Acudiente
      */
     async update(id, data) {
-        const t = await sequelize.transaction();
         try {
             const acudienteActual = await acudienteRepository.findById(id);
-
             if (!acudienteActual) {
                 const error = new Error("No se encontró el acudiente solicitado.");
                 error.status = 404;
                 throw error;
             }
 
-            // Construir objeto de campos actualizables
-            const { tipoDocumento, documento, nombre, apellidos, direccion, telefono, email } = data;
-
-            // 1. Actualizamos el Usuario (Datos personales)
-            const datosUsuario = {};
-            if (nombre) datosUsuario.nombre = nombre;
-            if (apellidos) datosUsuario.apellidos = apellidos;
-            if (documento) datosUsuario.documento = documento;
-            if (telefono !== undefined) datosUsuario.telefono = telefono;
-            if (email !== undefined) datosUsuario.email = email;
-
-            if (Object.keys(datosUsuario).length > 0) {
-                await Usuario.update(datosUsuario, {
-                    where: { id: acudienteActual.usuarioId },
-                    transaction: t
-                });
-            }
-
-            // 2. Actualizamos el Acudiente (Datos de Rol)
-            const datosAcudiente = {};
-            if (tipoDocumento) datosAcudiente.tipoDocumento = tipoDocumento;
-            if (direccion !== undefined) datosAcudiente.direccion = direccion;
-
-            if (Object.keys(datosAcudiente).length > 0) {
-                await acudienteRepository.update(id, datosAcudiente, t);
-            }
-
-            await t.commit();
+            await acudienteRepository.update(id, data);
             return await acudienteRepository.findById(id);
 
         } catch (error) {
-            await t.rollback();
             throw handleSequelizeError(error);
         }
     },
 
     /**
-     * Eliminar Acudiente y su Identidad si es pertinente
+     * Eliminar Acudiente (Solo elimina el registro de Acudientes)
      */
     async delete(id) {
-        const t = await sequelize.transaction();
         try {
             const actual = await acudienteRepository.findById(id);
             if (!actual) {
@@ -148,13 +73,9 @@ export const acudienteService = {
                 throw error;
             }
 
-            // Destruimos al usuario central. Por el CASCADE en BD, el acudiente morirá automáticamente.
-            await Usuario.destroy({ where: { id: actual.usuarioId }, transaction: t });
-
-            await t.commit();
+            await acudienteRepository.delete(id);
             return true;
         } catch (error) {
-            await t.rollback();
             throw handleSequelizeError(error);
         }
     },
@@ -181,69 +102,37 @@ export const acudienteService = {
             let acudienteId;
             let esNuevoRegistro = false;
 
-            // 1. Buscamos a la persona en la Fuente Única de Verdad (Usuarios)
-            let usuario = await Usuario.findOne({ where: { documento: datosAcudiente.documento }, transaction: t });
+            // 1. Verificar si el acudiente ya existe por su número de documento
+            let acudiente = await acudienteRepository.findOne({ where: { documento: datosAcudiente.documento }, transaction: t });
 
-            if (usuario) {
-                // La persona existe, así que actualizamos su información personal
-                usuario.nombre = datosAcudiente.nombre;
-                usuario.apellidos = datosAcudiente.apellidos;
-                if (datosAcudiente.email) usuario.email = datosAcudiente.email;
-                if (datosAcudiente.telefono) usuario.telefono = datosAcudiente.telefono;
-
-                await usuario.save({ transaction: t });
-
-                // Ahora revisamos si YA tiene un perfil de acudiente
-                const acudienteExistente = await acudienteRepository.findOne({ where: { usuarioId: usuario.id } });
-
-                if (acudienteExistente) {
-                    // Ya era acudiente. Le actualizamos los datos de su rol.
-                    await acudienteRepository.update(acudienteExistente.id, {
-                        tipoDocumento: datosAcudiente.tipoDocumento,
-                        direccion: datosAcudiente.direccion
-                    }, t);
-                    acudienteId = acudienteExistente.id;
-                } else {
-                    // Era un usuario (ej. docente) pero no acudiente. Le creamos el perfil.
-                    const nuevoPerfil = await acudienteRepository.create({
-                        usuarioId: usuario.id,
-                        tipoDocumento: datosAcudiente.tipoDocumento,
-                        direccion: datosAcudiente.direccion
-                    }, t);
-                    acudienteId = nuevoPerfil.id;
-                    esNuevoRegistro = true;
-                }
-
+            if (acudiente) {
+                // Actualizamos datos por si cambiaron de teléfono o dirección
+                await acudienteRepository.update(acudiente.id, datosAcudiente, t);
+                acudienteId = acudiente.id;
             } else {
-                // No existe en absoluto. Creamos al Usuario y a su perfil de Acudiente.
-                usuario = await Usuario.create({
-                    nombre: datosAcudiente.nombre,
-                    apellidos: datosAcudiente.apellidos,
-                    documento: datosAcudiente.documento,
-                    email: datosAcudiente.email,
-                    telefono: datosAcudiente.telefono,
-                    password: datosAcudiente.documento, // Por defecto
-                    role: 'acudiente',
-                    requiereCambioPassword: true,
-                    activo: true
-                }, { transaction: t });
-
-                const nuevoPerfil = await acudienteRepository.create({
-                    usuarioId: usuario.id,
-                    tipoDocumento: datosAcudiente.tipoDocumento,
-                    direccion: datosAcudiente.direccion
-                }, t);
-
+                // Lo creamos limpio
+                const nuevoPerfil = await acudienteRepository.create(datosAcudiente, t);
                 acudienteId = nuevoPerfil.id;
                 esNuevoRegistro = true;
             }
 
-            // 2. El Escudo Anti-Duplicados (Lógica de la Tabla Pivote)
+            // 2. Lógica de la Tabla Pivote
+
+            // A) Verificar si el estudiante YA tiene a ALGUIEN MÁS asignado en ese parentesco (Ej: Ya tiene una "MADRE")
+            const parentescoOcupado = await acudienteRepository.verificarParentesco(estudianteId, afinidad);
+
+            if (parentescoOcupado && parentescoOcupado.acudienteId !== acudienteId) {
+                const err = new Error(`El estudiante ya tiene registrado a alguien con el parentesco de ${afinidad}. Debe desvincularlo primero si desea reemplazarlo.`);
+                err.status = 409;
+                throw err;
+            }
+
+            // B) Verificar si ESTA PERSONA ya está vinculada al estudiante
             const relacionExistente = await acudienteRepository.findRelacion(acudienteId, estudianteId);
 
             if (relacionExistente) {
                 if (relacionExistente.afinidad !== afinidad) {
-                    await acudienteRepository.updateRelacion(estudianteId, acudienteId, afinidad);
+                    await acudienteRepository.updateRelacion(estudianteId, acudienteId, afinidad, t);
                     await t.commit();
                     return { mensaje: "Parentesco actualizado exitosamente.", acudienteId };
                 } else {
@@ -253,7 +142,7 @@ export const acudienteService = {
                 }
             }
 
-            // 3. Crear el vínculo definitivo
+            // 3. Crear el vínculo
             await acudienteRepository.crearRelacion({ acudienteId, estudianteId, afinidad }, t);
 
             await t.commit();
@@ -275,4 +164,53 @@ export const acudienteService = {
         }
         return true;
     },
+
+    /**
+     * Habilitar Acceso Web (Crea el Usuario y lo vincula al Acudiente)
+     */
+    async habilitarAccesoWeb(acudienteId) {
+        const t = await sequelize.transaction();
+
+        try {
+            const acudiente = await acudienteRepository.findById(acudienteId);
+
+            if (!acudiente) {
+                throw new Error("Acudiente no encontrado.");
+            }
+            if (acudiente.usuarioId) {
+                throw new Error("Este acudiente ya tiene una cuenta web habilitada.");
+            }
+
+            // 1. Verificamos si, por casualidad, el documento ya existe en usuarios (ej: es un profesor)
+            let usuario = await Usuario.findOne({ where: { documento: acudiente.documento }, transaction: t });
+
+            // 2. Si no existe, le creamos su cuenta nueva
+            if (!usuario) {
+                usuario = await Usuario.create({
+                    nombre: acudiente.nombres,
+                    apellidos: acudiente.apellidos,
+                    documento: acudiente.documento,
+                    email: acudiente.email || null, // Si no tiene correo, queda nulo
+                    telefono: acudiente.telefono || null,
+                    password: acudiente.documento, // Por defecto, su cédula será su contraseña
+                    role: 'acudiente',
+                    requiereCambioPassword: true, // Para que cambie la clave al entrar por primera vez
+                    activo: true
+                }, { transaction: t });
+            }
+
+            // 3. Vinculamos el ID del usuario recién creado/encontrado al acudiente
+            await acudienteRepository.update(acudiente.id, { usuarioId: usuario.id }, t);
+
+            await t.commit();
+            return {
+                mensaje: "Acceso web habilitado exitosamente.",
+                usuarioId: usuario.id
+            };
+
+        } catch (error) {
+            await t.rollback();
+            throw handleSequelizeError(error);
+        }
+    }
 };

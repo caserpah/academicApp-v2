@@ -63,4 +63,12 @@ router.delete(
     acudienteController.desvincular
 );
 
+// Ruta para habilitar acceso web a un acudiente
+router.post(
+    "/:id/habilitar-acceso",
+    protect,
+    restrictTo(["admin", "secretaria"]),
+    acudienteController.habilitarAcceso
+);
+
 export default router;

@@ -5,7 +5,7 @@ import { AcudienteEstudiantes } from "../models/acudiente_estudiantes.js";
 
 export const acudienteRepository = {
     /**
-     * Listar acudientes con búsqueda flexible apuntando a la tabla Usuarios
+     * Listar acudientes con búsqueda flexible apuntando a la tabla Acudientes pero filtrando por campos de Usuario (identidad)
      */
     async findAll({ page = 1, limit = 10, busqueda }) {
         const offset = (page - 1) * limit;
@@ -14,10 +14,10 @@ export const acudienteRepository = {
         if (busqueda && busqueda.trim() !== "") {
             const term = `%${busqueda.trim()}%`;
             where[Op.or] = [
-                { "$identidad.documento$": { [Op.like]: term } },
-                { "$identidad.nombre$": { [Op.like]: term } },
-                { "$identidad.apellidos$": { [Op.like]: term } },
-                { "$identidad.email$": { [Op.like]: term } }
+                { documento: { [Op.like]: term } },
+                { nombres: { [Op.like]: term } },
+                { apellidos: { [Op.like]: term } },
+                { email: { [Op.like]: term } }
             ];
         }
 
@@ -28,11 +28,12 @@ export const acudienteRepository = {
             include: [{
                 model: Usuario,
                 as: 'identidad',
-                attributes: ['id', 'nombre', 'apellidos', 'documento', 'email', 'telefono', 'activo']
+                attributes: ['id', 'activo', 'requiereCambioPassword'],
+                required: false // LEFT JOIN: Trae al acudiente incluso si usuarioId es NULL
             }],
             order: [
-                [{ model: Usuario, as: 'identidad' }, "apellidos", "ASC"],
-                [{ model: Usuario, as: 'identidad' }, "nombre", "ASC"]
+                ["apellidos", "ASC"],
+                ["nombres", "ASC"]
             ],
             subQuery: false // Fundamental cuando se filtra por relaciones
         });
@@ -53,23 +54,20 @@ export const acudienteRepository = {
             include: [{
                 model: Usuario,
                 as: 'identidad',
-                attributes: ['id', 'nombre', 'apellidos', 'documento', 'email', 'telefono', 'activo']
+                attributes: ['id', 'activo'],
+                required: false
             }]
         });
+    },
+
+    async findOne(options) {
+        return await Acudiente.findOne(options);
     },
 
     async findByDocumento(documento) {
-        // Buscamos a través de la relación de identidad
-        return await Acudiente.findOne({
-            include: [{
-                model: Usuario,
-                as: 'identidad',
-                where: { documento }
-            }]
-        });
+        return await Acudiente.findOne({ where: { documento } });
     },
 
-    // Método para crear un acudiente, asumiendo que el usuario ya fue creado en la tabla central de Usuarios
     async create(data, transaction) {
         return await Acudiente.create(data, { transaction });
     },
@@ -87,39 +85,32 @@ export const acudienteRepository = {
         return true;
     },
 
-    // Lógica para vincular un Acudiente con un Estudiante
+    // ============================================================
+    // Lógica para Tabla Intermedia (Vincular con Estudiante)
+    // ============================================================
 
-    /**
-     * Verificar si ya existe una vinculación específica.
-     * Útil para evitar que un papá sea registrado dos veces como 'PADRE' del mismo hijo.
-     */
     async findRelacion(acudienteId, estudianteId) {
         return await AcudienteEstudiantes.findOne({ where: { acudienteId, estudianteId } });
     },
 
-    /**
-     * Vincular un acudiente a un estudiante.
-     * Crea el registro en la tabla intermedia 'acudiente_estudiantes'.
-     */
-    async crearRelacion({ acudienteId, estudianteId, afinidad }, transaction) {
-        return await AcudienteEstudiantes.create({ acudienteId, estudianteId, afinidad }, { transaction });
+    async crearRelacion(data, transaction) {
+        return await AcudienteEstudiantes.create(data, { transaction });
     },
 
-    /**
-     * Actualiza el parentesco de una relación existente
-     */
-    async updateRelacion(estudianteId, acudienteId, nuevaAfinidad) {
+    async updateRelacion(estudianteId, acudienteId, nuevaAfinidad, transaction) {
         return await AcudienteEstudiantes.update(
             { afinidad: nuevaAfinidad },
-            { where: { estudianteId, acudienteId } }
+            { where: { estudianteId, acudienteId }, transaction }
         );
     },
 
-    /**
-     * Desvincular un acudiente.
-     * Elimina el registro de la tabla intermedia.
-     */
     async desvincularAcudiente(estudianteId, acudienteId) {
         return await AcudienteEstudiantes.destroy({ where: { estudianteId, acudienteId } });
+    },
+
+    async verificarParentesco(estudianteId, afinidad) {
+        return await AcudienteEstudiantes.findOne({
+            where: { estudianteId, afinidad }
+        });
     }
 };

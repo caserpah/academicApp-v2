@@ -12,19 +12,41 @@ export const Acudiente = sequelize.define("acudiente", {
         type: DataTypes.ENUM('CC', 'CE', 'PA', 'TI', 'RC'),
         allowNull: false
     },
+    documento: {
+        type: DataTypes.STRING(20),
+        allowNull: false,
+        unique: true
+    },
+    nombres: {
+        type: DataTypes.STRING(100),
+        allowNull: false
+    },
+    apellidos: {
+        type: DataTypes.STRING(100),
+        allowNull: false
+    },
     direccion: {
         type: DataTypes.STRING(80),
         allowNull: true
     },
+    telefono: {
+        type: DataTypes.STRING(20),
+        allowNull: true
+    },
+    email: {
+        type: DataTypes.STRING(100),
+        allowNull: true
+    },
+    // --- EL ENLACE AL SISTEMA AHORA ES OPCIONAL ---
     usuarioId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true, // Permite que un acudiente no tenga cuenta web asociada
         references: {
             model: 'usuarios',
             key: 'id'
         },
         onUpdate: 'CASCADE',
-        onDelete: 'CASCADE'
+        onDelete: 'SET NULL' // Si borran la cuenta web, los datos del padre siguen intactos
     }
 }, {
     tableName: "acudientes",
@@ -32,6 +54,11 @@ export const Acudiente = sequelize.define("acudiente", {
     createdAt: "fechaCreacion",
     updatedAt: "fechaActualizacion",
     indexes: [
+        {
+            unique: true,
+            fields: ["documento"],
+            name: "idx_documento_acudiente",
+        },
         {
             fields: ["tipoDocumento"],
             name: "idx_tipoDocumento",

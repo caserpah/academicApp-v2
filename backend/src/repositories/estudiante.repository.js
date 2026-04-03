@@ -215,17 +215,10 @@ export const estudianteRepository = {
             {
                 model: Acudiente,
                 as: "acudientes",
-                attributes: ["id", "tipoDocumento", "direccion"],
+                attributes: ["id", "nombres", "apellidos", "tipoDocumento", "documento", "direccion", "telefono", "email"],
                 through: {
                     attributes: ["afinidad", "id"]
-                },
-                include: [
-                    {
-                        model: Usuario,
-                        as: "identidad",
-                        attributes: ["id", "documento", "nombre", "apellidos", "telefono", "email"]
-                    }
-                ]
+                }
             }
         ];
 

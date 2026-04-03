@@ -8,7 +8,7 @@ import { faTimes, faSave, faUserCheck } from "@fortawesome/free-solid-svg-icons"
 const INITIAL_STATE = {
     tipoDocumento: "CC",
     documento: "",
-    nombre: "",
+    nombres: "",
     apellidos: "",
     telefono: "",
     email: "",
@@ -26,11 +26,11 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
                 id: registro.id,
                 tipoDocumento: registro.tipoDocumento || "CC",
                 direccion: registro.direccion || "",
-                documento: registro.identidad?.documento || "",
-                nombre: registro.identidad?.nombre || "",
-                apellidos: registro.identidad?.apellidos || "",
-                telefono: registro.identidad?.telefono || "",
-                email: registro.identidad?.email || ""
+                documento: registro.documento || "",
+                nombres: registro.nombres || "",
+                apellidos: registro.apellidos || "",
+                telefono: registro.telefono || "",
+                email: registro.email || ""
             });
         } else {
             setFormData(INITIAL_STATE);
@@ -47,7 +47,7 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
         e.preventDefault();
 
         // Validaciones Manuales Básicas
-        if (!formData.tipoDocumento || !formData.documento || !formData.nombre || !formData.apellidos) {
+        if (!formData.tipoDocumento || !formData.documento || !formData.nombres || !formData.apellidos) {
             showWarning("Todos los campos obligatorios (<span class='text-[#e74c3c]'>*</span>) deben completarse.");
             return;
         }
@@ -61,7 +61,6 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
                 await crearAcudiente(formData);
                 showSuccess("Acudiente registrado exitosamente.");
 
-                // Enfocar el primer campo después de crear
                 setTimeout(() => {
                     document.querySelector('[name="tipoDocumento"]')?.focus();
                 }, 100);
@@ -75,32 +74,21 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
     };
 
     return (
-        // Overlay del Modal
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-
-            {/* Contenedor del Modal */}
             <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-full max-h-[83vh] flex flex-col">
-
-                {/* Encabezado */}
                 <div className="flex justify-between items-center p-5 border-b border-gray-300 bg-gray-50 rounded-t-lg">
                     <h2 className="text-xl font-bold flex items-center text-slate-800 gap-2">
                         <FontAwesomeIcon icon={faUserCheck} className="text-blue-600" />
                         {registro ? "Editar Acudiente" : "Registrar Nuevo Acudiente"}
                     </h2>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-red-500 transition-colors"
-                    >
+                    <button type="button" onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">
                         <FontAwesomeIcon icon={faTimes} size="lg" />
                     </button>
                 </div>
 
-                {/* Cuerpo Scrollable */}
                 <div className="p-6 overflow-y-auto custom-scrollbar">
                     <form id="acudienteForm" onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-                        {/* Fila 1: Documento */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1 required">Tipo Documento <span className="text-red-500">*</span></label>
                             <select name="tipoDocumento" value={formData.tipoDocumento} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
@@ -115,17 +103,16 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
                             <input type="text" name="documento" value={formData.documento} onChange={handleChange} required className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Máx. 20 dígitos" />
                         </div>
 
-                        {/* Fila 2: Nombres y Apellidos */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Nombres Completos <span className="text-red-500">*</span></label>
-                            <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} required className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+                            {/* 🚀 CAMBIO: name="nombres" y value={formData.nombres} */}
+                            <input type="text" name="nombres" value={formData.nombres} onChange={handleChange} required className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Apellidos Completos <span className="text-red-500">*</span></label>
                             <input type="text" name="apellidos" value={formData.apellidos} onChange={handleChange} required className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
                         </div>
 
-                        {/* Fila 3: Contacto y Email */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono (Opcional)</label>
                             <input type="text" name="telefono" value={formData.telefono} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Número de contacto" />
@@ -135,7 +122,6 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
                             <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none lowercase" placeholder="ejemplo@correo.com" />
                         </div>
 
-                        {/* Fila 4: Dirección */}
                         <div className="md:col-span-2">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Dirección de Residencia</label>
                             <input type="text" name="direccion" value={formData.direccion} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Ej: Calle 10 # 5-20" />
@@ -143,14 +129,8 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
                     </form>
                 </div>
 
-                {/* Footer */}
                 <div className="p-5 border-t border-gray-300 rounded-b-lg flex justify-end gap-3">
-                    <button
-                        type="submit"
-                        form="acudienteForm" // Vincula el botón al form
-                        disabled={loading}
-                        className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-md flex items-center gap-2 transition-transform active:scale-95 disabled:opacity-50"
-                    >
+                    <button type="submit" form="acudienteForm" disabled={loading} className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-md flex items-center gap-2 transition-transform active:scale-95 disabled:opacity-50">
                         {loading ? "Guardando..." : (
                             <>
                                 <FontAwesomeIcon icon={faSave} />
@@ -158,15 +138,10 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
                             </>
                         )}
                     </button>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="bg-red-500 text-white px-5 py-2 rounded-lg hover:bg-red-600 transition flex items-center shadow-md"
-                    >
+                    <button type="button" onClick={onClose} className="bg-red-500 text-white px-5 py-2 rounded-lg hover:bg-red-600 transition flex items-center shadow-md">
                         <FontAwesomeIcon icon={faTimes} className="mr-2" /> Cerrar
                     </button>
                 </div>
-
             </div>
         </div>
     );

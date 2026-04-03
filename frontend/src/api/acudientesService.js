@@ -17,7 +17,6 @@ export const listarAcudientes = async (params = {}) => {
 
 /**
  * Buscar un acudiente específico por documento exacto
- * (Usado para el autocompletado del formulario)
  */
 export const buscarAcudientePorDocumento = async (documento) => {
     try {
@@ -29,7 +28,7 @@ export const buscarAcudientePorDocumento = async (documento) => {
         const items = data.items || [];
 
         // Retorna el primer resultado que coincida exactamente con el documento, o null si no se encuentra
-        return items.find(a => a.identidad?.documento === documento) || null;
+        return items.find(a => a.documento === documento) || null;
     } catch (error) {
         console.error("Error buscando acudiente por documento:", error);
         return null;
@@ -56,7 +55,7 @@ export const actualizarAcudiente = async (id, data) => {
         const response = await apiClient.put(`${ENDPOINT_ACUDIENTES}/${id}`, data);
         return response.data;
     } catch (error) {
-        throw parseError(error,"Error al actualizar el acudiente.");
+        throw parseError(error, "Error al actualizar el acudiente.");
     }
 };
 
@@ -87,7 +86,7 @@ export const asignarAcudiente = async (payload) => {
 
 /**
  * Desvincular Acudiente de Estudiante
- * @param {Object} payload - { estudianteId, documento }
+ * Elimina la relación entre el acudiente y el estudiante sin eliminar al acudiente.
  */
 export const desvincularAcudiente = async (estudianteId, acudienteId) => {
     try {
@@ -96,5 +95,17 @@ export const desvincularAcudiente = async (estudianteId, acudienteId) => {
         return response.data;
     } catch (error) {
         throw parseError(error, "Error al desvincular el acudiente del estudiante.");
+    }
+};
+
+/**
+ * Habilitar acceso web (Crear usuario para acudiente)
+ */
+export const habilitarAccesoWeb = async (id) => {
+    try {
+        const response = await apiClient.post(`${ENDPOINT_ACUDIENTES}/${id}/habilitar-acceso`);
+        return response.data;
+    } catch (error) {
+        throw parseError(error, "Error al habilitar el acceso web.");
     }
 };
