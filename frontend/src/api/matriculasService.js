@@ -103,3 +103,88 @@ export const crearMatriculaMasiva = async (payload) => {
         throw parseError(error, "Error al procesar matrículas masivamente.");
     }
 };
+
+/**
+ * Descargar Acta Individual (PDF)
+ */
+export const descargarActaMatricula = async (idMatricula) => {
+    try {
+        const response = await apiClient.get(`${MATRICULAS_ENDPOINT}/${idMatricula}/pdf`, {
+            responseType: 'blob'
+        });
+
+        const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Acta_Matricula_${idMatricula}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        return true;
+    } catch (error) {
+        if (error.response && error.response.data instanceof Blob) {
+            const errorText = await error.response.data.text();
+            const errorJson = JSON.parse(errorText);
+            throw new Error(errorJson.message || "Error al generar el acta de matrícula");
+        }
+        throw parseError(error, "Error de conexión al descargar el acta.");
+    }
+};
+
+/**
+ * Descargar Actas por Lote / Grupo (PDF)
+ */
+export const descargarActasLote = async (grupoId, nombreGrupo) => {
+    try {
+        const response = await apiClient.get(`${MATRICULAS_ENDPOINT}/lote/pdf`, {
+            params: { grupoId },
+            responseType: 'blob'
+        });
+
+        const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+        const link = document.createElement('a');
+        link.href = url;
+        const nombreLimpio = nombreGrupo ? nombreGrupo.replace(/\s+/g, '_') : grupoId;
+        link.setAttribute('download', `Actas_Matriculas_Grupo_${nombreLimpio}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        return true;
+    } catch (error) {
+        if (error.response && error.response.data instanceof Blob) {
+            const errorText = await error.response.data.text();
+            const errorJson = JSON.parse(errorText);
+            throw new Error(errorJson.message || "Error al generar las actas por lote");
+        }
+        throw parseError(error, "Error de conexión al descargar las actas.");
+    }
+};
+
+/**
+ * Descargar Formato de Acta en Blanco (PDF)
+ */
+export const descargarFormatoBlanco = async () => {
+    try {
+        const response = await apiClient.get(`${MATRICULAS_ENDPOINT}/formato/blanco`, {
+            responseType: 'blob'
+        });
+
+        const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+        // Se abre en pestaña nueva para facilitar impresión rápida
+        window.open(url, '_blank');
+        setTimeout(() => window.URL.revokeObjectURL(url), 2000);
+
+        return true;
+    } catch (error) {
+        if (error.response && error.response.data instanceof Blob) {
+            const errorText = await error.response.data.text();
+            const errorJson = JSON.parse(errorText);
+            throw new Error(errorJson.message || "Error al generar el formato en blanco");
+        }
+        throw parseError(error, "Error de conexión al descargar el formato.");
+    }
+};

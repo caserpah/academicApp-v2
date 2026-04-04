@@ -11,25 +11,46 @@ import {
 
 const router = express.Router();
 
-/**
- * Rutas: Matrículas
- * Endpoint base: /matriculas
- * * Middleware Sequence:
- * 1. protect (Auth token)
- * 2. restrictTo (Roles)
- * 3. vigenciaContext (Contexto año lectivo) -> Necesario para lógica de folios y cupos
- * 4. validator (Validación campos)
- * 5. controller (Lógica)
- */
+// ==========================================
+// RUTAS DE REPORTES PDF (ESTÁTICAS)
+// ==========================================
+
+// Descargar Acta de Matrícula en Blanco
+router.get(
+    "/formato/blanco",
+    protect,
+    restrictTo(["admin", "secretaria"]),
+    matriculaController.descargarPdfBlanco
+);
+
+// Descargar Actas de Matrícula por Lote (Grupo)
+// Recibe por query string: ?grupoId=123
+router.get(
+    "/lote/pdf",
+    protect,
+    restrictTo(["admin", "secretaria"]),
+    matriculaController.descargarPdfLote
+);
+
+// ==========================================
+// RUTAS PRINCIPALES CRUD Y DINÁMICAS
+// ==========================================
 
 // Listar matrículas
 router.get(
     "/",
     protect,
     restrictTo(["admin", "secretaria"]),
-    vigenciaContext,
     //validarListar,
     matriculaController.listar
+);
+
+// Descargar Acta de Matrícula Individual
+router.get(
+    "/:id/pdf",
+    protect,
+    restrictTo(["admin", "secretaria"]),
+    matriculaController.descargarPdfActa
 );
 
 // Obtener matrícula por ID
@@ -37,7 +58,6 @@ router.get(
     "/:id",
     protect,
     restrictTo(["admin", "secretaria"]),
-    vigenciaContext,
     matriculaController.obtenerPorId
 );
 
@@ -46,7 +66,6 @@ router.post(
     "/",
     protect,
     restrictTo(["admin", "secretaria"]),
-    vigenciaContext,
     validarCrearMatricula,
     matriculaController.crear
 );
@@ -56,7 +75,6 @@ router.put(
     "/:id",
     protect,
     restrictTo(["admin", "secretaria"]),
-    vigenciaContext,
     validarActualizarMatricula,
     matriculaController.actualizar
 );
@@ -66,7 +84,6 @@ router.delete(
     "/:id",
     protect,
     restrictTo(["admin", "secretaria"]),
-    vigenciaContext,
     matriculaController.eliminar
 );
 
@@ -75,7 +92,6 @@ router.post(
     "/masivo",
     protect,
     restrictTo(["admin", "secretaria"]),
-    vigenciaContext,
     validarMasivo,
     matriculaController.crearMasivo
 );

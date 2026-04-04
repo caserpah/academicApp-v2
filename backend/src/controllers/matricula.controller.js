@@ -195,5 +195,56 @@ export const matriculaController = {
         } catch (error) {
             next(error);
         }
+    },
+
+    /**
+     * GET /api/matriculas/:id/pdf
+     */
+    async descargarPdfActa(req, res, next) {
+        try {
+            const { id } = req.params;
+            const pdfBuffer = await matriculaService.generarPdfActa(id);
+
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `inline; filename="Acta_Matricula_${id}.pdf"`);
+            return res.send(pdfBuffer);
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
+     * GET /api/matriculas/lote/pdf?grupoId=1
+     */
+    async descargarPdfLote(req, res, next) {
+        try {
+            const { grupoId } = req.query;
+            const vigencia = getVigenciaFromRequest(req); // Usamos la vigencia del contexto
+
+            if (!grupoId) return sendError(res, "Se requiere el ID del grupo.", 400);
+
+            const pdfBuffer = await matriculaService.generarPdfLote(grupoId, vigencia.id);
+
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `inline; filename="Actas_Grupo_${grupoId}.pdf"`);
+            return res.send(pdfBuffer);
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
+     * GET /api/matriculas/formato/blanco
+     */
+    async descargarPdfBlanco(req, res, next) {
+        try {
+            const pdfBuffer = await matriculaService.generarPdfBlanco();
+
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `inline; filename="Formato_Matricula.pdf"`);
+            return res.send(pdfBuffer);
+        } catch (error) {
+            next(error);
+        }
     }
 };

@@ -4,6 +4,8 @@ import { Estudiante } from "../models/estudiante.js";
 import { Grupo } from "../models/grupo.js";
 import { Grado } from "../models/grado.js";
 import { Sede } from "../models/sede.js";
+import { Vigencia } from "../models/vigencia.js";
+import { Acudiente } from "../models/acudiente.js";
 
 export const matriculaRepository = {
     /**
@@ -238,6 +240,46 @@ export const matriculaRepository = {
             ],
             raw: true,
             nest: true
+        });
+    },
+
+    /**
+     * Busca una matrícula con TODO el árbol de relaciones para imprimir el Acta en PDF.
+     */
+    async findByIdCompleto(id) {
+        return Matricula.findByPk(id, {
+            include: [
+                { model: Sede, as: "sede" },
+                { model: Vigencia, as: "vigencia" },
+                { model: Grupo, as: "grupo", include: [{ model: Grado, as: "grado" }] },
+                {
+                    model: Estudiante,
+                    as: "estudiante",
+                    include: [{ model: Acudiente, as: "acudientes" }] // Ajusta el alias si en tu BD es distinto
+                }
+            ]
+        });
+    },
+
+    /**
+     * Busca todas las matrículas de un grupo para imprimir actas por lote (Masivo).
+     */
+    async findByGrupoCompleto(grupoId, vigenciaId) {
+        return Matricula.findAll({
+            where: { grupoId, vigenciaId, estado: ['ACTIVA', 'PREMATRICULADO'] },
+            include: [
+                { model: Sede, as: "sede" },
+                { model: Vigencia, as: "vigencia" },
+                { model: Grupo, as: "grupo", include: [{ model: Grado, as: "grado" }] },
+                {
+                    model: Estudiante,
+                    as: "estudiante",
+                    include: [{ model: Acudiente, as: "acudientes" }]
+                }
+            ],
+            order: [
+                [{ model: Estudiante, as: "estudiante" }, 'primerApellido', 'ASC']
+            ]
         });
     }
 };

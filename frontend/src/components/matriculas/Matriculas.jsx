@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom"; // Importamos Link para la navegación
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faFilePen, faEdit, faChevronLeft, faChevronRight, faUsers, faSearch, faLock, faFilter
+    faFilePen, faEdit, faChevronLeft, faChevronRight,
+    faUsers, faSearch, faLock, faFilter, faFilePdf, faPrint
 } from "@fortawesome/free-solid-svg-icons";
 
 // Hooks y Servicios
@@ -11,7 +12,7 @@ import { showSuccess, showWarning, showError, showConfirm } from "../../utils/no
 import { fetchInitialData as fetchSedesData } from "../../api/sedesService.js";
 import { fetchGruposPorSede } from "../../api/gruposService.js";
 import { listarEstudiantes } from "../../api/estudiantesService.js";
-import { eliminarMatricula } from "../../api/matriculasService.js";
+import { eliminarMatricula, descargarActaMatricula, descargarActasLote, descargarFormatoBlanco } from "../../api/matriculasService.js";
 import { fetchVigencias } from "../../api/vigenciasService.js";
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
 import MatriculasForm from "./MatriculasForm.jsx";
@@ -65,6 +66,10 @@ const Matriculas = () => {
     const [loadingGrupos, setLoadingGrupos] = useState(false);
     const [gruposFiltro, setGruposFiltro] = useState([]);
     const [processing, setProcessing] = useState(false);
+
+    // Estado para spinners de descarga de PDFs
+    const [downloadingPdf, setDownloadingPdf] = useState(false);
+    const [downloadingId, setDownloadingId] = useState(null); // Para el spinner de la tabla
 
     const formContainerRef = useRef(null);
     const studentInputRef = useRef(null);
@@ -298,6 +303,50 @@ const Matriculas = () => {
         }
     };
 
+    // --- MANEJADORES DE PDF ---
+    const handleDescargarActa = async (matricula) => {
+        try {
+            setDownloadingId(matricula.id);
+            await descargarActaMatricula(matricula.id);
+            showSuccess("Acta descargada correctamente.");
+        } catch (error) {
+            showError(error.message);
+        } finally {
+            setDownloadingId(null);
+        }
+    };
+
+    const handleDescargarLote = async () => {
+        if (!filtros.grupoId) {
+            return showWarning("Por favor, seleccione un Grado y Grupo en los filtros para generar las actas por lote.");
+        }
+
+        // Buscamos el nombre del grupo seleccionado para el nombre del archivo
+        const grupoSelect = gruposFiltro.find(g => g.id === Number(filtros.grupoId));
+        const nombreGrupo = grupoSelect ? `${grupoSelect.grado?.nombre}_${grupoSelect.nombre}` : filtros.grupoId;
+
+        try {
+            setDownloadingPdf(true);
+            //showSuccess("Generando actas por lote, por favor espere..."); // Aviso porque puede tardar unos segundos
+            await descargarActasLote(filtros.grupoId, nombreGrupo);
+        } catch (error) {
+            showError(error.message);
+        } finally {
+            setDownloadingPdf(false);
+        }
+    };
+
+    const handleDescargarBlanco = async () => {
+        try {
+            setDownloadingPdf(true);
+            await descargarFormatoBlanco();
+        } catch (error) {
+            showError(error.message);
+        } finally {
+            setDownloadingPdf(false);
+        }
+    };
+
     const resetForm = () => {
         setFormData(prev => ({
             ...initialFormState,
@@ -356,7 +405,45 @@ const Matriculas = () => {
                         Gestión de Matrículas
                     </h1>
 
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap items-center justify-end gap-3">
+                        {/* BOTÓN: Formato en Blanco */}
+                        <button
+                            onClick={handleDescargarBlanco}
+                            disabled={downloadingPdf}
+                            className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 px-3 py-2 rounded-lg transition flex items-center shadow-sm text-sm font-medium disabled:opacity-50"
+                            title="Imprimir formato de matrícula vacío"
+                        >
+                            {downloadingPdf ? (
+                                <svg className="animate-spin mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            ) : (
+                                <FontAwesomeIcon icon={faPrint} className="mr-2 text-gray-500" />
+                            )}
+                            <span className="hidden md:inline">Formato en Blanco</span>
+                        </button>
+
+                        {/* BOTÓN: Actas por Lote */}
+                        <button
+                            onClick={handleDescargarLote}
+                            disabled={!filtros.grupoId || downloadingPdf || matriculas.length === 0}
+                            className={`px-3 py-2 rounded-lg transition flex items-center shadow-sm text-sm font-medium
+            ${filtros.grupoId && matriculas.length > 0
+                                    ? 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
+                                    : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed disabled:opacity-75'}`}
+                        >
+                            {downloadingPdf ? (
+                                <svg className="animate-spin mr-2 h-4 w-4 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            ) : (
+                                <FontAwesomeIcon icon={faFilePdf} className="mr-2" />
+                            )}
+                            <span className="hidden md:inline">Actas por Lote</span>
+                        </button>
+
                         {/* Botón Promoción Masiva */}
                         <Link
                             to="/matriculas/masivo"
@@ -563,8 +650,32 @@ const Matriculas = () => {
 
                                                 <td className="px-3 py-3 text-center">{getStatusBadge(mat.estado)}</td>
 
-                                                <td className="px-3 py-3 text-right">
-                                                    <button onClick={() => handleEdit(mat)} className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50 transition">
+                                                <td className="px-3 py-3 text-right flex justify-end gap-2">
+
+                                                    {/* Botón Descargar Acta Individual */}
+                                                    <button
+                                                        onClick={() => handleDescargarActa(mat)}
+                                                        disabled={downloadingId === mat.id}
+                                                        className="text-red-500 hover:text-red-700 p-1.5 rounded-full hover:bg-red-50 transition disabled:opacity-50 flex items-center justify-center w-8 h-8"
+                                                        title="Descargar Acta en PDF"
+                                                    >
+                                                        {downloadingId === mat.id ? (
+                                                            /* MINI SPINNER EN LÍNEA PARA LA TABLA */
+                                                            <svg className="animate-spin h-4 w-4 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                            </svg>
+                                                        ) : (
+                                                            <FontAwesomeIcon icon={faFilePdf} />
+                                                        )}
+                                                    </button>
+
+                                                    {/* Botón Editar Original */}
+                                                    <button
+                                                        onClick={() => handleEdit(mat)}
+                                                        className="text-blue-600 hover:text-blue-800 p-1.5 rounded-full hover:bg-blue-50 transition flex items-center justify-center w-8 h-8"
+                                                        title="Editar Matrícula"
+                                                    >
                                                         <FontAwesomeIcon icon={faEdit} />
                                                     </button>
                                                 </td>

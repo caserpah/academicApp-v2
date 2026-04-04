@@ -1,10 +1,20 @@
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
+import { pdfService } from "./pdf.service.js";
 import { sequelize } from "../database/db.connect.js";
 import { matriculaRepository } from "../repositories/matricula.repository.js";
 import { HistorialMatriculas } from "../models/historial_matriculas.js";
 import { Grupo } from "../models/grupo.js";
 import { Calificacion } from "../models/calificacion.js";
+import { Colegio } from "../models/colegio.js";
+import { mapearDatosMatricula, formatearFecha } from "../utils/matriculaMapper.js";
 import { formatearErrorForaneo } from "../utils/dbUtils.js";
 import { handleSequelizeError } from "../middleware/handleSequelizeError.js";
+
+// Configuración de rutas absolutas
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Genera un código de folio único.
@@ -310,5 +320,91 @@ export const matriculaService = {
         } catch (error) {
             throw handleSequelizeError(error);
         }
+    },
+
+    /**
+     * GENERAR PDF: ACTA INDIVIDUAL
+     */
+    async generarPdfActa(id) {
+        const matriculaRaw = await matriculaRepository.findByIdCompleto(id);
+        if (!matriculaRaw) throw new Error("Matrícula no encontrada");
+
+        const colegio = await Colegio.findOne();
+        const logoBase64 = await _obtenerLogoBase64();
+        const fechaResStr = formatearFecha(colegio?.fechaResolucion);
+
+        const dataMatriculas = {
+            tituloDocumento: `Acta_Matricula_${matriculaRaw.estudiante.documento}`,
+            encabezadoInstitucional: {
+                nombre: colegio?.nombre || "INSTITUCIÓN EDUCATIVA CARLOS ADOLFO URUETA",
+                info_legal: `Registro DANE: ${colegio?.registroDane || ''} | Resolución de Aprobación No. ${colegio?.resolucion || ''} del ${fechaResStr || ''}`,
+                logoUrl: logoBase64
+            },
+            matriculas: [mapearDatosMatricula(matriculaRaw)]
+        };
+
+        console.log("=== DATOS DE LA SEDE ENVIADOS AL PDF ===", dataMatriculas.matriculas[0].sede, dataMatriculas.matriculas[0].sedeNombre);
+        return await pdfService.crearPdfMatriculas(dataMatriculas);
+    },
+
+    /**
+     * GENERAR PDF: ACTA POR LOTE (GRUPO)
+     */
+    async generarPdfLote(grupoId, vigenciaId) {
+        const matriculasRaw = await matriculaRepository.findByGrupoCompleto(grupoId, vigenciaId);
+        if (!matriculasRaw || matriculasRaw.length === 0) {
+            throw new Error("No hay matrículas activas en este grupo para generar actas.");
+        }
+
+        const colegio = await Colegio.findOne();
+        const logoBase64 = await _obtenerLogoBase64();
+        const fechaResStr = formatearFecha(colegio?.fechaResolucion);
+
+        const dataMatriculas = {
+            tituloDocumento: `Actas_Matriculas_Grupo_${grupoId}`,
+            encabezadoInstitucional: {
+                nombre: colegio?.nombre || "INSTITUCIÓN EDUCATIVA CARLOS ADOLFO URUETA",
+                info_legal: `Registro DANE: ${colegio?.registroDane || ''} | Resolución de Aprobación No. ${colegio?.resolucion || ''} del ${fechaResStr || ''}`,
+                logoUrl: logoBase64
+            },
+            matriculas: matriculasRaw.map(m => mapearDatosMatricula(m))
+        };
+
+        return await pdfService.crearPdfMatriculas(dataMatriculas);
+    },
+
+    /**
+     * GENERAR PDF: ACTA EN BLANCO
+     */
+    async generarPdfBlanco() {
+        const colegio = await Colegio.findOne();
+        const logoBase64 = await _obtenerLogoBase64();
+        const fechaResStr = formatearFecha(colegio?.fechaResolucion);
+
+        const dataMatriculas = {
+            tituloDocumento: `Formato_Matricula_En_Blanco`,
+            encabezadoInstitucional: {
+                nombre: colegio?.nombre || "INSTITUCIÓN EDUCATIVA CARLOS ADOLFO URUETA",
+                info_legal: `Registro DANE: ${colegio?.registroDane || ''} | Resolución de Aprobación No. ${colegio?.resolucion || ''} del ${fechaResStr || ''}`,
+                logoUrl: logoBase64
+            },
+            matriculas: [mapearDatosMatricula({}, true)] // Flag en true para modo en blanco
+        };
+
+        return await pdfService.crearPdfMatriculas(dataMatriculas);
     }
 };
+
+// Función para cargar el logo institucional y convertirlo a Base64 para incrustarlo en el PDF
+async function _obtenerLogoBase64() {
+    try {
+        const logoPath = path.join(__dirname, '../../public/uploads/institucional/escudo-instecau.png');
+        const imageBuffer = await fs.readFile(logoPath);
+        const ext = path.extname(logoPath).substring(1);
+        const mimeType = ext === 'jpg' ? 'jpeg' : ext;
+        return `data:image/${mimeType};base64,${imageBuffer.toString('base64')}`;
+    } catch (error) {
+        console.warn("⚠️ No se pudo cargar el logo para el PDF.");
+        return "";
+    }
+}

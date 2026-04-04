@@ -479,6 +479,7 @@ function _calcularEstadisticasYPuestos(notasAgrupadas, idsEstudiantes) {
     return { promediosGrupo, rankingEstudiantes };
 }
 
+// Función para cargar el logo institucional y convertirlo a Base64 para incrustarlo en el PDF
 async function _obtenerLogoBase64() {
     try {
         const logoPath = path.join(__dirname, '../../public/uploads/institucional/escudo-instecau.png');

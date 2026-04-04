@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{{tituloDocumento}}</title>
+    <style>
+        /* Márgenes de la hoja reducidos ligeramente para dar más espacio a la letra grande */
+        @page {
+            margin: 8mm;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11px;
+            margin: 0;
+            padding: 0;
+            color: #222;
+        }
+
+        /* ================= ENCABEZADO TIPO BOLETÍN ================= */
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 8px;
+        }
+
+        .header-logo {
+            width: 15%;
+            text-align: center;
+        }
+
+        .header-logo img {
+            max-height: 75px;
+            max-width: 100%;
+        }
+
+        .header-textos {
+            width: 60%;
+            text-align: center;
+            line-height: 1.3;
+        }
+
+        .header-textos h2 {
+            margin: 0;
+            font-size: 16px;
+            color: #000;
+            text-transform: uppercase;
+        }
+
+        /* Más grande */
+        .header-textos p {
+            margin: 2px 0;
+            font-size: 10px;
+            color: #444;
+        }
+
+        .header-textos h3 {
+            margin: 5px 0 0 0;
+            font-size: 14px;
+            color: #000;
+        }
+
+        .header-info-extra {
+            width: 25%;
+            text-align: right;
+            font-size: 11px;
+        }
+
+        .header-info-extra .badge {
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 3px;
+        }
+
+        /* ================= TABLAS Y SECCIONES ================= */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+            table-layout: fixed;
+        }
+
+        /* Padding de 4px para que la letra grande quepa bien */
+        th,
+        td {
+            border: 1px solid #bdc3c7;
+            padding: 3px 4px;
+            vertical-align: top;
+            overflow: hidden;
+        }
+
+        .section-title {
+            background-color: #e2e8f0;
+            color: #2c3e50;
+            font-weight: bold;
+            text-align: left;
+            font-size: 11.5px;
+            padding: 4px 6px;
+            text-transform: uppercase;
+        }
+
+        /* Labels de 9.5px y los valores de 12px */
+        .label {
+            font-size: 9.5px;
+            font-weight: bold;
+            color: #555;
+            display: block;
+            text-transform: uppercase;
+            margin-bottom: 1px;
+        }
+
+        .value {
+            font-size: 12px;
+            color: #000;
+            font-weight: bold;
+            display: block;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .value-left {
+            font-size: 12px;
+            color: #000;
+            font-weight: bold;
+            display: block;
+            text-transform: uppercase;
+            text-align: left;
+        }
+
+        /* ================= FIRMAS ================= */
+        .tabla-firmas {
+            border: none;
+            margin-top: 25px;
+            margin-bottom: 5px;
+        }
+
+        .tabla-firmas td {
+            border: none;
+            text-align: center;
+            font-weight: bold;
+            font-size: 11px;
+            color: #333;
+        }
+
+        .linea-firma {
+            border-top: 1px solid #333;
+            padding-top: 4px;
+            width: 85%;
+            margin: 0 auto;
+        }
+
+        /* ================= ESPACIO LEGAL ================= */
+        .aviso-legal {
+            margin-top: 15px;
+            font-size: 10px;
+            /* Tamaño muy legible para textos largos */
+            color: #333;
+            text-align: justify;
+            border-top: 1px dashed #95a5a6;
+            padding-top: 8px;
+            line-height: 1.3;
+        }
+
+        /* ================= UTILIDADES ================= */
+        .salto-pagina {
+            page-break-after: always;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 40%;
+            left: 15%;
+            font-size: 90px;
+            opacity: 0.08;
+            font-weight: bold;
+            color: #e74c3c;
+            transform: rotate(-45deg);
+            z-index: -1;
+            white-space: nowrap;
+        }
+
+        tr {
+            page-break-inside: avoid;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    {{#each matriculas}}
+    <div class="salto-pagina">
+
+        {{#if this.esPrematricula}}
+        <div class="watermark">PRE-MATRÍCULA</div>
+        {{/if}}
+
+        <div class="header-container">
+            <div class="header-logo">
+                <img src="{{../encabezadoInstitucional.logoUrl}}" alt="Escudo Institución">
+            </div>
+            <div class="header-textos">
+                <h2>{{this.tituloReporte}}</h2>
+                <h2>{{../encabezadoInstitucional.nombre}}</h2>
+                <p>{{../encabezadoInstitucional.info_legal}}
+            </div>
+            <div class="header-info-extra">
+                <div class="badge">AÑO LECTIVO: <strong>{{this.vigencia.anio}}</strong></div>
+                <div class="badge">FOLIO: <strong>{{this.folio}}</strong></div>
+                <div>Fecha: {{this.fechaFormateada}}</div>
+            </div>
+        </div>
+
+        <table>
+            <tr>
+                <th colspan="5" class="section-title">I. Información Académica</th>
+            </tr>
+            <tr>
+                <td colspan="1"><span class="label">Nivel</span><span class="value">{{this.grupo.nivel}}</span></td>
+                <td colspan="1"><span class="label">Grado</span><span class="value">{{this.grupo.grado}}</span></td>
+                <td colspan="1"><span class="label">Grupo</span><span class="value">{{this.grupo.nombre}}</span></td>
+
+                <td colspan="1"><span class="label">Sede</span><span class="value">{{this.sedeNombre}}</span></td>
+
+                <td colspan="1"><span class="label">Jornada</span><span class="value">{{this.grupo.jornada}}</span></td>
+            </tr>
+            <tr>
+                <td colspan="1"><span class="label">Metodología</span><span class="value">{{this.metodologia}}</span>
+                </td>
+                <td colspan="1"><span class="label">Es Nuevo</span><span class="value">{{this.esNuevo}}</span></td>
+                <td colspan="1"><span class="label">Es Repitente</span><span class="value">{{this.esRepitente}}</span>
+                </td>
+
+                <td colspan="2"><span class="label">Situación Año Anterior</span><span
+                        class="value">{{this.situacionAnterior}}</span></td>
+            </tr>
+        </table>
+
+        <table>
+            <tr>
+                <th colspan="4" class="section-title">II. Datos Personales del Estudiante</th>
+            </tr>
+            <tr>
+                <td colspan="4"><span class="label">Apellidos y Nombres Completos</span><span
+                        class="value-left">{{this.estudiante.apellidos}} {{this.estudiante.nombres}}</span></td>
+            </tr>
+            <tr>
+                <td colspan="1"><span class="label">Tipo de Documento</span><span
+                        class="value">{{this.estudiante.tipoDoc}}</span></td>
+                <td colspan="1"><span class="label">Número de Documento</span><span
+                        class="value">{{this.estudiante.documento}}</span></td>
+                <td colspan="2"><span class="label text-center">Lugar de Expedición</span><span
+                        class="value">{{this.estudiante.lugarExpedicion}}</span></td>
+            </tr>
+            <tr>
+                <td colspan="1"><span class="label">Fecha de Nacimiento</span><span
+                        class="value">{{this.estudiante.fechaNac}}</span></td>
+                <td colspan="1"><span class="label text-center">Lugar de Nacimiento</span><span
+                        class="value">{{this.estudiante.lugarNacimiento}}</span></td>
+                <td colspan="1"><span class="label">Género</span><span class="value">{{this.estudiante.genero}}</span>
+                </td>
+                <td colspan="1"><span class="label">Grupo Sanguíneo (RH)</span><span
+                        class="value">{{this.estudiante.rh}}</span></td>
+            </tr>
+        </table>
+
+        <table>
+            <tr>
+                <th colspan="4" class="section-title">III. Datos de Ubicación y Contacto</th>
+            </tr>
+            <tr>
+                <td colspan="2"><span class="label">Dirección de Residencia</span><span
+                        class="value-left">{{this.estudiante.direccion}}</span></td>
+                <td colspan="1"><span class="label">Barrio / Vereda</span><span
+                        class="value">{{this.estudiante.barrio}}</span></td>
+                <td colspan="1"><span class="label">Estrato</span><span class="value">{{this.estudiante.estrato}}</span>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="1"><span class="label">Municipio Residencia</span><span
+                        class="value">{{this.estudiante.mupioResidencia}}</span></td>
+                <td colspan="1"><span class="label">Zona</span><span class="value">{{this.estudiante.zona}}</span></td>
+                <td colspan="2"><span class="label">Teléfono(s) de Contacto</span><span
+                        class="value">{{this.estudiante.telefono}}</span></td>
+            </tr>
+        </table>
+
+        <table>
+            <tr>
+                <th colspan="4" class="section-title">III. Datos de Ubicación y Contacto</th>
+            </tr>
+            <tr>
+                <td colspan="2"><span class="label">Dirección de Residencia</span><span
+                        class="value-left">{{this.estudiante.direccion}}</span></td>
+                <td colspan="1"><span class="label">Barrio / Vereda</span><span
+                        class="value">{{this.estudiante.barrio}}</span></td>
+                <td colspan="1"><span class="label">Estrato</span><span class="value">{{this.estudiante.estrato}}</span>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="1"><span class="label">Municipio Residencia</span><span
+                        class="value">{{this.estudiante.municipioResidencia}}</span></td>
+                <td colspan="1"><span class="label">Zona</span><span class="value">{{this.estudiante.zona}}</span></td>
+                <td colspan="2"><span class="label">Teléfono(s) de Contacto</span><span
+                        class="value">{{this.estudiante.telefono}}</span></td>
+            </tr>
+        </table>
+
+        <table>
+            <tr>
+                <th colspan="4" class="section-title">IV. Información Complementaria y Seguridad Social</th>
+            </tr>
+            <tr>
+                <td colspan="1"><span class="label">E.P.S.</span><span class="value">{{this.estudiante.eps}}</span></td>
+                <td colspan="1"><span class="label">Grupo Sisbén</span><span
+                        class="value">{{this.estudiante.sisben}}</span></td>
+                <td colspan="2"><span class="label text-center">Población Víctima del Conflicto</span><span
+                        class="value">{{this.estudiante.pobVictima}}</span></td>
+            </tr>
+            <tr>
+                <td colspan="1"><span class="label">Etnia / Resguardo</span><span
+                        class="value">{{this.estudiante.etnia}} {{#if this.estudiante.resguardo}}-
+                        {{this.estudiante.resguardo}}{{/if}}</span></td>
+                <td colspan="1"><span class="label">Tipo de Discapacidad</span><span
+                        class="value">{{this.estudiante.discapacidad}}</span></td>
+                <td colspan="2"><span class="label text-center">Capacidades Excepcionales</span><span
+                        class="value">{{this.estudiante.capacidadExcepcional}}</span></td>
+            </tr>
+        </table>
+
+        <table>
+            <tr>
+                <th colspan="4" class="section-title">V. Información del Padre o Acudiente</th>
+            </tr>
+            <tr>
+                <td colspan="2"><span class="label">Nombre Completo</span><span
+                        class="value-left">{{this.acudiente.nombre}}</span></td>
+                <td colspan="1"><span class="label">Parentesco</span><span
+                        class="value">{{this.acudiente.parentesco}}</span></td>
+                <td colspan="1"><span class="label">Teléfono</span><span
+                        class="value">{{this.acudiente.telefono}}</span></td>
+            </tr>
+            <tr>
+                <td colspan="1"><span class="label">Tipo de Documento</span><span
+                        class="value">{{this.acudiente.tipoDoc}}</span></td>
+                <td colspan="1"><span class="label">Número de Documento</span><span
+                        class="value">{{this.acudiente.documento}}</span></td>
+                <td colspan="2"><span class="label">Dirección de Residencia</span><span
+                        class="value-left">{{this.acudiente.direccion}}</span></td>
+            </tr>
+        </table>
+
+        <table>
+            <tr>
+                <th class="section-title">VI. Observaciones Generales</th>
+            </tr>
+            <tr>
+                <td style="height: 35px; vertical-align: top;">
+                    <span style="font-size: 11.5px; font-weight: normal;">{{#if
+                        this.observaciones}}{{this.observaciones}}{{else}}Ninguna registrada.{{/if}}</span>
+                </td>
+            </tr>
+        </table>
+
+        <table class="tabla-firmas">
+            <tr>
+                <td style="width: 25%;">
+                    <div class="linea-firma">Rector(a)</div>
+                </td>
+                <td style="width: 12%;"></td>
+                <td style="width: 25%;">
+                    <div class="linea-firma">Secretario(a)</div>
+                </td>
+                <td style="width: 13%;"></td>
+                <td style="width: 25%;">
+                    <div class="linea-firma">Firma: {{this.acudiente.nombre}}</div>
+                    <div style="font-size: 9px; margin-top: 2px;">({{this.acudiente.parentesco}})</div>
+                </td>
+            </tr>
+        </table>
+
+        <div class="aviso-legal">
+            <strong>Autorización para el Tratamiento de Datos Personales:</strong> Con la firma de este documento, en mi
+            calidad de padre de familia y/o acudiente legal del menor, autorizo de manera voluntaria, previa, explícita
+            e informada a la <strong>{{../encabezadoInstitucional.nombre}}</strong> para recolectar, almacenar, usar,
+            circular y tratar los datos personales aquí consignados. Entiendo que estos datos serán utilizados exclusiva
+            y estrictamente para fines académicos, administrativos, de convivencia y reportes obligatorios al SIMAT o al
+            Ministerio de Educación Nacional, en total cumplimiento de la Ley Estatutaria 1581 de 2012 y sus decretos
+            reglamentarios sobre Protección de Datos Personales.
+        </div>
+
+    </div>
+    {{/each}}
+
+</body>
+
+</html>

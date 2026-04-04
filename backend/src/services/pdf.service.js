@@ -57,5 +57,43 @@ export const pdfService = {
                 await browser.close();
             }
         }
+    },
+
+    async crearPdfMatriculas(dataMatriculas) {
+        let browser = null;
+        try {
+            // 1. Leer la plantilla HTML de matrículas
+            const templatePath = path.join(__dirname, "../templates/matriculas-lote.hbs");
+            const htmlTemplate = await fs.readFile(templatePath, "utf-8");
+
+            // 2. Compilar e inyectar datos
+            const template = Handlebars.compile(htmlTemplate);
+            const htmlFinal = template(dataMatriculas);
+
+            // 3. Iniciar Puppeteer
+            browser = await puppeteer.launch({
+                headless: "new",
+                args: ['--no-sandbox', '--disable-setuid-sandbox']
+            });
+
+            const page = await browser.newPage();
+            await page.setContent(htmlFinal, { waitUntil: "networkidle0" });
+
+            // 4. Generar el PDF (Usamos A4 o Legal según la necesidad)
+            const pdfBuffer = await page.pdf({
+                format: "A4",
+                printBackground: true,
+                preferCSSPageSize: true,
+                margin: { top: 0, bottom: 0, left: 0, right: 0 },
+            });
+
+            return pdfBuffer;
+
+        } catch (error) {
+            console.error("Error al generar el PDF de matrículas:", error);
+            throw new Error("Falló la generación del documento PDF de matrículas.");
+        } finally {
+            if (browser) await browser.close();
+        }
     }
 };
