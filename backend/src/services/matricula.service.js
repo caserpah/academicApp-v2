@@ -343,7 +343,6 @@ export const matriculaService = {
             matriculas: [mapearDatosMatricula(matriculaRaw)]
         };
 
-        console.log("=== DATOS DE LA SEDE ENVIADOS AL PDF ===", dataMatriculas.matriculas[0].sede, dataMatriculas.matriculas[0].sedeNombre);
         return await pdfService.crearPdfMatriculas(dataMatriculas);
     },
 
