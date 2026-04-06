@@ -246,15 +246,25 @@ const CargasForm = ({
                                 <label className={labelClasses}>Asignatura <span className="text-red-500">*</span></label>
                                 <select name="asignaturaId" value={formData.asignaturaId} onChange={handleChange} className={inputClasses} required>
                                     <option value="">-- Seleccione --</option>
-                                    {catalogos.asignaturas
-                                        .filter(asig => asig.nombre.toUpperCase() !== "COMPORTAMIENTO")
-                                        .map((asig) => (
-                                            <option key={asig.id} value={asig.id}>
-                                                {asig.nombre} - {asig.codigo}
-                                            </option>
-                                        ))}
+                                    {catalogos.asignaturas.map(a => (
+                                        // CAMBIO: Se agrega el porcentaje al option
+                                        <option key={a.id} value={a.id}>
+                                            {a.nombre} - {a.codigo} ({a.porcentual}%)
+                                        </option>
+                                    ))}
                                 </select>
+
+                                {/* Mensaje dinámico de horas para comportamiento */}
                                 {esComportamiento && <p className="text-xs text-orange-600 mt-1 font-semibold">* Horas fijas en 0.</p>}
+
+                                {/* NUEVO: Mensaje dinámico con el peso porcentual */}
+                                {formData.asignaturaId && (
+                                    <p className="text-xs text-teal-600 mt-1 font-medium">
+                                        Peso evaluativo: <span className="font-bold">
+                                            {catalogos.asignaturas.find(a => a.id === Number(formData.asignaturaId))?.porcentual || 0}%
+                                        </span>
+                                    </p>
+                                )}
                             </div>
                             <div>
                                 <label className={labelClasses}>Horas Semanales <span className="text-red-500">*</span></label>

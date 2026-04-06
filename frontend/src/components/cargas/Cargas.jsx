@@ -244,6 +244,11 @@ const Cargas = () => {
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="text-sm font-medium text-gray-900">{c.asignatura?.nombre}</div>
+                                                    {c.asignatura?.porcentual !== undefined && (
+                                                        <span className="inline-block mt-1 text-[11px] font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md">
+                                                            Peso: {c.asignatura.porcentual}%
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="text-sm text-gray-800">{c.docente?.identidad?.apellidos} {c.docente?.identidad?.nombre}</div>
