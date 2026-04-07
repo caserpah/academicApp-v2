@@ -192,6 +192,73 @@ const GrillaCalificaciones = ({
         }
     };
 
+    // --- LÓGICA DE NAVEGACIÓN CON TECLADO (FLECHAS) ---
+    // --- LÓGICA DE NAVEGACIÓN CON TECLADO (4 FLECHAS TIPO EXCEL) ---
+    const handleKeyDown = (e) => {
+        const teclasNavegacion = ['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'];
+
+        if (teclasNavegacion.includes(e.key)) {
+            const input = e.target;
+
+            // --- NAVEGACIÓN HORIZONTAL (Izquierda / Derecha) ---
+            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                // Validación para no bloquear la edición dentro de la celda de texto
+                let isAtEnd = true;
+                let isAtStart = true;
+
+                if (input.type === 'text') {
+                    isAtEnd = input.selectionStart === input.value.length;
+                    isAtStart = input.selectionStart === 0;
+                }
+
+                if ((e.key === 'ArrowRight' && isAtEnd) || (e.key === 'ArrowLeft' && isAtStart)) {
+                    e.preventDefault();
+
+                    const inputs = Array.from(document.querySelectorAll('.navigable-cell:not(:disabled)'));
+                    const currentIndex = inputs.indexOf(input);
+
+                    if (currentIndex !== -1) {
+                        const direction = e.key === 'ArrowRight' ? 1 : -1;
+                        const nextIndex = currentIndex + direction;
+
+                        if (nextIndex >= 0 && nextIndex < inputs.length) {
+                            inputs[nextIndex].focus();
+                            inputs[nextIndex].select();
+                        }
+                    }
+                }
+            }
+            // --- NAVEGACIÓN VERTICAL (Arriba / Abajo) ---
+            else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                // Prevenimos el default para que los inputs tipo "number" no cambien su valor al usar las flechas
+                e.preventDefault();
+
+                // Buscamos la columna (td) y la fila (tr) actual
+                const currentTd = input.closest('td');
+                const currentRow = input.closest('tr');
+
+                if (currentTd && currentRow) {
+                    const colIndex = currentTd.cellIndex; // Índice de la columna actual
+                    // Determinamos si vamos a la fila anterior o a la siguiente
+                    const targetRow = e.key === 'ArrowDown' ? currentRow.nextElementSibling : currentRow.previousElementSibling;
+
+                    if (targetRow) {
+                        // Buscamos la celda exacta en la misma columna de la nueva fila
+                        const targetTd = targetRow.cells[colIndex];
+                        if (targetTd) {
+                            // Encontramos el input navegable dentro de esa celda
+                            const targetInput = targetTd.querySelector('.navigable-cell:not(:disabled)');
+                            if (targetInput) {
+                                targetInput.focus();
+                                targetInput.select();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    };
+
     // --- LÓGICA: Disparar el Guardado Manual ---
     const handleTriggerManualSave = (row) => {
         // Recopilamos todos los datos actuales de la fila
@@ -446,8 +513,9 @@ const GrillaCalificaciones = ({
                         value={row[field]}
                         onChange={(e) => handleCellChange(index, field, e.target.value)}
                         onBlur={() => handleBlur(index)}
+                        onKeyDown={handleKeyDown}
                         disabled={row.bloqueo_notas || isSaving || isReadOnly}
-                        className={`w-14 text-center border rounded py-1 px-1 focus:outline-none focus:ring-2 focus:ring-blue-400 font-mono text-sm
+                        className={`navigable-cell w-14 text-center border rounded py-1 px-1 focus:outline-none focus:ring-2 focus:ring-blue-400 font-mono text-sm
                             ${row.bloqueo_notas || isReadOnly ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' : 'bg-white border-gray-300'}
                             ${row.isDirty && !isReadOnly ? 'border-yellow-400 bg-yellow-50' : ''}
                         `}
@@ -628,8 +696,9 @@ const GrillaCalificaciones = ({
                                             <input type="number" min="0" max="99" value={row.fallas}
                                                 onChange={(e) => handleCellChange(index, 'fallas', e.target.value)}
                                                 onBlur={() => handleBlur(index)}
+                                                onKeyDown={handleKeyDown}
                                                 disabled={row.bloqueo_notas || isReadOnly}
-                                                className={`w-12 text-center border border-gray-300 rounded text-xs py-1 ${isReadOnly ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''}`}
+                                                className={`navigable-cell w-12 text-center border border-gray-300 rounded text-xs py-1 ${isReadOnly ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''}`}
                                             />
                                         </td>
                                         <td className="px-2 py-2 text-center">
