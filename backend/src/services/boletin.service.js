@@ -368,7 +368,8 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
             else if (Number(periodoActual) === 3) metaEsperada = 8.9;
             else if (Number(periodoActual) === 4) metaEsperada = 11.9;
 
-            const estadoGanandoPerdiendo = acumuladoArea > metaEsperada ? 'G' : 'PR';
+            // Si el acumulado es mayor a 0, calcula G o PR. Si no, lo deja vacío.
+            const estadoGanandoPerdiendo = acumuladoArea > 0 ? (acumuladoArea > metaEsperada ? 'G' : 'PR') : '';
 
             // --- Calcular Desempeño del Área ---
             let notaPeriodoActual = 0;
