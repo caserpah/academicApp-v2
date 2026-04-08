@@ -255,7 +255,8 @@
         /* Primera columna (Textos descriptivos) */
         .tabla-pie td:first-child,
         .tabla-pie th:first-child {
-            width: 52%; /* Le da más de la mitad del espacio de la tabla a los textos */
+            width: 52%;
+            /* Le da más de la mitad del espacio de la tabla a los textos */
             text-align: left;
             padding-left: 4px;
         }
@@ -268,18 +269,22 @@
         /* Columnas de los periodos (1, 2, 3, 4) */
         .tabla-pie th:not(:first-child),
         .tabla-pie td:not(:first-child) {
-            width: 12%; /* Hace que las columnas de números sean exactamente iguales y angostas */
+            width: 12%;
+            /* Hace que las columnas de números sean exactamente iguales y angostas */
             text-align: center;
         }
 
         .firma-caja {
             margin-top: 35px;
             font-size: 9.5px;
-            clear: both; /* Muy importante para que baje después de la tabla flotante */
+            clear: both;
+            /* Muy importante para que baje después de la tabla flotante */
             display: flex;
             flex-direction: column;
-            align-items: center; /* Centra la línea y los textos */
-            width: 100%;  /* Asegura que ocupe todo el ancho disponible para centrar bien */
+            align-items: center;
+            /* Centra la línea y los textos */
+            width: 100%;
+            /* Asegura que ocupe todo el ancho disponible para centrar bien */
         }
 
         /* Alineaciones utilitarias */
@@ -299,8 +304,10 @@
             border-top: 1px dashed #ccc;
             padding-top: 6px;
             color: #444;
-            clear: both; /* Asegura que se ponga debajo de todo */
+            clear: both;
+            /* Asegura que se ponga debajo de todo */
         }
+
         .footer-codigo span.codigo-resaltado {
             font-size: 10px;
             color: #000;
@@ -308,7 +315,6 @@
             letter-spacing: 1.5px;
             margin-left: 4px;
         }
-
     </style>
 </head>
 
@@ -438,8 +444,10 @@
                     <td>
                         {{this.nombreArea}}
                         {{#if this.esComportamiento}}
+                        {{#if this.docenteComportamiento}}
                         <span class="docente-texto" style="margin-left: 10px;">Docente:
                             {{this.docenteComportamiento}}</span>
+                        {{/if}}
                         {{/if}}
                     </td>
 
@@ -473,7 +481,9 @@
                         {{/if}}
                         <br>
                         {{/if}}
+                        {{#if this.docente}}
                         <span class="docente-texto">Docente: {{this.docente}}</span>
+                        {{/if}}
                     </td>
                 </tr>
 
@@ -570,7 +580,8 @@
         </div>
 
         <div class="footer-codigo">
-            Para descargar una copia digital del boletín descriptivo, ingrese a https://plataformaiecau.com/descargar-boletin con el código:
+            Para descargar una copia digital del boletín descriptivo, ingrese a
+            https://plataformaiecau.com/descargar-boletin con el código:
             <span class="codigo-resaltado">{{this.codigoVerificacion}}</span>
         </div>
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEnvelope, faKey, faArrowRight, faUserShield, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+import { faEnvelope, faKey, faArrowRight, faUserShield, faArrowLeft, faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import { completarOnboarding } from '../../api/authService.js';
 import Swal from 'sweetalert2';
 
@@ -17,6 +17,8 @@ const Onboarding = () => {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [mostrarPassword, setMostrarPassword] = useState(false);
+    const [mostrarConfirmPassword, setMostrarConfirmPassword] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -106,15 +108,20 @@ const Onboarding = () => {
                             <div className="relative">
                                 <span className="absolute left-3 top-3 text-slate-400"><FontAwesomeIcon icon={faKey} /></span>
                                 <input
-                                    type="password"
-                                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-slate-50 focus:bg-white"
-                                    placeholder="Mínimo 8 caracteres"
+                                    type={mostrarPassword ? "text" : "password"}
+                                    className="w-full pl-10 pr-10 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-slate-50 focus:bg-white"
+                                    placeholder="Crea una contraseña segura"
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
                                     required
-                                    minLength={8}
                                     disabled={loading}
                                 />
+                                <span
+                                    className="absolute right-3 top-3 text-slate-400 cursor-pointer"
+                                    onClick={() => setMostrarPassword(!mostrarPassword)}
+                                >
+                                    <FontAwesomeIcon icon={mostrarPassword ? faEyeSlash : faEye} />
+                                </span>
                             </div>
                         </div>
 
@@ -123,14 +130,20 @@ const Onboarding = () => {
                             <div className="relative">
                                 <span className="absolute left-3 top-3 text-slate-400"><FontAwesomeIcon icon={faKey} /></span>
                                 <input
-                                    type="password"
-                                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-slate-50 focus:bg-white"
-                                    placeholder="Repite tu contraseña"
+                                    type={mostrarConfirmPassword ? "text" : "password"}
+                                    className="w-full pl-10 pr-10 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-slate-50 focus:bg-white"
+                                    placeholder="Repite la contraseña"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                     required
                                     disabled={loading}
                                 />
+                                <span
+                                    className="absolute right-3 top-3 text-slate-400 cursor-pointer"
+                                    onClick={() => setMostrarConfirmPassword(!mostrarConfirmPassword)}
+                                >
+                                    <FontAwesomeIcon icon={mostrarConfirmPassword ? faEyeSlash : faEye} />
+                                </span>
                             </div>
                         </div>
 

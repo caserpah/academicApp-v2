@@ -249,7 +249,7 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
             areaRef.asignaturasObj[asigNombre] = {
                 nombreAsignatura: asigNombre,
                 esComportamiento: esComportamiento,
-                docente: cargaAsig?.docente ? `${cargaAsig.docente.identidad?.nombre || cargaAsig.docente.nombre || ''} ${cargaAsig.docente.identidad?.apellidos || cargaAsig.docente.apellidos || ''}`.trim() : 'SIN DOCENTE',
+                docente: cargaAsig?.docente ? `${cargaAsig.docente.identidad?.nombre || cargaAsig.docente.nombre || ''} ${cargaAsig.docente.identidad?.apellidos || cargaAsig.docente.apellidos || ''}`.trim() : null,
                 intensidadHoraria: esPreescolar ? cargaAsig?.horas : null,
                 porcentajePeso: porcentaje,
                 notasHistoricas: { p1: null, p2: null, p3: null, p4: null },

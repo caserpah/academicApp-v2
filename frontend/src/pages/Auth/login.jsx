@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEnvelope, faLock, faArrowRight, faShieldAlt, faCheckCircle } from "@fortawesome/free-solid-svg-icons";
+import { faEnvelope, faLock, faArrowRight, faShieldAlt, faCheckCircle, faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import Swal from 'sweetalert2';
 import { useAuth } from '../../context/AuthContext.jsx';
 
@@ -12,6 +12,7 @@ const Login = () => {
     const [otp, setOtp] = useState('');
     const [correoDestino, setCorreoDestino] = useState('');
     const [loading, setLoading] = useState(false);
+    const [mostrarPassword, setMostrarPassword] = useState(false);
 
     const { login, verifyOtp } = useAuth();
     const navigate = useNavigate();
@@ -111,21 +112,30 @@ const Login = () => {
                                     />
                                 </div>
                             </div>
+
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 mb-1">Contraseña</label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-3 text-slate-400"><FontAwesomeIcon icon={faLock} /></span>
                                     <input
-                                        type="password"
-                                        className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-slate-50 focus:bg-white"
-                                        placeholder="••••••••"
+                                        type={mostrarPassword ? "text" : "password"}
+                                        className="w-full pl-10 pr-12 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-slate-50 focus:bg-white"
+                                        placeholder='Ingresa tu contraseña'
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         required
                                         disabled={loading}
                                     />
+                                    <div
+                                        className="absolute right-3 top-3 text-slate-400 cursor-pointer"
+                                        onClick={() => setMostrarPassword(!mostrarPassword)}
+                                    >
+                                        <FontAwesomeIcon icon={mostrarPassword ? faEyeSlash : faEye} />
+                                    </div>
+
                                 </div>
                             </div>
+
                             <div className="text-right mt-1 mb-4">
                                 <Link to="/recuperar-password" className="text-sm text-blue-600 hover:underline">
                                     ¿Olvidaste tu contraseña?

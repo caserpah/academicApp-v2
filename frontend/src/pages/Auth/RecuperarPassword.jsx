@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEnvelope, faKey, faArrowLeft, faUnlockAlt } from "@fortawesome/free-solid-svg-icons";
+import { faEnvelope, faArrowLeft, faUnlockAlt, faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import { API_BASE_URL } from "../../api/apiClient.js";
 
 import Swal from 'sweetalert2';
@@ -13,6 +13,7 @@ const RecuperarPassword = () => {
     const [otp, setOtp] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [mostrarPassword, setMostrarPassword] = useState(false);
     const navigate = useNavigate();
 
     // PASO 1: Enviar correo
@@ -121,16 +122,20 @@ const RecuperarPassword = () => {
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 mb-1">Nueva Contraseña</label>
                                 <div className="relative">
-                                    <span className="absolute left-3 top-3 text-slate-400"><FontAwesomeIcon icon={faKey} /></span>
                                     <input
-                                        type="password"
-                                        className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition"
-                                        placeholder="Mínimo 8 caracteres"
+                                        type={mostrarPassword ? "text" : "password"}
+                                        className="w-full pr-10 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition"
+                                        placeholder="Nueva Contraseña"
                                         value={newPassword}
                                         onChange={(e) => setNewPassword(e.target.value)}
                                         required
-                                        minLength={8}
                                     />
+                                    <div
+                                        className="absolute right-3 top-3 text-slate-400 cursor-pointer"
+                                        onClick={() => setMostrarPassword(!mostrarPassword)}
+                                    >
+                                        <FontAwesomeIcon icon={mostrarPassword ? faEyeSlash : faEye} />
+                                </div>
                                 </div>
                             </div>
 
