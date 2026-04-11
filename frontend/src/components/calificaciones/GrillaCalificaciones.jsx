@@ -28,6 +28,7 @@ const GrillaCalificaciones = ({
     // --- Estado para la Grilla de calificaciones ---
     const [gridData, setGridData] = useState([]);
     const [savingIds, setSavingIds] = useState({});
+    const [saveErrors, setSaveErrors] = useState({}); // Rastrea celdas que fallaron al guardar
 
     // Estado para almacenar qué estudiantes requieren justificación
     const [pendingJustificationRows, setPendingJustificationRows] = useState({});
@@ -173,10 +174,11 @@ const GrillaCalificaciones = ({
             // Intentamos guardar
             await onSave(payload);
 
-            // Si tiene éxito, limpiamos isDirty
+            // Si tiene éxito, limpiamos isDirty y cualquier error previo
             const newData = [...gridData];
             newData[index].isDirty = false;
             setGridData(newData);
+            setSaveErrors(prev => ({ ...prev, [row.estudianteId]: false }));
 
         } catch (error) {
             // CASO A: Requiere Justificación (Admins fuera de fecha)
@@ -186,6 +188,8 @@ const GrillaCalificaciones = ({
             } else { // CASO B: Error Genérico (Docentes fuera de fecha, Ventana no existe, Error 500)
                 console.error("Error guardando fila", error);
                 showError(error.message || "Error al guardar la calificación.");
+                // Marcamos esta fila visualmente en rojo permanente hasta que el usuario la guarde manualmente (lo que limpiará el error)
+                setSaveErrors(prev => ({ ...prev, [row.estudianteId]: true }));
             }
         } finally {
             setSavingIds(prev => ({ ...prev, [row.estudianteId]: false }));
@@ -498,6 +502,10 @@ const GrillaCalificaciones = ({
     // Input normal de celda (con peso visual)
     const renderInput = (row, index, field, weight = null) => {
         const isSaving = savingIds[row.estudianteId];
+        const hasError = saveErrors[row.estudianteId]; // Si esta fila tiene un error de guardado, la marcamos visualmente con borde rojo permanente
+
+        // ¿Está vacía o es cero?
+        const isEmptyOrZero = !row[field] || row[field] === "0.0" || parseFloat(row[field]) === 0;
 
         let calculatedValue = null;
         if (weight !== null) {
@@ -515,9 +523,11 @@ const GrillaCalificaciones = ({
                         onBlur={() => handleBlur(index)}
                         onKeyDown={handleKeyDown}
                         disabled={row.bloqueo_notas || isSaving || isReadOnly}
-                        className={`navigable-cell w-14 text-center border rounded py-1 px-1 focus:outline-none focus:ring-2 focus:ring-blue-400 font-mono text-sm
-                            ${row.bloqueo_notas || isReadOnly ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' : 'bg-white border-gray-300'}
-                            ${row.isDirty && !isReadOnly ? 'border-yellow-400 bg-yellow-50' : ''}
+                        className={`navigable-cell w-14 text-center border rounded py-1 px-1 focus:outline-none focus:ring-2 focus:ring-blue-400 font-mono text-sm transition-colors
+                        ${row.bloqueo_notas || isReadOnly ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' : 'bg-white border-gray-300'}
+                        ${row.isDirty && !hasError && !isReadOnly ? 'border-yellow-400 bg-yellow-50' : ''}
+                        ${hasError ? 'border-red-500 bg-red-50 ring-1 ring-red-500 shadow-sm' : ''}
+                        ${isEmptyOrZero && !hasError ? 'text-red-500 placeholder-red-400 font-bold' : 'text-gray-900'}
                         `}
                         placeholder="0.0"
                     />

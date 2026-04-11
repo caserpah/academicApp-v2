@@ -31,9 +31,11 @@ export const calificacionRepository = {
             ],
             order: [
                 ['bloqueo_notas', 'ASC'],
-                // Ordenar por Apellido y Nombre
+                // Ordenar por Apellidos y Nombres
                 [{ model: Estudiante, as: 'estudiante' }, 'primerApellido', 'ASC'],
-                [{ model: Estudiante, as: 'estudiante' }, 'primerNombre', 'ASC']
+                [{ model: Estudiante, as: 'estudiante' }, 'segundoApellido', 'ASC'],
+                [{ model: Estudiante, as: 'estudiante' }, 'primerNombre', 'ASC'],
+                [{ model: Estudiante, as: 'estudiante' }, 'segundoNombre', 'ASC']
             ]
         });
     },

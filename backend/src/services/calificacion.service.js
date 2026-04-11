@@ -395,6 +395,12 @@ export const calificacionService = {
             const worksheet = workbook.addWorksheet(nombreHoja);
             const esComportamiento = _esComportamiento(carga.asignatura.nombre);
 
+            // Inmovilizar paneles (Fila 3 para notas y encabezados, Fila 2 para comportamiento)
+            // También inmovilizamos la primera columna para evitar perder el nombre del estudiante al desplazarnos horizontalmente
+            worksheet.views = [
+                { state: 'frozen', xSplit: 2, ySplit: esComportamiento ? 2 : 3 }
+            ];
+
             const securityMetadata = JSON.stringify({
                 gid: carga.grupoId,
                 aid: carga.asignaturaId,
@@ -414,7 +420,9 @@ export const calificacionService = {
                 }],
                 order: [
                     [{ model: Estudiante, as: 'estudiante' }, 'primerApellido', 'ASC'],
-                    [{ model: Estudiante, as: 'estudiante' }, 'segundoApellido', 'ASC']
+                    [{ model: Estudiante, as: 'estudiante' }, 'segundoApellido', 'ASC'],
+                    [{ model: Estudiante, as: 'estudiante' }, 'primerNombre', 'ASC'],
+                    [{ model: Estudiante, as: 'estudiante' }, 'segundoNombre', 'ASC']
                 ]
             });
 
