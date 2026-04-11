@@ -351,25 +351,17 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
                 if (a.notasHistoricas.p4 !== null) { areaP4 += (a.notasHistoricas.p4 * (a.porcentajePeso / 100)); tieneP4 = true; }
             });
 
-            // ---------------------------------------------------------
-            // APLICAR REGLA DE BENEVOLENCIA AL ÁREA (Calculada en memoria)
-            // ---------------------------------------------------------
-            const aplicarBenevolencia = (nota) => (nota >= 2.96 && nota < 3.0) ? 3.0 : nota;
-
-            if (tieneP1) areaP1 = aplicarBenevolencia(areaP1);
-            if (tieneP2) areaP2 = aplicarBenevolencia(areaP2);
-            if (tieneP3) areaP3 = aplicarBenevolencia(areaP3);
-            if (tieneP4) areaP4 = aplicarBenevolencia(areaP4);
-            // ---------------------------------------------------------
-
             let metaEsperada = 0;
-            if (Number(periodoActual) === 1) metaEsperada = 2.9;
-            else if (Number(periodoActual) === 2) metaEsperada = 5.9;
-            else if (Number(periodoActual) === 3) metaEsperada = 8.9;
-            else if (Number(periodoActual) === 4) metaEsperada = 11.9;
+            if (Number(periodoActual) === 1) metaEsperada = 3.0;
+            else if (Number(periodoActual) === 2) metaEsperada = 6.0;
+            else if (Number(periodoActual) === 3) metaEsperada = 9.0;
+            else if (Number(periodoActual) === 4) metaEsperada = 12.0;
 
-            // Si el acumulado es mayor a 0, calcula G o PR. Si no, lo deja vacío.
-            const estadoGanandoPerdiendo = acumuladoArea > 0 ? (acumuladoArea > metaEsperada ? 'G' : 'PR') : '';
+            // Redondeamos el acumulado a 2 decimales para evitar problemas de precisión en JS (ej. 2.999 -> 3.00)
+            const acumuladoLimpio = Math.round(acumuladoArea * 100) / 100;
+
+            // Evaluamos si es MAYOR O IGUAL (>=) a la meta exacta
+            const estadoGanandoPerdiendo = acumuladoLimpio > 0 ? (acumuladoLimpio >= metaEsperada ? 'G' : 'PR') : '';
 
             // --- Calcular Desempeño del Área ---
             let notaPeriodoActual = 0;
@@ -396,7 +388,7 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
                 p2Area: tieneP2 ? areaP2.toFixed(2) : "",
                 p3Area: tieneP3 ? areaP3.toFixed(2) : "",
                 p4Area: tieneP4 ? areaP4.toFixed(2) : "",
-                acumuladoActualArea: acumuladoArea > 0 ? acumuladoArea.toFixed(2) : "",
+                acumuladoActualArea: acumuladoLimpio > 0 ? acumuladoLimpio.toFixed(2) : "",
                 estadoGanandoPerdiendo: esPreescolar ? null : estadoGanandoPerdiendo,
                 desempenoArea: desempenoAreaText,
                 ihArea: ihArea > 0 ? ihArea : "",
@@ -419,8 +411,6 @@ function _calcularEstadisticasYPuestos(notasAgrupadas, idsEstudiantes) {
     const rankingEstudiantes = {};
     const promediosPorPeriodo = { p1: [], p2: [], p3: [], p4: [] };
 
-    const aplicarBenevolencia = (nota) => (nota >= 2.96 && nota < 3.0) ? 3.0 : nota;
-
     for (const estId of idsEstudiantes) {
         const areasEstudiante = notasAgrupadas[estId] || [];
         let sumaP1 = 0, countP1 = 0; let sumaP2 = 0, countP2 = 0; let sumaP3 = 0, countP3 = 0; let sumaP4 = 0, countP4 = 0;
@@ -437,17 +427,17 @@ function _calcularEstadisticasYPuestos(notasAgrupadas, idsEstudiantes) {
                     if (asig.notasHistoricas.p4 !== null) { notaAreaP4 += (asig.notasHistoricas.p4 * (asig.porcentajePeso / 100)); tieneP4 = true; }
                 });
 
-                if (tieneP1) { sumaP1 += aplicarBenevolencia(notaAreaP1); countP1++; }
-                if (tieneP2) { sumaP2 += aplicarBenevolencia(notaAreaP2); countP2++; }
-                if (tieneP3) { sumaP3 += aplicarBenevolencia(notaAreaP3); countP3++; }
-                if (tieneP4) { sumaP4 += aplicarBenevolencia(notaAreaP4); countP4++; }
+                if (tieneP1) { sumaP1 += notaAreaP1; countP1++; }
+                if (tieneP2) { sumaP2 += notaAreaP2; countP2++; }
+                if (tieneP3) { sumaP3 += notaAreaP3; countP3++; }
+                if (tieneP4) { sumaP4 += notaAreaP4; countP4++; }
             }
         });
 
-        const promEstP1 = countP1 > 0 ? aplicarBenevolencia(parseFloat((sumaP1 / countP1).toFixed(2))) : null;
-        const promEstP2 = countP2 > 0 ? aplicarBenevolencia(parseFloat((sumaP2 / countP2).toFixed(2))) : null;
-        const promEstP3 = countP3 > 0 ? aplicarBenevolencia(parseFloat((sumaP3 / countP3).toFixed(2))) : null;
-        const promEstP4 = countP4 > 0 ? aplicarBenevolencia(parseFloat((sumaP4 / countP4).toFixed(2))) : null;
+        const promEstP1 = countP1 > 0 ? parseFloat((sumaP1 / countP1).toFixed(2)) : null;
+        const promEstP2 = countP2 > 0 ? parseFloat((sumaP2 / countP2).toFixed(2)) : null;
+        const promEstP3 = countP3 > 0 ? parseFloat((sumaP3 / countP3).toFixed(2)) : null;
+        const promEstP4 = countP4 > 0 ? parseFloat((sumaP4 / countP4).toFixed(2)) : null;
 
         rankingEstudiantes[estId] = {
             promedios: { p1: promEstP1, p2: promEstP2, p3: promEstP3, p4: promEstP4 },

@@ -445,8 +445,17 @@
                         {{this.nombreArea}}
                         {{#if this.esComportamiento}}
                         {{#if this.docenteComportamiento}}
-                        <span class="docente-texto" style="margin-left: 10px;">Docente:
+                        <span class="docente-texto" style="margin-left: 10px;">Doc:
                             {{this.docenteComportamiento}}</span>
+                        {{/if}}
+                        {{else}}
+                        {{#if ../../configuracionImpresion.esValorativo}}
+                        {{#unless this.mostrarNombreAsignatura}}
+                        {{#if this.asignaturas.[0].docente}}
+                        <span class="docente-texto" style="margin-left: 10px;">| Doc:
+                            {{this.asignaturas.[0].docente}}</span>
+                        {{/if}}
+                        {{/unless}}
                         {{/if}}
                         {{/if}}
                     </td>
@@ -471,9 +480,25 @@
 
                 {{#unless this.esComportamiento}}
                 {{#each this.asignaturas}}
+
+                {{#if ../../../configuracionImpresion.esValorativo}}
+                {{#if ../mostrarNombreAsignatura}}
                 <tr>
-                    <td
-                        colspan="{{#if ../../../configuracionImpresion.esPreescolar}}4{{else}}{{#if ../../../configuracionImpresion.esValorativo}}9{{else}}8{{/if}}{{/if}}">
+                    <td colspan="9">
+                        <span class="nombre-asignatura">{{this.nombreAsignatura}}</span>
+                        {{#if this.formulaPorcentajeExtra}}
+                        <span style="font-size: 9px; font-style: italic;">{{this.formulaPorcentajeExtra}}</span>
+                        {{/if}}
+
+                        {{#if this.docente}}
+                        <span class="docente-texto" style="margin-left: 10px;">| Doc: {{this.docente}}</span>
+                        {{/if}}
+                    </td>
+                </tr>
+                {{/if}}
+                {{else}}
+                <tr>
+                    <td colspan="{{#if ../../../configuracionImpresion.esPreescolar}}4{{else}}8{{/if}}">
                         {{#if ../mostrarNombreAsignatura}}
                         <span class="nombre-asignatura">{{this.nombreAsignatura}}</span>
                         {{#if this.formulaPorcentajeExtra}}
@@ -481,11 +506,13 @@
                         {{/if}}
                         <br>
                         {{/if}}
+
                         {{#if this.docente}}
                         <span class="docente-texto">Docente: {{this.docente}}</span>
                         {{/if}}
                     </td>
                 </tr>
+                {{/if}}
 
                 {{#if this.gruposDimensiones.length}}
                 <tr>
