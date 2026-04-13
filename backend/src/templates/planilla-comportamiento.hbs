@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Planilla de Comportamiento</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 10mm;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+            margin: 0;
+            color: #000;
+        }
+
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5px;
+        }
+
+        .header-table td {
+            border: 1px solid #000;
+            padding: 5px;
+            text-align: center;
+        }
+
+        .logo-cell {
+            width: 15%;
+        }
+
+        .logo-cell img {
+            max-width: 60px;
+            max-height: 60px;
+        }
+
+        .info-cell h2 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .info-cell h3 {
+            margin: 0 0 3px 0;
+            font-size: 12px;
+        }
+
+        .meta-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .meta-table td {
+            padding: 3px 0;
+        }
+
+        .linea {
+            border-bottom: 1px solid #000;
+            display: inline-block;
+            min-width: 150px;
+            margin-left: 5px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+        }
+
+        .data-table th,
+        .data-table td {
+            border: 1px solid #000;
+            padding: 4px;
+        }
+
+        .data-table th {
+            background-color: #f2f2f2;
+            text-align: center;
+        }
+
+        /* Ajuste de anchos para hacer espacio a las 4 subcolumnas */
+        .col-no {
+            width: 4%;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .col-doc {
+            width: 13%;
+            text-align: center;
+        }
+
+        .col-nombre {
+            width: 48%;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .col-comp {
+            width: 6.5%;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .col-nota {
+            width: 9%;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <table class="header-table">
+        <tr>
+            <td class="logo-cell"><img src="{{urlEscudo}}" alt="Escudo"></td>
+            <td class="info-cell">
+                <h2>{{nombreInstitucion}}</h2>
+                <h3>SEDE: {{sedeNombre}}</h3>
+                <h4>{{tituloPlanilla}} - AÑO LECTIVO {{anioLectivo}}</h4>
+            </td>
+        </tr>
+    </table>
+
+    <table class="meta-table">
+        <tr>
+            <td width="50%">DIRECTOR DE GRUPO: <span class="linea"></span></td>
+            <td width="50%">PERIODO: <span class="linea" style="min-width: 100px;"></span></td>
+        </tr>
+        <tr>
+            <td>GRADO: {{gradoNombre}} &nbsp;&nbsp;&nbsp; GRUPO: {{grupoNombre}}</td>
+            <td>JORNADA: {{jornada}}</td>
+        </tr>
+    </table>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th rowspan="2" class="col-no">No</th>
+                <th rowspan="2" class="col-doc">DOCUMENTO</th>
+                <th rowspan="2" class="col-nombre">APELLIDOS Y NOMBRES</th>
+                <th colspan="4">COMPORTAMIENTOS</th>
+                <th rowspan="2" class="col-nota">NOTA</th>
+            </tr>
+            <tr>
+                <th class="col-comp">1</th>
+                <th class="col-comp">2</th>
+                <th class="col-comp">3</th>
+                <th class="col-comp">4</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each estudiantes}}
+            <tr>
+                <td class="col-no">{{this.numero}}</td>
+                <td class="col-doc">{{this.documento}}</td>
+                <td class="col-nombre">{{this.nombreCompleto}}</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+
+</body>
+
+</html>

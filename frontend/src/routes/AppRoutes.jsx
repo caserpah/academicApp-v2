@@ -26,6 +26,8 @@ import Nivelaciones from '../components/nivelaciones/NivelacionesPage.jsx';
 import GenerarBoletines from "../components/boletines/GenerarBoletines.jsx";
 import PortalAcudiente from "../components/boletines/PortalAcudiente.jsx";
 import AdministrarCodigos from "../components/boletines/AdministrarCodigos.jsx";
+import Planillas from "../components/planillas/PlanillasPage.jsx";
+import Sabanas from "../components/reportes/SabanasPage.jsx";
 import Estudiantes from '../components/estudiantes/Estudiantes.jsx';
 import Acudientes from '../components/acudientes/Acudientes.jsx';
 import AsignarAcudientes from '../components/estudiantes/AcudientesTab.jsx';
@@ -92,9 +94,10 @@ const AppRoutes = () => {
                     <Route path="ventanas" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador"]}><Ventanas /></ProtectedRoute>} />
                     <Route path="boletines" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador"]}><GenerarBoletines /></ProtectedRoute>} />
                     <Route path="administrar-codigos" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador"]}><AdministrarCodigos /></ProtectedRoute>} />
+                    <Route path="planillas" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador", "docente", "director"]}><Planillas /></ProtectedRoute>} />
+                    <Route path="sabanas" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador", "docente"]}><Sabanas /></ProtectedRoute>} />
 
                     {/* RUTAS TEMPORALES PARA MÓDULOS EN DESARROLLO */}
-                    <Route path="reportes" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador"]}><PaginaEnConstruccion titulo="Reportes" /></ProtectedRoute>} />
                     <Route path="configuracion" element={<ProtectedRoute requiredRoles="admin"><PaginaEnConstruccion titulo="Configuración" /></ProtectedRoute>} />
 
                 </Route>

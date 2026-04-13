@@ -339,7 +339,7 @@ const CalificacionesPage = () => {
                     </h1>
                     {vigencia && (
                         <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">
-                            Año Lectivo: {vigencia.anio} {esAdmin && '(Admin)'}
+                            Año Lectivo: {vigencia.anio} {esAdmin && '(Administrador)'}
                         </span>
                     )}
                 </div>

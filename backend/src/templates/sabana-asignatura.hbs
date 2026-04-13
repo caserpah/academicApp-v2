@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Sábana de Asignatura</title>
+    <style>
+        @page {
+            size: Legal landscape;
+            margin: 10mm;
+        }
+
+        body {
+            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+            font-size: 11px;
+            margin: 0;
+            color: #334155;
+        }
+
+        /* Encabezado Moderno Asimétrico */
+        .header-wrapper {
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: none;
+        }
+
+        .header-table td {
+            border: none;
+            vertical-align: middle;
+        }
+
+        .inst-title {
+            margin: 0;
+            font-size: 16px;
+            color: #1e3a8a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 800;
+        }
+
+        .inst-subtitle {
+            margin: 3px 0 0 0;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .report-badge {
+            background-color: #eff6ff;
+            border: 1px solid #bfdbfe;
+            padding: 6px 12px;
+            border-radius: 6px;
+            text-align: right;
+            float: right;
+        }
+
+        .report-badge h2 {
+            margin: 0;
+            font-size: 14px;
+            color: #1d4ed8;
+            text-transform: uppercase;
+        }
+
+        .report-badge p {
+            margin: 2px 0 0 0;
+            font-size: 11px;
+            color: #3b82f6;
+            font-weight: bold;
+        }
+
+        /* Meta Información */
+        .meta-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+
+        .meta-item {
+            display: inline-block;
+            margin-right: 20px;
+        }
+
+        .meta-label {
+            color: #64748b;
+            font-weight: bold;
+        }
+
+        .meta-value {
+            color: #0f172a;
+            font-weight: 600;
+            border-bottom: 1px dashed #cbd5e1;
+            padding-bottom: 1px;
+        }
+
+        /* Tabla Principal Moderna (Fuente Aumentada) */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .data-table th,
+        .data-table td {
+            border: 1px solid #cbd5e1;
+            padding: 6px 4px;
+            text-align: center;
+        }
+
+        .data-table th {
+            background-color: #f1f5f9;
+            color: #334155;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+
+        /* Ajuste de anchos para aprovechar la hoja Legal Landscape */
+        .col-nro {
+            width: 4%;
+            color: #64748b;
+            font-weight: bold;
+        }
+
+        .col-nombre {
+            width: 48%;
+            text-align: left !important;
+            padding-left: 10px !important;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .col-nota {
+            width: 8%;
+        }
+
+        /* Filas intercaladas */
+        .data-table tbody tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header-wrapper">
+        <table class="header-table">
+            <tr>
+                <td style="width: 70px;">
+                    {{#if urlEscudo}}
+                    <img src="{{urlEscudo}}" alt="Logo" style="max-height: 60px; max-width: 60px;">
+                    {{/if}}
+                </td>
+                <td style="padding-left: 10px;">
+                    <h1 class="inst-title">{{nombreInstitucion}}</h1>
+                    <p class="inst-subtitle">Sede: <strong>{{sedeNombre}}</strong> | Año Lectivo:
+                        <strong>{{anioLectivo}}</strong> | Jornada: <strong>{{jornada}}</strong>
+                    </p>
+                </td>
+                <td>
+                    <div class="report-badge">
+                        <h2>Reporte de Asignatura</h2>
+                        <p>{{areaAsignatura}}</p>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="meta-container">
+        <div class="meta-item"><span class="meta-label">Grado:</span> <span class="meta-value">{{gradoNombre}}</span>
+        </div>
+        <div class="meta-item"><span class="meta-label">Grupo:</span> <span class="meta-value">{{grupoNombre}}</span>
+        </div>
+        <div class="meta-item"><span class="meta-label">Docente Asignado:</span> <span
+                class="meta-value">{{docenteNombre}}</span></div>
+    </div>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th class="col-nro">#</th>
+                <th class="col-nombre">Estudiante</th>
+                <th class="col-nota">Periodo 1</th>
+                <th class="col-nota">Periodo 2</th>
+                <th class="col-nota">Periodo 3</th>
+                <th class="col-nota">Periodo 4</th>
+                <th class="col-nota" style="background-color: #e2e8f0;">Acumulado</th>
+                <th class="col-nota" style="background-color: #e2e8f0;">Promedio</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each estudiantes}}
+            <tr>
+                <td class="col-nro">{{this.numero}}</td>
+                <td class="col-nombre">{{this.nombreCompleto}}</td>
+                <td class="col-nota">{{this.p1}}</td>
+                <td class="col-nota">{{this.p2}}</td>
+                <td class="col-nota">{{this.p3}}</td>
+                <td class="col-nota">{{this.p4}}</td>
+                <td class="col-nota" style="font-weight: bold;">{{this.acumulado}}</td>
+                <td class="col-nota" style="font-weight: bold; color: #1e40af;">{{this.promedio}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+
+</body>
+
+</html>

@@ -95,5 +95,97 @@ export const pdfService = {
         } finally {
             if (browser) await browser.close();
         }
+    },
+
+    async crearPdfPlanillasNuevas(dataPlanilla, tipoPlanilla) {
+        let browser = null;
+        try {
+            // Determinar qué plantilla física usar según el parámetro
+            const plantillasMap = {
+                'ASISTENCIA': 'planilla-asistencia.hbs',
+                'SEGUIMIENTO': 'planilla-seguimiento.hbs',
+                'CALIFICACIONES': 'planilla-calificaciones.hbs',
+                'COMPORTAMIENTO': 'planilla-comportamiento.hbs'
+            };
+
+            const nombreArchivoPlantilla = plantillasMap[tipoPlanilla];
+            if (!nombreArchivoPlantilla) throw new Error("Tipo de plantilla no soportado.");
+
+            const templatePath = path.join(__dirname, `../templates/${nombreArchivoPlantilla}`);
+            const htmlTemplate = await fs.readFile(templatePath, "utf-8");
+
+            // Compilar e inyectar datos
+            const template = Handlebars.compile(htmlTemplate);
+            const htmlFinal = template(dataPlanilla);
+
+            // Iniciar Puppeteer
+            browser = await puppeteer.launch({
+                headless: "new",
+                args: ['--no-sandbox', '--disable-setuid-sandbox']
+            });
+
+            const page = await browser.newPage();
+            await page.setContent(htmlFinal, { waitUntil: "networkidle0" });
+
+            // 4. Generar el PDF (Formato A4 Vertical)
+            const pdfBuffer = await page.pdf({
+                format: "A4",
+                printBackground: true,
+                preferCSSPageSize: true, // Usa el tamaño definido en la plantilla con @page { size: A4; margin: 10mm; }
+                margin: {
+                    top: '10mm',
+                    bottom: '10mm',
+                    left: '10mm',
+                    right: '10mm'
+                }
+            });
+
+            return pdfBuffer;
+
+        } catch (error) {
+            console.error(`Error al generar PDF de plantilla ${tipoPlanilla}:`, error);
+            throw new Error(`Falló la generación del documento PDF para ${tipoPlanilla}.`);
+        } finally {
+            if (browser) await browser.close();
+        }
+    },
+
+    async crearPdfSabanas(dataSabana, nombrePlantilla) {
+        let browser = null;
+        try {
+            const templatePath = path.join(__dirname, `../templates/${nombrePlantilla}`);
+            const htmlTemplate = await fs.readFile(templatePath, "utf-8");
+
+            const template = Handlebars.compile(htmlTemplate);
+            const htmlFinal = template(dataSabana);
+
+            browser = await puppeteer.launch({
+                headless: "new",
+                args: ['--no-sandbox', '--disable-setuid-sandbox']
+            });
+
+            const page = await browser.newPage();
+            await page.setContent(htmlFinal, { waitUntil: "networkidle0" });
+
+            const pdfBuffer = await page.pdf({
+                format: "Legal", // Usamos tamaño Oficio/Legal para que quepan más columnas cómodamente
+                landscape: true, // Orientación Horizontal
+                printBackground: true,
+                margin: {
+                    top: '10mm',
+                    bottom: '10mm',
+                    left: '10mm',
+                    right: '10mm'
+                }
+            });
+
+            return pdfBuffer;
+
+        } catch (error) {
+            console.error(`Error al generar PDF de Sábana (${nombrePlantilla}):`, error);
+            throw new Error("Falló la generación del documento PDF de la sábana.");
+        } finally {
+            if (browser) await browser.close();
+        }
     }
 };

@@ -23,7 +23,7 @@ import {
   faSpinner,        // Spinner de carga
   faInfoCircle,     // Información
   faUserCircle,     // Icono de usuario
-  faCirclePlus,     // Añadir nuevo
+  faCirclePlus,     // Añadir nuevo,
   faTimesCircle,    // Cerrar o eliminar
   faTimes,          // Cerrar modal
   faAnglesLeft,
@@ -57,6 +57,8 @@ import {
   faGavel,             // Juicios
   faFilePdf,             // Boletines
   faKey,               // Códigos de Boletín
+  faFileInvoice,        // Planillas
+  faChartLine,         // Sábanas / Reportes
 
   faEnvelope,
   faClipboardList,
@@ -68,11 +70,11 @@ import {
 library.add(
 faBars, faSearch, faHome, faSignOutAlt, faChevronDown, faStar, faClipboardList,
 faChevronRight,faSave, faXmark, faEdit, faPenToSquare, faChartSimple,
-faTrash, faSpinner, faInfoCircle,faUserCircle, faCirclePlus, faGavel,
+faTrash, faSpinner, faInfoCircle,faUserCircle, faCirclePlus, faGavel, faChartLine,
 faTimesCircle, faTimes, faAnglesLeft,faAngleLeft, faAngleRight, faBalanceScale,
 faAnglesRight, faSchool, faBuilding, faUserTie, faCalendarAlt, faUserShield,
 faLayerGroup, faBookOpen, faUsersRectangle, faChalkboardUser, faFilePdf, faKey,
-faEnvelope, faFilePen, faUsers, faHandsHoldingChild, faPersonChalkboard
+faEnvelope, faFilePen, faUsers, faHandsHoldingChild, faPersonChalkboard, faFileInvoice
 );
 // -----------------------------------------------------------------
 
