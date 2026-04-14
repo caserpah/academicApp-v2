@@ -1,4 +1,5 @@
 import { planillaService } from "../services/planilla.service.js";
+import { sendSuccess, sendError } from "../middleware/responseHandler.js";
 
 export const planillaController = {
     async descargarPlanillaPdf(req, res, next) {
@@ -49,9 +50,9 @@ export const planillaController = {
             return res.send(pdfBuffer);
 
         } catch (error) {
-            // Aseguramos de que el error tenga status para que el cliente lo procese bien
-            if (!error.status) error.status = 400;
-            next(error);
+            console.error("Error al generar planilla:", error.message);
+            const statusCode = error.status || 400;
+            return sendError(res, error.message, statusCode);
         }
     }
 };

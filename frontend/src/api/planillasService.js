@@ -37,19 +37,37 @@ export const descargarPlanillaPdf = async (filtros) => {
         window.URL.revokeObjectURL(url);
 
     } catch (error) {
-        // Manejo especial: Si el backend envía un JSON con error (ej. 403),
-        // Axios lo envuelve en un Blob porque pedimos responseType: 'blob'.
-        if (error.response && error.response.data instanceof Blob) {
+        // Manejo especial a prueba de balas para errores cuando responseType es 'blob'
+        if (error.response && error.response.data) {
             try {
-                const errorText = await error.response.data.text();
-                const errorJson = JSON.parse(errorText);
-                throw new Error(errorJson.message || "Error al descargar la planilla.");
+                let errorData = error.response.data;
+
+                // Caso 1: Viene como archivo Blob puro (comportamiento por defecto de Axios)
+                if (errorData instanceof Blob) {
+                    const errorText = await errorData.text();
+                    errorData = JSON.parse(errorText);
+                }
+                // Caso 2: Viene como cadena de texto JSON
+                else if (typeof errorData === 'string') {
+                    errorData = JSON.parse(errorData);
+                }
+
+                // Caso 3: Ya es un objeto (porque algún interceptor en apiClient lo parseó)
+                // Si errorData ya es un objeto, extraemos el mensaje directamente
+                if (errorData && errorData.message) {
+                    throw new Error(errorData.message);
+                }
             } catch (e) {
-                console.error("Error al parsear el mensaje de error del servidor:", e);
+                // Si es un error propio que acabamos de lanzar arriba, lo dejamos pasar
+                if (e.message !== "Error desconocido al procesar la respuesta del servidor.") {
+                    throw e;
+                }
+                console.error("No se pudo extraer el JSON del error:", e);
                 throw new Error("Error desconocido al procesar la respuesta del servidor.");
             }
         }
 
+        // Si no hay respuesta del servidor (error de red), usamos tu parseError
         throw parseError(error, "Error de red al intentar generar el documento PDF.");
     }
 };
