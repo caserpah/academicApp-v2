@@ -1,39 +1,56 @@
 import { planillaService } from "../services/planilla.service.js";
 
 export const planillaController = {
-
     async descargarPlanillaPdf(req, res, next) {
         try {
             const vigencia = req.vigenciaActual;
             const usuario = req.user;
-            const { grupoId, tipoPlanilla } = req.query;
 
-            if (!grupoId || !tipoPlanilla) {
-                const error = new Error("Seleccione el Grupo y el tipo de Planilla.");
-                error.status = 400;
-                throw error;
+            // Atrapamos todos los parámetros
+            const { grupoId, tipoPlanilla, docenteId, periodo, modoMasivo } = req.query;
+
+            let pdfBuffer;
+            let nombreArchivo;
+
+            // SOLUCIÓN: Forzamos a String para que funcione sin importar cómo llegue (booleano o texto)
+            if (String(modoMasivo) === 'true') {
+                if (!periodo) throw new Error("Seleccione el periodo para la generación masiva.");
+
+                pdfBuffer = await planillaService.generarPlanillaMasivaDocente({
+                    docenteId: docenteId ? parseInt(docenteId) : null,
+                    tipoPlanilla: tipoPlanilla.toUpperCase(),
+                    periodo: periodo,
+                    usuario,
+                    vigencia
+                });
+
+                nombreArchivo = `Planillas_${tipoPlanilla}_Masivas.pdf`;
+
+            } else {
+                // Generación Individual (la original)
+                if (!grupoId || !tipoPlanilla) {
+                    const error = new Error("Seleccione el Grupo y el tipo de Planilla.");
+                    error.status = 400;
+                    throw error;
+                }
+
+                pdfBuffer = await planillaService.generarPlanilla({
+                    grupoId: parseInt(grupoId),
+                    tipoPlanilla: tipoPlanilla.toUpperCase(),
+                    usuario,
+                    vigencia
+                });
+
+                nombreArchivo = `Planilla_${tipoPlanilla}_Grupo_${grupoId}.pdf`;
             }
-
-            // Llamamos al servicio pasando el contexto completo
-            const pdfBuffer = await planillaService.generarPlanilla({
-                grupoId: parseInt(grupoId),
-                tipoPlanilla: tipoPlanilla.toUpperCase(),
-                usuario,
-                vigencia
-            });
-
-            // Configuramos los headers para la descarga del PDF
-            const nombreArchivo = `Planilla_${tipoPlanilla}_Grupo_${grupoId}.pdf`;
 
             res.setHeader("Content-Type", "application/pdf");
             res.setHeader("Content-Disposition", `attachment; filename="${nombreArchivo}"`);
-
-            // Enviamos el buffer binario
             return res.send(pdfBuffer);
 
         } catch (error) {
-            console.error("Error en descargarPlanillaPdf:", error);
-            // Pasamos el error al manejador global de tu app
+            // Aseguramos de que el error tenga status para que el cliente lo procese bien
+            if (!error.status) error.status = 400;
             next(error);
         }
     }

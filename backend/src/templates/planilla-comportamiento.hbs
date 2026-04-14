@@ -114,64 +114,77 @@
             text-align: center;
             font-weight: bold;
         }
+
+        .page-break {
+            page-break-after: always;
+        }
+
+        .page-break:last-child {
+            page-break-after: auto;
+        }
     </style>
 </head>
 
 <body>
 
-    <table class="header-table">
-        <tr>
-            <td class="logo-cell"><img src="{{urlEscudo}}" alt="Escudo"></td>
-            <td class="info-cell">
-                <h2>{{nombreInstitucion}}</h2>
-                <h3>SEDE: {{sedeNombre}}</h3>
-                <h4>{{tituloPlanilla}} - AÑO LECTIVO {{anioLectivo}}</h4>
-            </td>
-        </tr>
-    </table>
+    {{#each paginas}}
+    <div class="page-break">
 
-    <table class="meta-table">
-        <tr>
-            <td width="50%">DIRECTOR DE GRUPO: <span class="linea"></span></td>
-            <td width="50%">PERIODO: <span class="linea" style="min-width: 100px;"></span></td>
-        </tr>
-        <tr>
-            <td>GRADO: {{gradoNombre}} &nbsp;&nbsp;&nbsp; GRUPO: {{grupoNombre}}</td>
-            <td>JORNADA: {{jornada}}</td>
-        </tr>
-    </table>
+        <table class="header-table">
+            <tr>
+                <td class="logo-cell"><img src="{{urlEscudo}}" alt="Escudo"></td>
+                <td class="info-cell">
+                    <h2>{{nombreInstitucion}}</h2>
+                    <h3>SEDE: {{sedeNombre}}</h3>
+                    <h4>{{tituloPlanilla}} - AÑO LECTIVO {{anioLectivo}}</h4>
+                </td>
+            </tr>
+        </table>
 
-    <table class="data-table">
-        <thead>
+        <table class="meta-table">
             <tr>
-                <th rowspan="2" class="col-no">No</th>
-                <th rowspan="2" class="col-doc">DOCUMENTO</th>
-                <th rowspan="2" class="col-nombre">APELLIDOS Y NOMBRES</th>
-                <th colspan="4">COMPORTAMIENTOS</th>
-                <th rowspan="2" class="col-nota">NOTA</th>
+                <td width="50%">DIRECTOR DE GRUPO: <b>{{this.docenteNombre}}</b></td>
             </tr>
             <tr>
-                <th class="col-comp">1</th>
-                <th class="col-comp">2</th>
-                <th class="col-comp">3</th>
-                <th class="col-comp">4</th>
+                <td>GRADO: {{gradoNombre}} &nbsp;&nbsp;&nbsp; GRUPO: {{grupoNombre}}</td>
+                <td>PERIODO: <b>{{this.periodo}}</b> &nbsp;&nbsp;&nbsp; JORNADA: {{this.jornada}}</td>
             </tr>
-        </thead>
-        <tbody>
-            {{#each estudiantes}}
-            <tr>
-                <td class="col-no">{{this.numero}}</td>
-                <td class="col-doc">{{this.documento}}</td>
-                <td class="col-nombre">{{this.nombreCompleto}}</td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-            </tr>
-            {{/each}}
-        </tbody>
-    </table>
+        </table>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th rowspan="2" class="col-no">No</th>
+                    <th rowspan="2" class="col-doc">DOCUMENTO</th>
+                    <th rowspan="2" class="col-nombre">APELLIDOS Y NOMBRES</th>
+                    <th colspan="4">COMPORTAMIENTOS</th>
+                    <th rowspan="2" class="col-nota">NOTA</th>
+                </tr>
+                <tr>
+                    <th class="col-comp">1</th>
+                    <th class="col-comp">2</th>
+                    <th class="col-comp">3</th>
+                    <th class="col-comp">4</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each estudiantes}}
+                <tr>
+                    <td class="col-no">{{this.numero}}</td>
+                    <td class="col-doc">{{this.documento}}</td>
+                    <td class="col-nombre">{{this.nombreCompleto}}</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                {{/each}}
+            </tbody>
+        </table>
+
+    </div>
+    {{/each}}
 
 </body>
 

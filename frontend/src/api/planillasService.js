@@ -5,13 +5,12 @@ const PLANILLAS_ENDPOINT = '/api/planillas';
 
 /**
  * Descarga el PDF de la planilla generada
- * @param {number|string} grupoId - ID del grupo seleccionado
- * @param {string} tipoPlanilla - 'ASISTENCIA', 'SEGUIMIENTO', 'CALIFICACIONES', 'COMPORTAMIENTO'
+ * @param {Object} filtros - Objeto con (grupoId, tipoPlanilla, docenteId, periodo)
  */
-export const descargarPlanillaPdf = async (grupoId, tipoPlanilla) => {
+export const descargarPlanillaPdf = async (filtros) => {
     try {
         const response = await apiClient.get(`${PLANILLAS_ENDPOINT}/pdf`, {
-            params: { grupoId, tipoPlanilla },
+            params: filtros, // Pasamos el objeto completo a Axios
             responseType: 'blob', // Crítico para recibir archivos binarios
         });
 
@@ -20,9 +19,15 @@ export const descargarPlanillaPdf = async (grupoId, tipoPlanilla) => {
         const link = document.createElement('a');
         link.href = url;
 
-        // Formatear un nombre de archivo limpio
+        // Formatear un nombre de archivo limpio y dinámico
         const fecha = new Date().toISOString().split('T')[0];
-        link.setAttribute('download', `Planilla_${tipoPlanilla}_${fecha}.pdf`);
+
+        // Si viene el flag modoMasivo, armamos el nombre pluralizado por tipo
+        const nombreArchivo = filtros.modoMasivo
+            ? `Planillas_${filtros.tipoPlanilla}_${fecha}.pdf`
+            : `Planilla_${filtros.tipoPlanilla}_Grupo_${filtros.grupoId || ''}_${fecha}.pdf`;
+
+        link.setAttribute('download', nombreArchivo);
 
         document.body.appendChild(link);
         link.click();
