@@ -23,7 +23,8 @@ const GrillaCalificaciones = ({
     asignaturaNombre = "",
     bancoRecomendaciones = [],
     isReadOnly = false,
-    porcentajeArea = 100
+    porcentajeArea = 100,
+    isAdmin = false
 }) => {
     // --- Estado para la Grilla de calificaciones ---
     const [gridData, setGridData] = useState([]);
@@ -58,6 +59,7 @@ const GrillaCalificaciones = ({
             return {
                 matriculaId: item.matriculaId,
                 estudianteId: item.estudianteId,
+                calificacionId: cal.id || null,
                 nombreCompleto: item.nombreCompleto,
                 documento: item.documento,
                 bloqueo_notas: item.bloqueo_notas,
@@ -574,6 +576,10 @@ const GrillaCalificaciones = ({
                 <thead className="bg-gray-50">
                     <tr>
                         <th rowSpan="2" className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-10">#</th>
+
+                        {/* SOLO PARA ADMIN: Mostrar ID de Nota para facilitar justificaciones masivas */}
+                        {isAdmin && <th rowSpan="2" className="px-2 py-3 text-center text-xs font-bold text-indigo-400 uppercase tracking-wider w-16">ID Nota</th>}
+
                         <th rowSpan="2" className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Estudiante</th>
 
                         {!esComportamiento ? (
@@ -612,6 +618,7 @@ const GrillaCalificaciones = ({
                     {/* FILA MAESTRA - Se oculta en modo solo lectura */}
                     {!isReadOnly && (
                         <tr className="bg-gray-100 border-b-2 border-gray-200">
+
                             {!esComportamiento ? (
                                 <>
                                     <td className="p-1 text-center">{renderMasterInput('notaAcademica', '50%')}</td>
@@ -653,6 +660,15 @@ const GrillaCalificaciones = ({
                             ${needsJustification ? 'bg-orange-50 border-l-4 border-orange-400' : 'hover:bg-gray-50'}
                         `}>
                                 <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-400">{index + 1}</td>
+
+                                {/* Celda con el ID */}
+                                {isAdmin && (
+                                    <td className="px-2 py-2 whitespace-nowrap text-center">
+                                        <span className="text-[11px] font-mono bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded border border-indigo-100">
+                                            {row.calificacionId ? `${row.calificacionId}` : '-'}
+                                        </span>
+                                    </td>
+                                )}
 
                                 <td className="px-4 py-2 whitespace-nowrap">
                                     <div className="flex items-center">

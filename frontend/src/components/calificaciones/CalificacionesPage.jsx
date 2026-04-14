@@ -429,14 +429,14 @@ const CalificacionesPage = () => {
                 </div>
 
                 {/* --- 6. ACCIONES GLOBALES (DESCARGAR / IMPORTAR) --- */}
-                {!isReadOnly && rolUsuario === 'docente' && (
+                {rolUsuario === 'docente' && (
                     <div className="flex flex-wrap justify-end gap-3 p-2 bg-blue-50/50 rounded-lg border border-blue-100">
                         <div className="flex items-center gap-2 mr-auto text-sm text-blue-800 px-2">
                             <FontAwesomeIcon icon={faFileExcel} />
                             <span className="font-semibold">Gestión Masiva de Notas (Excel)</span>
                         </div>
 
-                        {/* Botón Descargar (SOLO DOCENTES y requiere periodo) */}
+                        {/* Botón Descargar (SIEMPRE DISPONIBLE si hay periodo, sin importar isReadOnly) */}
                         <button
                             onClick={handleDescargarPlantilla}
                             disabled={!filters.periodo || isDownloading}
@@ -461,15 +461,17 @@ const CalificacionesPage = () => {
                             )}
                         </button>
 
-                        {/* Botón Importar (Global) */}
-                        <button
-                            onClick={() => setShowImportModal(true)}
-                            className="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-5 rounded-lg shadow-sm flex items-center gap-2 transition-all hover:shadow-md"
-                            title="Subir archivo con múltiples hojas"
-                        >
-                            <FontAwesomeIcon icon={faUpload} />
-                            Subir Planilla
-                        </button>
+                        {/* Botón Importar (SOLO SE MUESTRA SI LA VENTANA ESTÁ ABIERTA) */}
+                        {!isReadOnly && (
+                            <button
+                                onClick={() => setShowImportModal(true)}
+                                className="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-5 rounded-lg shadow-sm flex items-center gap-2 transition-all hover:shadow-md"
+                                title="Subir archivo con múltiples hojas"
+                            >
+                                <FontAwesomeIcon icon={faUpload} />
+                                Subir Planilla
+                            </button>
+                        )}
                     </div>
                 )}
 
@@ -517,6 +519,7 @@ const CalificacionesPage = () => {
                             porcentajeArea={asignaturasDisponibles.find(a => String(a.id) === String(filters.asignaturaId))?.porcentual || 100}
                             bancoRecomendaciones={bancoRecomendaciones}
                             isReadOnly={isReadOnly}
+                            isAdmin={esAdmin}
                         />
                     )}
                 </div>

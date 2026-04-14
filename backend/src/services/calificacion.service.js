@@ -62,7 +62,14 @@ async function _validarVentana(periodo, vigenciaId, data, esSoloCambioTexto = fa
     const ROLES_ADMINISTRATIVOS = ['admin', 'director', 'coordinador'];
     const esAdministrativo = data.role ? ROLES_ADMINISTRATIVOS.includes(data.role) : false;
 
+    // Si NO es administrativo, le bloqueamos el paso de inmediato, sin importar si es solo cambio de texto o no.
+    // Solo los administrativos pueden editar fuera de la ventana, y aún así con restricciones.
     if (!esAdministrativo) throw new Error(`El periodo de calificaciones está cerrado (Finalizó: ${ventana.fechaFin}).`);
+
+    // Si ES administrativo, le damos pase libre absoluto, ignorando justificaciones
+    if (esAdministrativo) {
+        return true;
+    }
 
     if (esAdministrativo) {
         if (data.notaDefinitivaInput !== undefined) return true;
