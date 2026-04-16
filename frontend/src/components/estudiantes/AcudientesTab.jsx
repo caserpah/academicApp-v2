@@ -97,9 +97,6 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
                 fechaNacimiento: formData.fechaNacimiento ? formData.fechaNacimiento : null
             };
 
-// 🐛 RASTREO: Esto se verá en la consola de tu navegador (F12)
-console.log("Payload enviado desde React:", payload);
-
             const response = await asignarAcudiente(payload);
 
             // Usamos el mensaje que viene del backend ("Parentesco actualizado...", "Acudiente asignado...")
