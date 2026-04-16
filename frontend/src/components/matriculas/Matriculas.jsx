@@ -308,7 +308,7 @@ const Matriculas = () => {
         try {
             setDownloadingId(matricula.id);
             await descargarActaMatricula(matricula.id);
-            showSuccess("Acta descargada correctamente.");
+            showSuccess("Acta descargada exitosamente.");
         } catch (error) {
             showError(error.message);
         } finally {

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSearch, faTrash, faTimes, faSave, faUserPlus, faCheckCircle, faIdCard } from "@fortawesome/free-solid-svg-icons";
+import { faSearch, faTrash, faTimes, faSave, faUserPlus, faCheckCircle, faIdCard, faEdit } from "@fortawesome/free-solid-svg-icons";
 import { buscarAcudientePorDocumento, asignarAcudiente, desvincularAcudiente } from "../../api/acudientesService.js";
 import { showSuccess, showError, showConfirm } from "../../utils/notifications.js";
 
@@ -13,7 +13,7 @@ const AFINIDADES = [
 // ESTADO INICIAL DEL FORMULARIO
 const INITIAL_FORM = {
     tipoDocumento: 'CC', documento: '', nombres: '', apellidos: '',
-    telefono: '', direccion: '', email: '', afinidad: ''
+    telefono: '', direccion: '', email: '', fechaNacimiento: '', afinidad: ''
 };
 
 const AcudientesTab = ({ estudiante, onUpdate }) => {
@@ -42,7 +42,6 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
             const encontrado = await buscarAcudientePorDocumento(doc);
 
             if (encontrado) {
-
                 setFormData(prev => ({
                     ...prev,
                     tipoDocumento: encontrado.tipoDocumento || 'CC',
@@ -52,7 +51,8 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
                     apellidos: encontrado.apellidos || '',
                     telefono: encontrado.telefono || '',
                     email: encontrado.email || '',
-                    afinidad: prev.afinidad
+                    fechaNacimiento: encontrado.fechaNacimiento || '',
+                    afinidad: prev.afinidad // Mantenemos lo que el usuario haya seleccionado
                 }));
                 setExisteEnBD(true);
             } else {
@@ -70,21 +70,40 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
         }
     };
 
-    // --- GUARDAR Y ASIGNAR ---
+    // --- CARGAR DATOS PARA EDITAR ---
+    const handleEditarAsociacion = (acu) => {
+        setFormData({
+            tipoDocumento: acu.tipoDocumento || 'CC',
+            documento: acu.documento || '',
+            nombres: acu.nombres || '',
+            apellidos: acu.apellidos || '',
+            telefono: acu.telefono || '',
+            direccion: acu.direccion || '',
+            email: acu.email || '',
+            fechaNacimiento: acu.fechaNacimiento || '',
+            afinidad: acu.acudiente_estudiantes?.afinidad || '' // Carga el parentesco actual
+        });
+        setExisteEnBD(true); // Ya existe en la base de datos
+        setModoFormulario(true);
+    };
+
+    // --- GUARDAR Y ASIGNAR/ACTUALIZAR ---
     const handleSubmit = async () => {
         setLoading(true);
         try {
             const payload = {
                 estudianteId: estudiante.id,
-                ...formData
+                ...formData,
+                fechaNacimiento: formData.fechaNacimiento ? formData.fechaNacimiento : null
             };
 
-            await asignarAcudiente(payload);
+// 🐛 RASTREO: Esto se verá en la consola de tu navegador (F12)
+console.log("Payload enviado desde React:", payload);
 
-            showSuccess(existeEnBD
-                ? "Acudiente vinculado exitosamente."
-                : "Acudiente registrado y asignado exitosamente."
-            );
+            const response = await asignarAcudiente(payload);
+
+            // Usamos el mensaje que viene del backend ("Parentesco actualizado...", "Acudiente asignado...")
+            showSuccess(response.mensaje || "Operación realizada con éxito.");
 
             setModoFormulario(false);
             setFormData(INITIAL_FORM);
@@ -132,7 +151,7 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
                 <div className="flex justify-between items-center mb-3 border-b pb-2 border-gray-200">
                     <h3 className="text-gray-800 font-semibold flex items-center gap-2">
                         {existeEnBD ? <FontAwesomeIcon icon={faCheckCircle} className="text-green-500" /> : <FontAwesomeIcon icon={faUserPlus} className="text-blue-600" />}
-                        {existeEnBD ? "Vincular Persona Existente" : "Registrar Nuevo Acudiente"}
+                        {existeEnBD ? "Actualizar / Vincular Acudiente" : "Registrar Nuevo Acudiente"}
                     </h3>
                     <button
                         type="button"
@@ -150,14 +169,23 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
                 {existeEnBD && (
                     <div className="mb-3 bg-green-100 text-green-800 p-2 rounded flex items-center border border-green-200 text-xs">
                         <FontAwesomeIcon icon={faIdCard} className="mr-2" />
-                        Esta persona ya existe. Al guardar, se creará el vínculo con el estudiante y se actualizarán sus datos de contacto.
+                        Puede modificar el parentesco u otros datos. Al guardar, los cambios se reflejarán en el sistema.
                     </div>
                 )}
 
-                <div className="space-y-3" onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}>
+                <div
+                    className="space-y-3"
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleSubmit(); // Guarda solo el acudiente
+                        }
+                    }}
+                >
 
-                    {/* FILA 1: Afinidad, Tipo Doc, Documento (3 columnas) */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {/* FILA 1: Afinidad, Tipo Doc, Documento, F. Nacimiento (4 columnas para ahorrar espacio vertical) */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                         <div>
                             <label className="block text-xs font-semibold text-blue-800 mb-1">Parentesco <span className="text-red-500">*</span></label>
                             <select name="afinidad" value={formData.afinidad} onChange={handleChange} className="w-full border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none" required>
@@ -166,20 +194,24 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs text-gray-500 mb-1">Tipo Documento <span className="text-red-500">*</span></label>
+                            <label className="block text-xs text-gray-500 mb-1">Tipo Doc. <span className="text-red-500">*</span></label>
                             <select name="tipoDocumento" value={formData.tipoDocumento} onChange={handleChange} className="w-full border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
-                                <option value="CC">Cédula de Ciudadanía</option>
-                                <option value="CE">Cédula de Extranjería</option>
-                                <option value="TI">Tarjeta de Identidad</option>
+                                <option value="CC">Cédula</option>
+                                <option value="CE">Cédula Ext.</option>
+                                <option value="TI">Tarjeta Id.</option>
                                 <option value="PA">Pasaporte</option>
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs text-gray-500 mb-1">Número Documento <span className="text-red-500">*</span></label>
+                            <label className="block text-xs text-gray-500 mb-1">Documento <span className="text-red-500">*</span></label>
                             <div className="relative">
-                                <input type="text" name="documento" value={formData.documento} onChange={handleChange} onBlur={handleBlurDocumento} placeholder="Digite y TAB" className="w-full border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                <input type="text" name="documento" value={formData.documento} onChange={handleChange} onBlur={handleBlurDocumento} placeholder="Digite y TAB" className="w-full border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none" readOnly={existeEnBD} />
                                 {buscandoDoc && <span className="absolute right-2 top-1.5 text-blue-500"><FontAwesomeIcon icon={faSearch} spin /></span>}
                             </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs text-gray-500 mb-1">F. Nacimiento (Opc)</label>
+                            <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className="w-full border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none" />
                         </div>
                     </div>
 
@@ -214,7 +246,7 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
 
                 <div className="mt-4 flex justify-end gap-2">
                     <button type="button" onClick={handleSubmit} disabled={loading} className="bg-green-600 text-white px-6 py-1.5 rounded hover:bg-green-700 shadow flex items-center gap-2">
-                        {loading ? "Guardando..." : <><FontAwesomeIcon icon={faSave} /> {existeEnBD ? "Vincular" : "Guardar"}</>}
+                        {loading ? "Guardando..." : <><FontAwesomeIcon icon={faSave} /> {existeEnBD ? "Guardar Cambios" : "Guardar"}</>}
                     </button>
                 </div>
             </div>
@@ -233,7 +265,7 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
 
             {!estudiante.acudientes || estudiante.acudientes.length === 0 ? (
                 <div className="text-center py-8 bg-gray-50 rounded border border-dashed border-gray-300">
-                    <p className="text-gray-500 text-md font-stretch-50%">No hay acudientes asociados a este estudiante.</p>
+                    <p className="text-gray-500 text-md">No hay acudientes asociados a este estudiante.</p>
                 </div>
             ) : (
                 <div className="grid gap-3 md:grid-cols-2">
@@ -265,18 +297,33 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
                                         <span>📞 {acu.telefono || "Sin teléfono"}</span>
                                         <span>📧 {acu.email || "Sin email"}</span>
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.preventDefault(); e.stopPropagation();
-                                            handleDesvincular(acu.id);
-                                        }}
-                                        disabled={loading}
-                                        className="text-gray-400 hover:text-red-600 p-2 transition-colors rounded hover:bg-red-50"
-                                        title="Desvincular acudiente"
-                                    >
-                                        <FontAwesomeIcon icon={faTrash} />
-                                    </button>
+                                    <div className="flex gap-1">
+                                        {/* NUEVO BOTÓN DE EDICIÓN */}
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault(); e.stopPropagation();
+                                                handleEditarAsociacion(acu);
+                                            }}
+                                            disabled={loading}
+                                            className="text-gray-400 hover:text-blue-600 p-2 transition-colors rounded hover:bg-blue-50"
+                                            title="Editar datos y parentesco"
+                                        >
+                                            <FontAwesomeIcon icon={faEdit} />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault(); e.stopPropagation();
+                                                handleDesvincular(acu.id);
+                                            }}
+                                            disabled={loading}
+                                            className="text-gray-400 hover:text-red-600 p-2 transition-colors rounded hover:bg-red-50"
+                                            title="Desvincular acudiente"
+                                        >
+                                            <FontAwesomeIcon icon={faTrash} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         );

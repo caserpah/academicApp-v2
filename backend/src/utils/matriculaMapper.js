@@ -84,7 +84,9 @@ export const mapearDatosMatricula = (matriculaRaw, esBlanco = false) => {
                 telefono: "____________________",
                 tipoDoc: "____",
                 documento: "____________________",
-                direccion: "____________________________________"
+                fechaNac: "________________",
+                direccion: "____________________________________",
+                email: "____________________________________"
             },
             observaciones: ""
         };
@@ -146,7 +148,9 @@ export const mapearDatosMatricula = (matriculaRaw, esBlanco = false) => {
             telefono: acu.telefono || "",
             tipoDoc: acu.tipoDocumento || "",
             documento: acu.documento || "",
-            direccion: acu.direccion || ""
+            fechaNac: formatearFecha(acu.usuario?.fechaNacimiento || acu.fechaNacimiento, false),
+            direccion: acu.direccion || "",
+            email: acu.usuario?.email || acu.email || "N/A"
         },
         observaciones: matriculaRaw.observaciones
     };

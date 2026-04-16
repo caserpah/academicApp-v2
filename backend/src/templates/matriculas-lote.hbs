@@ -317,25 +317,49 @@
             </tr>
         </table>
 
-        <table>
+        <table style="table-layout: fixed; width: 100%;">
             <tr>
                 <th colspan="4" class="section-title">V. Información del Padre o Acudiente</th>
             </tr>
             <tr>
-                <td colspan="2"><span class="label">Nombre Completo</span><span
-                        class="value-left">{{this.acudiente.nombre}}</span></td>
-                <td colspan="1"><span class="label">Parentesco</span><span
-                        class="value">{{this.acudiente.parentesco}}</span></td>
-                <td colspan="1"><span class="label">Teléfono</span><span
-                        class="value">{{this.acudiente.telefono}}</span></td>
+                <td colspan="2" style="width: 50%;">
+                    <span class="label">Nombre Completo</span>
+                    <span class="value">{{this.acudiente.nombre}}</span>
+                </td>
+                <td colspan="1" style="width: 25%;">
+                    <span class="label">Parentesco</span>
+                    <span class="value">{{this.acudiente.parentesco}}</span>
+                </td>
+                <td colspan="1" style="width: 25%;">
+                    <span class="label">Teléfono</span>
+                    <span class="value">{{this.acudiente.telefono}}</span>
+                </td>
             </tr>
+
             <tr>
-                <td colspan="1"><span class="label">Tipo de Documento</span><span
-                        class="value">{{this.acudiente.tipoDoc}}</span></td>
-                <td colspan="1"><span class="label">Número de Documento</span><span
-                        class="value">{{this.acudiente.documento}}</span></td>
-                <td colspan="2"><span class="label">Dirección de Residencia</span><span
-                        class="value-left">{{this.acudiente.direccion}}</span></td>
+                <td colspan="2">
+                    <span class="label">Dirección de Residencia</span>
+                    <span class="value" style="word-wrap: break-word;">{{this.acudiente.direccion}}</span>
+                </td>
+                <td colspan="2">
+                    <span class="label">Correo Electrónico</span>
+                    <span class="value" style="word-break: break-all; font-size: 10px;">{{this.acudiente.email}}</span>
+                </td>
+            </tr>
+
+            <tr>
+                <td colspan="1">
+                    <span class="label">Tipo de Documento</span>
+                    <span class="value">{{this.acudiente.tipoDoc}}</span>
+                </td>
+                <td colspan="1">
+                    <span class="label">Número de Documento</span>
+                    <span class="value">{{this.acudiente.documento}}</span>
+                </td>
+                <td colspan="2">
+                    <span class="label">Fecha de Nacimiento</span>
+                    <span class="value">{{this.acudiente.fechaNac}}</span>
+                </td>
             </tr>
         </table>
 
@@ -351,24 +375,24 @@
             </tr>
         </table>
 
-        <table class="tabla-firmas">
+        <table class="tabla-firmas" style="margin-top: 70px; width: 100%;">
             <tr>
                 <td style="width: 25%;">
                     <div class="linea-firma">Rector(a)</div>
                 </td>
                 <td style="width: 12%;"></td>
                 <td style="width: 25%;">
-                    <div class="linea-firma">Secretario(a)</div>
+                    <div class="linea-firma">Secretaria(o)</div>
                 </td>
                 <td style="width: 13%;"></td>
                 <td style="width: 25%;">
-                    <div class="linea-firma">Firma: {{this.acudiente.nombre}}</div>
-                    <div style="font-size: 9px; margin-top: 2px;">({{this.acudiente.parentesco}})</div>
+                    <div class="linea-firma">Acudiente</div>
+                    <div style="font-size: 9px; margin-top: 2px;">({{this.acudiente.nombre}})</div>
                 </td>
             </tr>
         </table>
 
-        <div class="aviso-legal">
+        <div class="aviso-legal" style="margin-top: 30px;">
             <strong>Autorización para el Tratamiento de Datos Personales:</strong> Con la firma de este documento, en mi
             calidad de padre de familia y/o acudiente legal del menor, autorizo de manera voluntaria, previa, explícita
             e informada a la <strong>{{../encabezadoInstitucional.nombre}}</strong> para recolectar, almacenar, usar,

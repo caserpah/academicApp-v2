@@ -61,6 +61,12 @@ export const ValidarCrearAcudiente = [
         .isEmail().withMessage("Ingrese un correo electrónico válido.")
         .normalizeEmail(),
 
+    /** Fecha de nacimiento (Opcional) */
+    body("fechaNacimiento")
+        .optional({ checkFalsy: true }) // Permite que venga vacío, nulo o indefinido
+        .isDate({ format: 'YYYY-MM-DD', strictMode: true })
+        .withMessage("La fecha de nacimiento debe tener un formato válido (YYYY-MM-DD)."),
+
     validationErrorHandler
 ];
 
@@ -103,6 +109,12 @@ export const ValidarActualizarAcudiente = [
     validarCampoContactoOpcional("telefono"),
     body("email").optional({ checkFalsy: true }).trim().isEmail().normalizeEmail(),
 
+    /** Fecha de nacimiento (Opcional) */
+    body("fechaNacimiento")
+        .optional({ checkFalsy: true }) // Permite que venga vacío, nulo o indefinido
+        .isDate({ format: 'YYYY-MM-DD', strictMode: true })
+        .withMessage("La fecha de nacimiento debe tener un formato válido (YYYY-MM-DD)."),
+
     validationErrorHandler
 ];
 
@@ -117,12 +129,32 @@ export const ValidarAsignarAcudiente = [
         .isIn(ENUM_AFINIDAD).withMessage("El parentesco seleccionado no es válido."),
 
     // --- 2. DATOS DE LA PERSONA ---
-    validarCampoRequerido("tipoDocumento", "Seleccione el tipo de documento.").isIn(ENUM_TIPO_DOC),
-    validarCampoRequerido("documento", "Ingrese el número de documento.").matches(regexDocumento),
-    validarCampoRequerido("nombres", "Ingrese los nombres completos.").isLength({ min: 2 }),
-    validarCampoRequerido("apellidos", "Ingrese los apellidos completos.").isLength({ min: 2 }),
+    validarCampoRequerido("tipoDocumento", "Seleccione el tipo de documento.")
+        .isIn(ENUM_TIPO_DOC).withMessage("El tipo de documento seleccionado no es válido."),
+
+    validarCampoRequerido("documento", "Ingrese el número de documento.")
+        .matches(regexDocumento).withMessage("El documento debe tener entre 4 y 20 caracteres, sin espacios."),
+
+    validarCampoRequerido("nombres", "Ingrese los nombres completos.")
+        .isLength({ min: 2 }).withMessage("Los nombres deben contener al menos 2 caracteres."),
+
+    validarCampoRequerido("apellidos", "Ingrese los apellidos completos.")
+        .isLength({ min: 2 }).withMessage("Los apellidos deben contener al menos 2 caracteres."),
+
+    // La fecha que agregamos recientemente
+    body("fechaNacimiento")
+        .optional({ checkFalsy: true })
+        .isDate({ format: 'YYYY-MM-DD', strictMode: true })
+        .withMessage("La fecha de nacimiento debe tener un formato válido (YYYY-MM-DD)."),
+
     validarCampoContactoOpcional("telefono"),
-    body("email").optional({ checkFalsy: true }).trim().isEmail().normalizeEmail(),
+
+    body("email")
+        .optional({ checkFalsy: true })
+        .trim()
+        .isEmail().withMessage("Ingrese un correo electrónico válido.")
+        .normalizeEmail(),
+
     body("direccion").optional({ checkFalsy: true }).trim().escape(),
 
     validationErrorHandler

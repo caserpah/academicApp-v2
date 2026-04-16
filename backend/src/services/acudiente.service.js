@@ -24,6 +24,12 @@ export const acudienteService = {
      */
     async create(data) {
         try {
+
+            // --- Limpiamos la fecha antes de procesarla ---
+            if (!data.fechaNacimiento || String(data.fechaNacimiento).trim() === "" || data.fechaNacimiento === "Invalid date") {
+                data.fechaNacimiento = null;
+            }
+
             // Verificar si el acudiente ya existe por documento
             const existente = await acudienteRepository.findOne({ where: { documento: data.documento } });
             if (existente) {
@@ -47,6 +53,12 @@ export const acudienteService = {
     async update(id, data) {
         try {
             const acudienteActual = await acudienteRepository.findById(id);
+
+            // --- Limpiamos la fecha antes de procesarla ---
+            if (!data.fechaNacimiento || String(data.fechaNacimiento).trim() === "" || data.fechaNacimiento === "Invalid date") {
+                data.fechaNacimiento = null;
+            }
+
             if (!acudienteActual) {
                 const error = new Error("No se encontró el acudiente solicitado.");
                 error.status = 404;
@@ -91,7 +103,12 @@ export const acudienteService = {
         const t = await sequelize.transaction();
 
         try {
-            const { estudianteId, afinidad, ...datosAcudiente } = data;
+            let { estudianteId, afinidad, ...datosAcudiente } = data;
+
+            // --- Limpiamos la fecha antes de procesarla ---
+            if (!datosAcudiente.fechaNacimiento || String(datosAcudiente.fechaNacimiento).trim() === "" || datosAcudiente.fechaNacimiento === "Invalid date") {
+                datosAcudiente.fechaNacimiento = null;
+            }
 
             if (!estudianteId || !afinidad || !datosAcudiente.documento) {
                 const err = new Error("Para realizar la asignación es obligatorio indicar el estudiante, el parentesco y el número de documento del acudiente.");
@@ -136,9 +153,8 @@ export const acudienteService = {
                     await t.commit();
                     return { mensaje: "Parentesco actualizado exitosamente.", acudienteId };
                 } else {
-                    const err = new Error(`Esta persona ya tiene el parentesco de: ${relacionExistente.afinidad} con el estudiante.`);
-                    err.status = 409;
-                    throw err;
+                    await t.commit();
+                    return { mensaje: "Datos del acudiente actualizados exitosamente.", acudienteId };
                 }
             }
 

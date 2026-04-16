@@ -12,7 +12,8 @@ const INITIAL_STATE = {
     apellidos: "",
     telefono: "",
     email: "",
-    direccion: ""
+    direccion: "",
+    fechaNacimiento: ""
 };
 
 // --- COMPONENTE PRINCIPAL ---
@@ -30,7 +31,8 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
                 nombres: registro.nombres || "",
                 apellidos: registro.apellidos || "",
                 telefono: registro.telefono || "",
-                email: registro.email || ""
+                email: registro.email || "",
+                fechaNacimiento: registro.fechaNacimiento || ""
             });
         } else {
             setFormData(INITIAL_STATE);
@@ -54,11 +56,17 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
 
         setLoading(true);
         try {
+            // --- Limpiamos la fecha antes de enviarla ---
+            const payload = {
+                ...formData,
+                fechaNacimiento: formData.fechaNacimiento ? formData.fechaNacimiento : null
+            };
+
             if (registro || formData.id) {
-                await actualizarAcudiente(formData.id, formData);
+                await actualizarAcudiente(formData.id, payload); // Enviamos el payload
                 showSuccess("Acudiente actualizado exitosamente.");
             } else {
-                await crearAcudiente(formData);
+                await crearAcudiente(payload); // Enviamos el payload
                 showSuccess("Acudiente registrado exitosamente.");
 
                 setTimeout(() => {
@@ -89,6 +97,7 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
                 <div className="p-6 overflow-y-auto custom-scrollbar">
                     <form id="acudienteForm" onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
+                        {/* --- BLOQUE IDENTIDAD --- */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1 required">Tipo Documento <span className="text-red-500">*</span></label>
                             <select name="tipoDocumento" value={formData.tipoDocumento} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
@@ -105,14 +114,18 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Nombres Completos <span className="text-red-500">*</span></label>
-                            {/* 🚀 CAMBIO: name="nombres" y value={formData.nombres} */}
                             <input type="text" name="nombres" value={formData.nombres} onChange={handleChange} required className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Apellidos Completos <span className="text-red-500">*</span></label>
                             <input type="text" name="apellidos" value={formData.apellidos} onChange={handleChange} required className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Nacimiento (Opcional)</label>
+                            <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+                        </div>
 
+                        {/* --- BLOQUE CONTACTO --- */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono (Opcional)</label>
                             <input type="text" name="telefono" value={formData.telefono} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Número de contacto" />
@@ -121,8 +134,7 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico (Opcional)</label>
                             <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none lowercase" placeholder="ejemplo@correo.com" />
                         </div>
-
-                        <div className="md:col-span-2">
+                        <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Dirección de Residencia</label>
                             <input type="text" name="direccion" value={formData.direccion} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Ej: Calle 10 # 5-20" />
                         </div>

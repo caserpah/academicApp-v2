@@ -37,6 +37,10 @@ export const Acudiente = sequelize.define("acudiente", {
         type: DataTypes.STRING(100),
         allowNull: true
     },
+    fechaNacimiento: {
+        type: DataTypes.DATEONLY, // Guarda solo la fecha (YYYY-MM-DD)
+        allowNull: true // Permitimos null en DB por los registros antiguos
+    },
     // --- EL ENLACE AL SISTEMA AHORA ES OPCIONAL ---
     usuarioId: {
         type: DataTypes.INTEGER,
