@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { crearEstudiante, actualizarEstudiante, obtenerEstudiante } from "../../api/estudiantesService.js";
 import { showSuccess, showError, showWarning } from "../../utils/notifications.js";
 import AcudientesTab from "./AcudientesTab.jsx";
-import CreatableSelect from "react-select/creatable"
+import CreatableSelect from "react-select/creatable";
 import { municipiosColombia } from "../../data/municipiosColombia.js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSave, faTimes } from "@fortawesome/free-solid-svg-icons";

@@ -28,7 +28,7 @@ export const fetchBoletinesCatalogs = async () => {
 export const fetchEstudiantesPorGrupo = async (grupoId) => {
     try {
         if (!grupoId) return [];
-        const response = await apiClient.get(`/api/matriculas?grupoId=${grupoId}&limit=100`);
+        const response = await apiClient.get(`/api/matriculas?grupoId=${grupoId}&incluirInactivos=true&limit=100`);
         return response.data.data.items || response.data.data || [];
     } catch (error) {
         console.error("Error buscando estudiantes", error);

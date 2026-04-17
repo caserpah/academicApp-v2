@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import CreatableSelect from "react-select/creatable";
+import { municipiosColombia } from "../../data/municipiosColombia.js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSearch, faTrash, faTimes, faSave, faUserPlus, faCheckCircle, faIdCard, faEdit } from "@fortawesome/free-solid-svg-icons";
 import { buscarAcudientePorDocumento, asignarAcudiente, desvincularAcudiente } from "../../api/acudientesService.js";
@@ -12,7 +14,7 @@ const AFINIDADES = [
 
 // ESTADO INICIAL DEL FORMULARIO
 const INITIAL_FORM = {
-    tipoDocumento: 'CC', documento: '', nombres: '', apellidos: '',
+    tipoDocumento: 'CC', documento: '', nombres: '', apellidos: '', lugarExpedicion: '',
     telefono: '', direccion: '', email: '', fechaNacimiento: '', afinidad: ''
 };
 
@@ -47,6 +49,7 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
                     tipoDocumento: encontrado.tipoDocumento || 'CC',
                     direccion: encontrado.direccion || '',
                     documento: encontrado.documento || doc,
+                    lugarExpedicion: encontrado.lugarExpedicion || '',
                     nombres: encontrado.nombres || '',
                     apellidos: encontrado.apellidos || '',
                     telefono: encontrado.telefono || '',
@@ -75,6 +78,7 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
         setFormData({
             tipoDocumento: acu.tipoDocumento || 'CC',
             documento: acu.documento || '',
+            lugarExpedicion: acu.lugarExpedicion || '',
             nombres: acu.nombres || '',
             apellidos: acu.apellidos || '',
             telefono: acu.telefono || '',
@@ -132,6 +136,17 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
         }
     };
 
+    const getValueForSelect = (value) => {
+        if (!value) return null;
+        return { label: value, value: value };
+    };
+
+    const handleSelectChange = (newValue, actionMeta) => {
+        const fieldName = actionMeta.name;
+        const valueToSave = newValue ? newValue.value : '';
+        setFormData(prev => ({ ...prev, [fieldName]: valueToSave }));
+    };
+
     if (!estudiante || !estudiante.id) {
         return (
             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded text-yellow-700 animate-fade-in">
@@ -156,6 +171,7 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
                             e.preventDefault(); e.stopPropagation();
                             setModoFormulario(false);
                             setFormData(INITIAL_FORM);
+                            setExisteEnBD(false);
                         }}
                         className="text-gray-500 hover:text-red-500 font-medium transition-colors"
                     >
@@ -181,8 +197,8 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
                     }}
                 >
 
-                    {/* FILA 1: Afinidad, Tipo Doc, Documento, F. Nacimiento (4 columnas para ahorrar espacio vertical) */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    {/* FILA 1: Parentesco, Tipo Doc y Documento (3 columnas) */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div>
                             <label className="block text-xs font-semibold text-blue-800 mb-1">Parentesco <span className="text-red-500">*</span></label>
                             <select name="afinidad" value={formData.afinidad} onChange={handleChange} className="w-full border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none" required>
@@ -193,9 +209,9 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
                         <div>
                             <label className="block text-xs text-gray-500 mb-1">Tipo Doc. <span className="text-red-500">*</span></label>
                             <select name="tipoDocumento" value={formData.tipoDocumento} onChange={handleChange} className="w-full border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
-                                <option value="CC">Cédula</option>
-                                <option value="CE">Cédula Ext.</option>
-                                <option value="TI">Tarjeta Id.</option>
+                                <option value="CC">Cédula de Ciudadanía</option>
+                                <option value="CE">Cédula de Extranjería</option>
+                                <option value="TI">Tarjeta de Identidad</option>
                                 <option value="PA">Pasaporte</option>
                             </select>
                         </div>
@@ -206,13 +222,31 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
                                 {buscandoDoc && <span className="absolute right-2 top-1.5 text-blue-500"><FontAwesomeIcon icon={faSearch} spin /></span>}
                             </div>
                         </div>
+                    </div>
+
+                    {/* FILA 2: Lugar Expedición y Fecha Nacimiento (2 columnas) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs text-gray-500 mb-1">Lugar de Expedición</label>
+                            <CreatableSelect
+                                name="lugarExpedicion"
+                                className="w-full rounded focus:ring-blue-500 text-xs"
+                                options={municipiosColombia}
+                                value={getValueForSelect(formData.lugarExpedicion)}
+                                onChange={handleSelectChange}
+                                isClearable
+                                placeholder="Buscar municipio..."
+                                formatCreateLabel={(inputValue) => `Usar "${inputValue}"`}
+                                styles={{ control: (base) => ({ ...base, minHeight: '34px', borderRadius: '0.25rem' }) }}
+                            />
+                        </div>
                         <div>
                             <label className="block text-xs text-gray-500 mb-1">F. Nacimiento (Opc)</label>
                             <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className="w-full border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none" />
                         </div>
                     </div>
 
-                    {/* FILA 2: Nombres y Apellidos (2 columnas) */}
+                    {/* FILA 3: Nombres y Apellidos (2 columnas) */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                             <label className="block text-xs text-gray-500 mb-1">Nombres Completos <span className="text-red-500">*</span></label>
@@ -224,7 +258,7 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
                         </div>
                     </div>
 
-                    {/* FILA 3: Teléfono, Email, Dirección (3 columnas) */}
+                    {/* FILA 4: Teléfono, Email, Dirección (3 columnas) */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div>
                             <label className="block text-xs text-gray-500 mb-1">Celular / Teléfono</label>
@@ -255,7 +289,14 @@ const AcudientesTab = ({ estudiante, onUpdate }) => {
         <div className="space-y-4 animate-fade-in">
             <div className="flex justify-between items-center border-b border-gray-300 pb-2">
                 <h3 className="font-semibold text-gray-800">Acudientes Asignados</h3>
-                <button onClick={() => setModoFormulario(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-sm font-medium shadow-sm transition-all flex items-center gap-2">
+                <button
+                    onClick={() => {
+                        setFormData(INITIAL_FORM);
+                        setExisteEnBD(false);
+                        setModoFormulario(true);
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-sm font-medium shadow-sm transition-all flex items-center gap-2"
+                >
                     <FontAwesomeIcon icon={faUserPlus} /> Agregar
                 </button>
             </div>

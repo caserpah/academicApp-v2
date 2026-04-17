@@ -147,7 +147,7 @@ export const boletinService = {
         let matriculasTotales = await boletinRepository.findMatriculasPorGrupo(grupoId, vigenciaId);
         matriculasTotales = matriculasTotales.filter(m =>
             m.bloqueo_notas !== true && m.bloqueo_notas !== 1 &&
-            !['ANULADO', 'RETIRADO', 'DESERTADO'].includes(m.estado)
+            !['ANULADO'].includes(m.estado)
         );
 
         if (matriculasTotales.length === 0) return [];

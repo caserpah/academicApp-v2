@@ -73,7 +73,7 @@ export const boletinRepository = {
             where: {
                 grupoId,
                 vigenciaId,
-                estado: { [Op.notIn]: ['RETIRADO', 'DESERTADO', 'ANULADO'] }
+                estado: { [Op.notIn]: ['ANULADO'] }
             },
             include: [
                 {

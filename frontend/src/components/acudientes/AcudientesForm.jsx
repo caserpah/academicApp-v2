@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import CreatableSelect from "react-select/creatable";
+import { municipiosColombia } from "../../data/municipiosColombia.js";
 import { crearAcudiente, actualizarAcudiente } from "../../api/acudientesService.js";
 import { showSuccess, showError, showWarning } from "../../utils/notifications.js";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes, faSave, faUserCheck } from "@fortawesome/free-solid-svg-icons";
 
 // Estado inicial del formulario
 const INITIAL_STATE = {
     tipoDocumento: "CC",
     documento: "",
+    lugarExpedicion: "",
     nombres: "",
     apellidos: "",
     telefono: "",
@@ -28,11 +31,12 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
                 tipoDocumento: registro.tipoDocumento || "CC",
                 direccion: registro.direccion || "",
                 documento: registro.documento || "",
+                lugarExpedicion: registro.lugarExpedicion || "",
                 nombres: registro.nombres || "",
                 apellidos: registro.apellidos || "",
                 telefono: registro.telefono || "",
                 email: registro.email || "",
-                fechaNacimiento: registro.fechaNacimiento || ""
+                fechaNacimiento: registro.fechaNacimiento ? registro.fechaNacimiento.split('T')[0] : ""
             });
         } else {
             setFormData(INITIAL_STATE);
@@ -81,6 +85,18 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
         }
     };
 
+    // Helpers para react-select
+    const getValueForSelect = (value) => {
+        if (!value) return null;
+        return { label: value, value: value };
+    };
+
+    const handleSelectChange = (newValue, actionMeta) => {
+        const fieldName = actionMeta.name;
+        const valueToSave = newValue ? newValue.value : '';
+        setFormData(prev => ({ ...prev, [fieldName]: valueToSave }));
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-full max-h-[83vh] flex flex-col">
@@ -97,7 +113,7 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
                 <div className="p-6 overflow-y-auto custom-scrollbar">
                     <form id="acudienteForm" onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-                        {/* --- BLOQUE IDENTIDAD --- */}
+                        {/* --- FILA 1:  Identidad --- */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1 required">Tipo Documento <span className="text-red-500">*</span></label>
                             <select name="tipoDocumento" value={formData.tipoDocumento} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
@@ -112,6 +128,23 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
                             <input type="text" name="documento" value={formData.documento} onChange={handleChange} required className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Máx. 20 dígitos" />
                         </div>
 
+                        {/* --- FILA 2: Origen y Nacimiento --- */}
+                            <div>
+                                <label className="block text-sm text-gray-500 mb-1">Lugar de Expedición</label>
+                                <CreatableSelect
+                                    name="lugarExpedicion"
+                                    className="w-full rounded focus:ring-blue-500 text-sm"
+                                    options={municipiosColombia}
+                                    value={getValueForSelect(formData.lugarExpedicion)}
+                                    onChange={handleSelectChange}
+                                    isClearable
+                                    placeholder="Buscar municipio..."
+                                    formatCreateLabel={(inputValue) => `Usar "${inputValue}"`}
+                                    styles={{ control: (base) => ({ ...base, minHeight: '43px', borderRadius: '0.25rem' }) }}
+                                />
+                            </div>
+
+                        {/* --- FILA 3: Nombres y Apellidos --- */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Nombres Completos <span className="text-red-500">*</span></label>
                             <input type="text" name="nombres" value={formData.nombres} onChange={handleChange} required className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
@@ -125,7 +158,7 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
                             <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
                         </div>
 
-                        {/* --- BLOQUE CONTACTO --- */}
+                        {/* --- FILA 4: Contacto --- */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono (Opcional)</label>
                             <input type="text" name="telefono" value={formData.telefono} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Número de contacto" />
@@ -134,7 +167,9 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico (Opcional)</label>
                             <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none lowercase" placeholder="ejemplo@correo.com" />
                         </div>
-                        <div>
+
+                        {/* --- FILA 5: Dirección --- */}
+                        <div className="md:col-span-2">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Dirección de Residencia</label>
                             <input type="text" name="direccion" value={formData.direccion} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Ej: Calle 10 # 5-20" />
                         </div>

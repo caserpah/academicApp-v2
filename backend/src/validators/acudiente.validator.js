@@ -35,7 +35,10 @@ export const ValidarCrearAcudiente = [
             return true;
         }),
 
-    /** Nombre completo */
+    // Lugar de expedición del documento (Opcional)
+    body("lugarExpedicion").optional({ checkFalsy: true }).trim().escape(),
+
+        /** Nombre completo */
     validarCampoRequerido("nombres", "Ingrese los nombres completos.")
         .isLength({ min: 2 })
         .withMessage("El nombre debe contener al menos 2 caracteres."),
@@ -98,6 +101,9 @@ export const ValidarActualizarAcudiente = [
             return true;
         }),
 
+    // Lugar de expedición del documento (Opcional)
+    body("lugarExpedicion").optional({ checkFalsy: true }).trim().escape(),
+
     /** Nombres y Apellidos (Plural) */
     validarCampoOpcionalRequerido("nombres", "Ingrese los nombres.")
         .isLength({ min: 2 }).withMessage("El nombre debe contener al menos 2 caracteres."),
@@ -134,6 +140,9 @@ export const ValidarAsignarAcudiente = [
 
     validarCampoRequerido("documento", "Ingrese el número de documento.")
         .matches(regexDocumento).withMessage("El documento debe tener entre 4 y 20 caracteres, sin espacios."),
+
+    // Lugar de expedición del documento (Opcional)
+    body("lugarExpedicion").optional({ checkFalsy: true }).trim().escape(),
 
     validarCampoRequerido("nombres", "Ingrese los nombres completos.")
         .isLength({ min: 2 }).withMessage("Los nombres deben contener al menos 2 caracteres."),

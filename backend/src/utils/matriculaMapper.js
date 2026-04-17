@@ -48,6 +48,7 @@ export const mapearDatosMatricula = (matriculaRaw, esBlanco = false) => {
     // FORMATO EN BLANCO
     if (esBlanco) {
         return {
+            esFormatoBlanco: true,
             esPrematricula: false,
             tituloReporte: "MATRÍCULA",
             vigencia: { anio: "________" },
@@ -64,6 +65,7 @@ export const mapearDatosMatricula = (matriculaRaw, esBlanco = false) => {
                 nombres: "____________________________________",
                 tipoDoc: "____",
                 documento: "____________________",
+                lugarExpedicion: "____________________",
                 mupioExp: "________________", deptoExp: "",
                 fechaNac: "________________",
                 mupioNac: "________________", deptoNac: "",
@@ -102,6 +104,7 @@ export const mapearDatosMatricula = (matriculaRaw, esBlanco = false) => {
     const grado = grupo.grado || {};
 
     return {
+        esFormatoBlanco: false,
         esPrematricula: matriculaRaw.estado === "PREMATRICULADO",
         tituloReporte: matriculaRaw.estado === "PREMATRICULADO" ? "PRE-MATRÍCULA" : "MATRÍCULA",
         vigencia: { anio: matriculaRaw.vigencia?.anio || "" },
@@ -148,9 +151,10 @@ export const mapearDatosMatricula = (matriculaRaw, esBlanco = false) => {
             telefono: acu.telefono || "",
             tipoDoc: acu.tipoDocumento || "",
             documento: acu.documento || "",
+            lugarExpedicion: acu.lugarExpedicion || "",
             fechaNac: formatearFecha(acu.usuario?.fechaNacimiento || acu.fechaNacimiento, false),
             direccion: acu.direccion || "",
-            email: acu.usuario?.email || acu.email || "N/A"
+            email: acu.usuario?.email || acu.email || ""
         },
         observaciones: matriculaRaw.observaciones
     };

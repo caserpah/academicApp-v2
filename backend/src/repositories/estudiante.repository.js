@@ -215,7 +215,7 @@ export const estudianteRepository = {
             {
                 model: Acudiente,
                 as: "acudientes",
-                attributes: ["id", "nombres", "apellidos", "tipoDocumento", "documento", "direccion", "telefono", "email", "fechaNacimiento"],
+                attributes: ["id", "nombres", "apellidos", "tipoDocumento", "documento", "direccion", "telefono", "email", "fechaNacimiento", "lugarExpedicion"],
                 through: {
                     attributes: ["afinidad", "id"]
                 }

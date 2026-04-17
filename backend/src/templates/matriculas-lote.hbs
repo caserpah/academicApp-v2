@@ -330,6 +330,25 @@
                     <span class="label">Parentesco</span>
                     <span class="value">{{this.acudiente.parentesco}}</span>
                 </td>
+                <td colspan="1">
+                    <span class="label">Fecha de Nacimiento</span>
+                    <span class="value">{{this.acudiente.fechaNac}}</span>
+                </td>
+            </tr>
+
+            <tr>
+                <td colspan="1">
+                    <span class="label">Tipo de Documento</span>
+                    <span class="value">{{this.acudiente.tipoDoc}}</span>
+                </td>
+                <td colspan="1">
+                    <span class="label">Número de Documento</span>
+                    <span class="value">{{this.acudiente.documento}}</span>
+                </td>
+                <td colspan="1">
+                    <span class="label">Lugar de Expedición</span>
+                    <span class="value">{{this.acudiente.lugarExpedicion}}</span>
+                </td>
                 <td colspan="1" style="width: 25%;">
                     <span class="label">Teléfono</span>
                     <span class="value">{{this.acudiente.telefono}}</span>
@@ -346,21 +365,6 @@
                     <span class="value" style="word-break: break-all; font-size: 10px;">{{this.acudiente.email}}</span>
                 </td>
             </tr>
-
-            <tr>
-                <td colspan="1">
-                    <span class="label">Tipo de Documento</span>
-                    <span class="value">{{this.acudiente.tipoDoc}}</span>
-                </td>
-                <td colspan="1">
-                    <span class="label">Número de Documento</span>
-                    <span class="value">{{this.acudiente.documento}}</span>
-                </td>
-                <td colspan="2">
-                    <span class="label">Fecha de Nacimiento</span>
-                    <span class="value">{{this.acudiente.fechaNac}}</span>
-                </td>
-            </tr>
         </table>
 
         <table>
@@ -375,19 +379,35 @@
             </tr>
         </table>
 
-        <table class="tabla-firmas" style="margin-top: 70px; width: 100%;">
+        <table class="tabla-firmas" style="margin-top: 70px; width: 100%; text-align: center;">
             <tr>
-                <td style="width: 25%;">
+                <td style="width: 22%;">
                     <div class="linea-firma">Rector(a)</div>
                 </td>
-                <td style="width: 12%;"></td>
-                <td style="width: 25%;">
+
+                <td style="width: 4%;"></td>
+
+                <td style="width: 22%;">
                     <div class="linea-firma">Secretaria(o)</div>
                 </td>
-                <td style="width: 13%;"></td>
-                <td style="width: 25%;">
+
+                <td style="width: 4%;"></td>
+
+                <td style="width: 22%;">
+                    <div class="linea-firma">Estudiante</div>
+                    {{#unless this.esFormatoBlanco}}
+                    <div style="font-size: 9px; margin-top: 2px;">({{this.estudiante.nombres}}
+                        {{this.estudiante.apellidos}})</div>
+                    {{/unless}}
+                </td>
+
+                <td style="width: 4%;"></td>
+
+                <td style="width: 22%;">
                     <div class="linea-firma">Acudiente</div>
+                    {{#unless this.esFormatoBlanco}}
                     <div style="font-size: 9px; margin-top: 2px;">({{this.acudiente.nombre}})</div>
+                    {{/unless}}
                 </td>
             </tr>
         </table>
