@@ -314,10 +314,12 @@ const GenerarBoletines = () => {
                                     className={inputClasses}
                                     disabled={!formData.grupoId}
                                 >
+                                    <option value="">--- Imprimir todo el grupo en Lote ---</option>
+
                                     {catalogos.estudiantes.map(m => (
                                         <option key={m.estudiante.id} value={m.estudiante.id}>
-                                            {m.estado && m.estado !== 'ACTIVO' ? `[${m.estado}] ` : ''}
-                                            {m.estudiante.primerApellido} {m.estudiante.segundoApellido} {m.estudiante.primerNombre}
+                                            {m.estudiante.primerApellido} {m.estudiante.segundoApellido || ''} {m.estudiante.primerNombre}
+                                            {' '} [ESTADO: {m.estado ? m.estado : 'UNDEFINED'}]
                                         </option>
                                     ))}
                                 </select>

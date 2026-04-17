@@ -9,8 +9,9 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { fetchCalificacionesCatalogs } from "../../api/calificacionesService.js";
 import { descargarSabanaPdf } from "../../api/reportesService.js";
 
-import { showSuccess, showError } from "../../utils/notifications.js";
+import { showError } from "../../utils/notifications.js";
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
+import Swal from "sweetalert2";
 
 const TIPOS_SABANA_BASE = [
     { id: 'SABANA_ASIGNATURA', label: 'Sábana de Asignatura por Periodo' },
@@ -179,7 +180,13 @@ const SabanasPage = () => {
                 asignaturaId: filters.asignaturaId || null,
                 periodo: filters.periodo || null
             });
-            showSuccess("Sábana generada y descargada exitosamente.");
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: 'Sábana generada y descargada exitosamente.',
+                timer: 3000, // <-- Se cierra solo después de 3 segundos
+                showConfirmButton: false
+            });
         } catch (error) {
             showError(error.message);
         } finally {

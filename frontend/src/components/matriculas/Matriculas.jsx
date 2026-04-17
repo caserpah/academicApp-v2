@@ -16,6 +16,7 @@ import { eliminarMatricula, descargarActaMatricula, descargarActasLote, descarga
 import { fetchVigencias } from "../../api/vigenciasService.js";
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
 import MatriculasForm from "./MatriculasForm.jsx";
+import Swal from "sweetalert2";
 
 const Matriculas = () => {
     // --- ESTADOS ---
@@ -308,7 +309,13 @@ const Matriculas = () => {
         try {
             setDownloadingId(matricula.id);
             await descargarActaMatricula(matricula.id);
-            showSuccess("Acta descargada exitosamente.");
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: 'Ficha de matrícula descargada exitosamente.',
+                timer: 3000, // <-- Se cierra solo después de 3 segundos
+                showConfirmButton: false
+            });
         } catch (error) {
             showError(error.message);
         } finally {

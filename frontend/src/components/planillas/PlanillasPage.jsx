@@ -9,8 +9,9 @@ import { fetchCalificacionesCatalogs } from "../../api/calificacionesService.js"
 import { descargarPlanillaPdf } from "../../api/planillasService.js";
 import { fetchDocentesData } from "../../api/docentesService.js";
 
-import { showSuccess, showError } from "../../utils/notifications.js";
+import { showError } from "../../utils/notifications.js";
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
+import Swal from "sweetalert2";
 
 const TIPOS_PLANILLA = [
     { id: 'ASISTENCIA', label: 'Asistencia' },
@@ -111,7 +112,13 @@ const PlanillasPage = () => {
             if (modoGeneracion === 'MASIVO') dataToApi.modoMasivo = true; // Inyectamos el flag para el Backend
 
             await descargarPlanillaPdf(dataToApi);
-            showSuccess("Documento generado exitosamente.");
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: 'Planilla generada exitosamente.',
+                timer: 3000, // <-- Se cierra solo después de 3 segundos
+                showConfirmButton: false
+            });
         } catch (error) { showError(error.message); }
         finally { setIsGenerating(false); }
     };

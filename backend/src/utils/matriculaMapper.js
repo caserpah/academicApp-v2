@@ -53,6 +53,7 @@ export const mapearDatosMatricula = (matriculaRaw, esBlanco = false) => {
             tituloReporte: "MATRÍCULA",
             vigencia: { anio: "________" },
             folio: "________________",
+            estadoMatricula: "________",
             fechaFormateada: "________________",
             sedeNombre: "___________",
             grupo: { nivel: "________", grado: "________", nombre: "________", jornada: "________" },
@@ -108,8 +109,9 @@ export const mapearDatosMatricula = (matriculaRaw, esBlanco = false) => {
         esPrematricula: matriculaRaw.estado === "PREMATRICULADO",
         tituloReporte: matriculaRaw.estado === "PREMATRICULADO" ? "PRE-MATRÍCULA" : "MATRÍCULA",
         vigencia: { anio: matriculaRaw.vigencia?.anio || "" },
-        sedeNombre: matriculaRaw.sede?.dataValues?.nombre || matriculaRaw.sede?.nombre || "" ,
         folio: matriculaRaw.folio,
+        estadoMatricula: matriculaRaw.estado || "N/A",
+        sedeNombre: matriculaRaw.sede?.dataValues?.nombre || matriculaRaw.sede?.nombre || "" ,
         fechaFormateada: formatearFecha(matriculaRaw.fechaHora, true),
         grupo: {
             nivel: formatEnum(grado.nivelAcademico, diccionarios.nivel),
