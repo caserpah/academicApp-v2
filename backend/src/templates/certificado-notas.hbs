@@ -24,12 +24,12 @@
         .header-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
 
         .header-table td {
             vertical-align: middle;
-            padding-bottom: 15px;
+            padding-bottom: 10px;
         }
 
         .logo-cell {
@@ -137,7 +137,7 @@
         /* Firmas (Protegidas contra saltos de página rotos) */
         .firmas {
             width: 100%;
-            margin-top: 30px;
+            margin-top: 20px;
             text-align: center;
             page-break-inside: avoid;
             /* Previene que la línea quede en una página y el nombre en otra */
@@ -147,14 +147,8 @@
 
         .firmas td {
             width: 50%;
-            padding-top: 20px;
+            padding-top: 15px;
             vertical-align: bottom;
-        }
-
-        .linea-firma {
-            border-top: 1px solid #000;
-            width: 70%;
-            margin: 0 auto 5px auto;
         }
     </style>
 </head>
@@ -241,20 +235,18 @@
         </tbody>
     </table>
 
-    <div style="margin-top: 20px;">
+    <div style="margin-top: 10px;">
         <p>{{textoExpedicion}}</p>
     </div>
 
     <table class="firmas">
         <tr>
             <td>
-                <div class="linea-firma"></div>
                 <strong>{{colegio.director}}</strong><br>
                 C.C. {{colegio.ccDirector}}<br>
                 Rector(a)
             </td>
             <td>
-                <div class="linea-firma"></div>
                 <strong>{{colegio.secretaria}}</strong><br>
                 C.C. {{colegio.ccSecretaria}}<br>
                 Secretario(a)
