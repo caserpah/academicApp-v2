@@ -187,5 +187,40 @@ export const pdfService = {
         } finally {
             if (browser) await browser.close();
         }
+    },
+
+    // Método específico para generar el certificado de matrícula
+    async crearPdfCertificado(dataCertificado, nombrePlantilla) {
+        let browser = null;
+        try {
+            const templatePath = path.join(__dirname, `../templates/${nombrePlantilla}`);
+            const htmlTemplate = await fs.readFile(templatePath, "utf-8");
+
+            const template = Handlebars.compile(htmlTemplate);
+            const htmlFinal = template(dataCertificado);
+
+            browser = await puppeteer.launch({
+                headless: "new",
+                args: ['--no-sandbox', '--disable-setuid-sandbox']
+            });
+
+            const page = await browser.newPage();
+            await page.setContent(htmlFinal, { waitUntil: "networkidle0" });
+
+            const pdfBuffer = await page.pdf({
+                format: "Letter", // Los certificados oficiales en Colombia suelen ser tamaño Carta
+                printBackground: true,
+                preferCSSPageSize: true, // Esto obliga a Puppeteer a respetar los márgenes que pusimos en el <style> del .hbs
+                margin: { top: 0, bottom: 0, left: 0, right: 0 } // El margen real se controla desde el HTML
+            });
+
+            return pdfBuffer;
+
+        } catch (error) {
+            console.error(`Error al generar PDF de Certificado (${nombrePlantilla}):`, error);
+            throw new Error(`Falló la generación del documento PDF para ${nombrePlantilla}.`);
+        } finally {
+            if (browser) await browser.close();
+        }
     }
 };

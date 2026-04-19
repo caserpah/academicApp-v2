@@ -125,7 +125,7 @@ export const calificacionRepository = {
                         },
                         {
                             model: Matricula,
-                            as: 'matriculas', // Relación confirmada
+                            as: 'matriculas',
                             where: {
                                 vigenciaId,
                                 // Solo estudiantes ACTIVOS. No pedimos notas a retirados.

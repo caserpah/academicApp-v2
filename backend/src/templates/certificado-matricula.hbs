@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Constancia de Matrícula</title>
+    <style>
+        @page {
+            size: Letter portrait;
+            margin: 30mm 25mm 30mm 25mm;
+        }
+
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #000;
+            text-align: justify;
+        }
+
+        /* Encabezado tipo Tabla */
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #000;
+            /* Línea separadora elegante */
+        }
+
+        .header-table td {
+            vertical-align: middle;
+            padding-bottom: 15px;
+            /* Espacio antes de la línea separadora */
+        }
+
+        .logo-cell {
+            width: 15%;
+            text-align: center;
+        }
+
+        .logo-cell img {
+            max-width: 80px;
+            max-height: 80px;
+            object-fit: contain;
+        }
+
+        .info-cell {
+            text-align: center;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 11px;
+        }
+
+        .info-cell h2 {
+            font-size: 16px;
+            margin: 0 0 5px 0;
+            letter-spacing: 1px;
+            color: #000;
+        }
+
+        .info-cell p {
+            margin: 2px 0;
+            color: #333;
+        }
+
+        .header-text {
+            flex: 1;
+            text-align: center;
+        }
+
+        .header-text h1 {
+            font-size: 16px;
+            margin: 0 0 5px 0;
+            letter-spacing: 1px;
+            color: #000;
+        }
+
+        .header-text p {
+            margin: 2px 0;
+            color: #333;
+        }
+
+        .title-section {
+            text-align: center;
+            margin-bottom: 40px;
+            font-weight: bold;
+        }
+
+        .certifican {
+            font-size: 16px;
+            margin-top: 30px;
+            letter-spacing: 2px;
+        }
+
+        .content {
+            margin-bottom: 60px;
+        }
+
+        .firmas {
+            margin-top: 80px;
+            width: 100%;
+            display: table;
+        }
+
+        .firma-box {
+            display: table-cell;
+            width: 50%;
+            text-align: center;
+            vertical-align: bottom;
+        }
+
+        .linea-firma {
+            width: 80%;
+            border-bottom: 1px solid #000;
+            margin: 0 auto 5px auto;
+        }
+
+        .firma-box p {
+            margin: 0;
+            font-size: 12px;
+            font-family: 'Times New Roman', Times, serif;
+        }
+    </style>
+</head>
+
+<body>
+
+    <table class="header-table">
+        <tr>
+            <td class="logo-cell">
+                {{#if urlEscudo}}
+                <img src="{{urlEscudo}}" alt="Escudo Institucional">
+                {{/if}}
+            </td>
+            <td class="info-cell">
+                <h2>{{colegio.nombre}}</h2>
+                <p>Registro DANE: {{colegio.registroDane}}</p>
+                <p>Correo electrónico: {{colegio.email}} | Teléfono: {{colegio.contacto}}</p>
+                <p>{{colegio.direccion}} | {{colegio.ciudad}}, {{colegio.departamento}}</p>
+            </td>
+        </tr>
+    </table>
+
+    <div class="title-section">
+        <p>LOS SUSCRITOS RECTOR(A) Y SECRETARIO(A) DE ESTE ESTABLECIMIENTO EDUCATIVO DE CARACTER OFICIAL, APROBADO
+            MEDIANTE RESOLUCION No. {{colegio.resolucion}} DEL {{colegio.fechaResolucionTexto}}, DE LA SECRETARIA DE
+            EDUCACION DEPARTAMENTAL,</p>
+        <p class="certifican">CERTIFICAN</p>
+    </div>
+
+    <div class="content">
+        <p>
+            Que el (la) Joven <strong>{{estudiante.nombreCompleto}}</strong>, Identificado(a) con
+            {{estudiante.tipoDocumentoTexto}} No. {{estudiante.documento}} de
+            {{estudiante.lugarExpedicionTexto}}, se encuentra matriculado(a) para el año lectivo
+            <strong>{{vigencia.anio}}</strong>, en el grado <strong>{{grado.nombre}}</strong> de Educación
+            {{grado.nivelAcademicoTexto}} en esta Institución, en la sede {{sede.nombre}}, según folio de
+            matrícula No. {{matricula.folio}}.
+        </p>
+
+        {{#if opciones.iniciaronClases}}
+        <p>
+            Y que a la fecha
+            {{#if opciones.meses}}
+            ha asistido puntualmente a clases en los últimos <strong>{{opciones.meses}}</strong> meses.
+            {{else}}
+            asiste puntualmente a clases.
+            {{/if}}
+
+            {{#if opciones.comportamiento}}
+            Presenta COMPORTAMIENTO <strong>{{opciones.comportamiento}}</strong>.
+            {{/if}}
+        </p>
+        {{/if}}
+    </div>
+
+    <div style="margin-top: 10px; margin-bottom: 60px;">
+        <p>{{textoExpedicion}}</p>
+    </div>
+
+    <div class="firmas">
+        <div class="firma-box">
+            <div class="linea-firma"></div>
+            <p><strong>{{colegio.director}}</strong></p>
+            <p>C.C. {{colegio.ccDirector}}</p>
+            <p>Rector(a)</p>
+        </div>
+        <div class="firma-box">
+            <div class="linea-firma"></div>
+            <p><strong>{{colegio.secretaria}}</strong></p>
+            <p>C.C. {{colegio.ccSecretaria}}</p>
+            <p>Secretario(a)</p>
+        </div>
+    </div>
+
+</body>
+
+</html>

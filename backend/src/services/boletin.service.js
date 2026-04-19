@@ -204,7 +204,7 @@ export const boletinService = {
                             asignatura: carga.asignatura.nombre,
                             periodo: `Periodo ${periodo}`,
                             detalle: notasFaltantesDetalle.join(" / "),
-                            estudiante: `${m.estudiante.primerApellido} ${m.estudiante.primerNombre}`
+                            estudiante: `${m.estudiante.primerApellido} ${m.estudiante.segundoApellido} ${m.estudiante.primerNombre} ${m.estudiante.segundoNombre}`
                         });
                     }
                 });

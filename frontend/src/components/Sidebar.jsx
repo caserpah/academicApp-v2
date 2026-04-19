@@ -51,6 +51,14 @@ const menuStructure = [
             { path: "/boletines", label: "Generar Boletines", icon: "file-pdf", requiredRoles: ['admin', 'secretaria', 'coordinador'] },
             { path: "/administrar-codigos", label: "Códigos de Boletín", icon: "key", requiredRoles: ['admin', 'secretaria', 'coordinador'] }
         ]
+    },
+    {
+        title: "Documentos Oficiales",
+        key: "documentos",
+        items: [
+            { path: "/certificados", label: "Emitir Certificados", icon: "file-contract", requiredRoles: ['admin', 'secretaria', 'coordinador', 'rector'] },
+            { path: "/libros", label: "Libros Reglamentarios", icon: "book", requiredRoles: ['admin', 'secretaria', 'rector'] }
+        ]
     }
 ];
 

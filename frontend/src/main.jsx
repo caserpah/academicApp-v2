@@ -60,6 +60,10 @@ import {
   faFileInvoice,        // Planillas
   faChartLine,         // Sábanas / Reportes
 
+  // Iconos de Documentos Oficiales
+  faFileContract,      // Certificados
+  faBook,              // Libros Reglamentarios
+
   faEnvelope,
   faClipboardList,
 
@@ -74,7 +78,8 @@ faTrash, faSpinner, faInfoCircle,faUserCircle, faCirclePlus, faGavel, faChartLin
 faTimesCircle, faTimes, faAnglesLeft,faAngleLeft, faAngleRight, faBalanceScale,
 faAnglesRight, faSchool, faBuilding, faUserTie, faCalendarAlt, faUserShield,
 faLayerGroup, faBookOpen, faUsersRectangle, faChalkboardUser, faFilePdf, faKey,
-faEnvelope, faFilePen, faUsers, faHandsHoldingChild, faPersonChalkboard, faFileInvoice
+faEnvelope, faFilePen, faUsers, faHandsHoldingChild, faPersonChalkboard, faFileInvoice,
+faFileContract, faBook
 );
 // -----------------------------------------------------------------
 

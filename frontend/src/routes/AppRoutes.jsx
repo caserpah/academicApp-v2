@@ -28,6 +28,7 @@ import PortalAcudiente from "../components/boletines/PortalAcudiente.jsx";
 import AdministrarCodigos from "../components/boletines/AdministrarCodigos.jsx";
 import Planillas from "../components/planillas/PlanillasPage.jsx";
 import Sabanas from "../components/reportes/SabanasPage.jsx";
+import Certidicados from "../components/certificados/CertificadosPage.jsx";
 import Estudiantes from '../components/estudiantes/Estudiantes.jsx';
 import Acudientes from '../components/acudientes/Acudientes.jsx';
 import AsignarAcudientes from '../components/estudiantes/AcudientesTab.jsx';
@@ -54,7 +55,7 @@ const AppRoutes = () => {
             <Route path="/descargar-boletin" element={<PortalAcudiente />} />
 
             {/* RUTA DE TRANSICIÓN PROTEGIDA (Sin token, pero con usuarioId) */}
-                <Route path="/onboarding" element={<OnboardingGuard><Onboarding /></OnboardingGuard>} />
+            <Route path="/onboarding" element={<OnboardingGuard><Onboarding /></OnboardingGuard>} />
 
             {/* RUTAS PROTEGIDAS POR JWT (Sidebar) */}
             <Route element={<ProtectedRoute />}>
@@ -96,6 +97,10 @@ const AppRoutes = () => {
                     <Route path="administrar-codigos" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador"]}><AdministrarCodigos /></ProtectedRoute>} />
                     <Route path="planillas" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador", "docente", "director"]}><Planillas /></ProtectedRoute>} />
                     <Route path="sabanas" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador", "docente"]}><Sabanas /></ProtectedRoute>} />
+
+                    {/* === DOCUMENTOS OFICIALES === */}
+                    <Route path="certificados" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador", "rector"]}><Certidicados /></ProtectedRoute>} />
+                    <Route path="libros" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "rector"]}><PaginaEnConstruccion titulo="Libros Reglamentarios" /></ProtectedRoute>} />
 
                     {/* RUTAS TEMPORALES PARA MÓDULOS EN DESARROLLO */}
                     <Route path="configuracion" element={<ProtectedRoute requiredRoles="admin"><PaginaEnConstruccion titulo="Configuración" /></ProtectedRoute>} />
