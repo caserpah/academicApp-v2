@@ -33,8 +33,8 @@ export const boletinService = {
         // Obtenemos TODOS los estudiantes del grupo
         let matriculasTotales = await boletinRepository.findMatriculasPorGrupo(grupoId, vigenciaId);
 
-        // Excluir a los estudiantes con bloqueo de notas
-        matriculasTotales = matriculasTotales.filter(m => m.bloqueo_notas !== true && m.bloqueo_notas !== 1);
+        // Excluir a los estudiantes anulados
+        matriculasTotales = matriculasTotales.filter(m => m.estado !== 'ANULADO');
 
         if (!matriculasTotales || matriculasTotales.length === 0) {
             throw new Error("No hay estudiantes matriculados y activos en este grupo.");
@@ -249,7 +249,7 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
             areaRef.asignaturasObj[asigNombre] = {
                 nombreAsignatura: asigNombre,
                 esComportamiento: esComportamiento,
-                docente: cargaAsig?.docente ? `${cargaAsig.docente.identidad?.nombre || cargaAsig.docente.nombre || ''} ${cargaAsig.docente.identidad?.apellidos || cargaAsig.docente.apellidos || ''}`.trim() : null,
+                docente: "",
                 intensidadHoraria: esPreescolar ? cargaAsig?.horas : null,
                 porcentajePeso: porcentaje,
                 notasHistoricas: { p1: null, p2: null, p3: null, p4: null },
@@ -266,6 +266,20 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
 
         if (cal.periodo >= 1 && cal.periodo <= 4) {
             asigRef.notasHistoricas[`p${cal.periodo}`] = cal.notaDefinitiva;
+        }
+
+        if (isPeriodoActual) {
+            if (cal.docenteResponsable) {
+                if (cal.docenteResponsable.identidad) {
+                    const n = cal.docenteResponsable.identidad.nombre;
+                    const a = cal.docenteResponsable.identidad.apellidos;
+
+                    const nombreCompleto = `${n} ${a}`.trim();
+                    if (nombreCompleto) {
+                        asigRef.docente = nombreCompleto;
+                    }
+                }
+            }
         }
 
         // Si es comportamiento, extraemos solo el texto del periodo actual

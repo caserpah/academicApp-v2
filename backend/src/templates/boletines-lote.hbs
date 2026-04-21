@@ -205,6 +205,13 @@
             /* Bloquea la herencia de mayúsculas del área */
         }
 
+        .docente-separador::before {
+            content: "|";
+            margin-right: 4px;
+            color: #666;
+            font-style: normal;
+        }
+
         .caja-dimensiones {
             margin-top: 4px;
             padding-left: 5px;
@@ -452,7 +459,7 @@
                         {{#if ../../configuracionImpresion.esValorativo}}
                         {{#unless this.mostrarNombreAsignatura}}
                         {{#if this.asignaturas.[0].docente}}
-                        <span class="docente-texto" style="margin-left: 10px;">| Doc:
+                        <span class="docente-texto docente-separador" style="margin-left: 10px;">Doc:
                             {{this.asignaturas.[0].docente}}</span>
                         {{/if}}
                         {{/unless}}

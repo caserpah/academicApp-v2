@@ -136,6 +136,15 @@ export const boletinRepository = {
                             attributes: ["id", "nombre"]
                         }
                     ]
+                },
+                {
+                    model: Docente,
+                    as: "docenteResponsable",
+                    include: [{
+                        model: Usuario,
+                        as: 'identidad',
+                        attributes: ["nombre", "apellidos"]
+                    }]
                 }
             ],
             order: [
