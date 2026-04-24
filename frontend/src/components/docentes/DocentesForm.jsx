@@ -37,6 +37,7 @@ const DocentesForm = ({
     handleChange,
     handleSubmit,
     resetForm,
+    sedes = []
 }) => {
     const inputClasses = "w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition";
     const labelClasses = "block text-sm font-medium text-gray-700 mb-1";
@@ -145,6 +146,24 @@ const DocentesForm = ({
                         <select name="vinculacion" value={formData.vinculacion} onChange={handleChange} className={inputClasses} required>
                             <option value="">Seleccione...</option>
                             {VINCULACION_OPTIONS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className={labelClasses}>Sede Institucional <span className="text-red-500">*</span></label>
+                        <select
+                            name="sedeId"
+                            value={formData.sedeId}
+                            onChange={handleChange}
+                            className={inputClasses}
+                            required
+                        >
+                            <option value="">Seleccione la sede...</option>
+                            {sedes.map(sede => (
+                                <option key={sede.id} value={sede.id}>
+                                    {sede.nombre}
+                                </option>
+                            ))}
                         </select>
                     </div>
 

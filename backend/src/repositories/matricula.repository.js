@@ -1,4 +1,4 @@
-import { Op } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 import { Matricula } from "../models/matricula.js";
 import { Estudiante } from "../models/estudiante.js";
 import { Grupo } from "../models/grupo.js";
@@ -53,22 +53,44 @@ export const matriculaRepository = {
             where.situacion_ano_anterior = situacion_ano_anterior;
         }
 
-        // Filtro y relación de Estudiante (Búsqueda corregida)
-        const whereEstudiante = {};
+        // Filtro de búsqueda general (documento, nombre completo, grado)
         if (busqueda) {
-            whereEstudiante[Op.or] = [
-                { documento: { [Op.like]: `%${busqueda}%` } },
-                { primerNombre: { [Op.like]: `%${busqueda}%` } },
-                { segundoNombre: { [Op.like]: `%${busqueda}%` } },
-                { primerApellido: { [Op.like]: `%${busqueda}%` } },
-                { segundoApellido: { [Op.like]: `%${busqueda}%` } },
+            const term = `%${busqueda}%`;
+            where[Op.or] = [
+                // Por documento exacto o parcial
+                { "$estudiante.documento$": { [Op.like]: term } },
+
+                // Combinación: Nombre(s) + Apellido(s)
+                Sequelize.where(
+                    Sequelize.fn('CONCAT_WS', ' ',
+                        Sequelize.col('estudiante.primerNombre'),
+                        Sequelize.col('estudiante.segundoNombre'),
+                        Sequelize.col('estudiante.primerApellido'),
+                        Sequelize.col('estudiante.segundoApellido')
+                    ),
+                    { [Op.like]: term }
+                ),
+
+                // Combinación: Apellido(s) + Nombre(s)
+                Sequelize.where(
+                    Sequelize.fn('CONCAT_WS', ' ',
+                        Sequelize.col('estudiante.primerApellido'),
+                        Sequelize.col('estudiante.segundoApellido'),
+                        Sequelize.col('estudiante.primerNombre'),
+                        Sequelize.col('estudiante.segundoNombre')
+                    ),
+                    { [Op.like]: term }
+                ),
+
+                // Búsqueda por el nombre del Grado (ej. "SEXTO")
+                { "$grupo.grado.nombre$": { [Op.like]: term } }
             ];
         }
 
+        // Relación Estudiante (con atributos específicos para optimizar la consulta)
         include.push({
             model: Estudiante,
             as: "estudiante",
-            where: busqueda ? whereEstudiante : undefined,
             attributes: [
                 "id", "tipoDocumento", "documento",
                 "primerNombre", "segundoNombre",

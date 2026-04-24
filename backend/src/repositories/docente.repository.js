@@ -1,4 +1,5 @@
 import { Op } from "sequelize";
+import { Sede } from "../models/sede.js";
 import { Docente } from "../models/docente.js";
 import { Usuario } from "../models/usuario.js";
 
@@ -7,7 +8,7 @@ export const docenteRepository = {
     /**
      * Listado con filtros + paginación + ordenamiento
      */
-    async findAll({ page = 1, limit = 20, busqueda } = {}) {
+    async findAll({ page = 1, limit = 20, busqueda, estado, nivelEducativo, sedeId, areaEnsenanza, vinculacion } = {}) {
         const where = {};
 
         // Búsqueda flexible por nombre, apellido o documento
@@ -19,18 +20,29 @@ export const docenteRepository = {
                 { "$identidad.nombre$": { [Op.like]: term } },
                 { "$identidad.apellidos$": { [Op.like]: term } },
                 { "$identidad.documento$": { [Op.like]: term } },
-                { '$identidad.email$': { [Op.like]: term } },
-                { profesion: { [Op.like]: term } },
-                { vinculacion: { [Op.like]: term } },
-                { areaEnsenanza: { [Op.like]: term } },
-                { decretoLey: { [Op.like]: term } }
+                { "$identidad.email$": { [Op.like]: term } }
             ];
-
-            // El estado 'activo' viene desde Usuario
-            if ("activo".includes(busquedaLower)) where['$identidad.activo$'] = true;
-            if ("inactivo".includes(busquedaLower)) where['$identidad.activo$'] = false;
-
             where[Op.or] = orConditions;
+        }
+
+        // Filtro por Estado (Activo/Inactivo)
+        if (estado !== undefined && estado !== '') {
+            where['$identidad.activo$'] = estado === 'true';
+        }
+
+        // Filtro por Nivel Educativo
+        if (nivelEducativo) {
+            where.nivelEducativo = nivelEducativo;
+        }
+
+        // Filtro por Sede
+        if (sedeId) {
+            where.sedeId = sedeId;
+        }
+
+        // Filtro por Vinculación
+        if (vinculacion) {
+            where.vinculacion = vinculacion;
         }
 
         /** Paginación */
@@ -46,6 +58,11 @@ export const docenteRepository = {
                 model: Usuario,
                 as: 'identidad',
                 attributes: ['id', 'nombre', 'apellidos', 'documento', 'email', 'telefono', 'activo']
+            },
+            {
+                model: Sede,
+                as: 'sede',
+                attributes: ['id', 'nombre']
             }],
             // Ordenamos por los apellidos y nombres del Usuario
             order: [

@@ -6,10 +6,12 @@ import {
     faTrash,
     faSearch,
     faChevronLeft,
-    faChevronRight
+    faChevronRight,
+    faFilter
 } from "@fortawesome/free-solid-svg-icons";
 
 import { fetchDocentesData, crearDocente, actualizarDocente, eliminarDocente } from "../../api/docentesService.js";
+import { fetchInitialData } from "../../api/sedesService.js";
 import { showSuccess, showError, showWarning, showConfirm } from "../../utils/notifications.js";
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
 import DocentesForm from "./DocentesForm.jsx";
@@ -39,7 +41,8 @@ const Docentes = () => {
         nivelEducativo: "",
         nivelEnsenanza: "",
         vinculacion: "",
-        activo: true
+        activo: true,
+        sedeId: ""
     };
 
     // Diccionario para traducir los códigos de vinculación
@@ -54,7 +57,14 @@ const Docentes = () => {
     const [formData, setFormData] = useState(initialFormState);
     const [docentes, setDocentes] = useState([]);
 
-    // Paginación y Filtros
+    const [sedesList, setSedesList] = useState([]);
+
+    // Filtros de búsqueda
+    const initialFilters = { estado: "", nivelEducativo: "", sedeId: "", areaEnsenanza: "", vinculacion: "" };
+    const [filtros, setFiltros] = useState(initialFilters); // Lo que el usuario ve/escribe
+    const [filtrosActivos, setFiltrosActivos] = useState(initialFilters); // Los que viajan a la BD tras el debounce
+
+    // Paginación
     const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
 
     // Estado para el Debounce (Input local vs Valor real de búsqueda)
@@ -67,13 +77,14 @@ const Docentes = () => {
 
     // --- FUNCIÓN DE CARGA DE DATOS ---
     // Usamos useCallback para que sea estable y no cause loops en useEffect
-    const loadData = useCallback(async (page, term) => {
+    const loadData = useCallback(async (page, term, filtrosAplicados) => {
         try {
             setLoading(true);
             const { docentesData } = await fetchDocentesData({
                 page: page,
                 limit: pagination.limit,
-                busqueda: term
+                busqueda: term,
+                ...filtrosAplicados
             });
 
             setDocentes(docentesData.items);
@@ -95,14 +106,44 @@ const Docentes = () => {
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
             // Solo si el término cambió realmente actualizamos la búsqueda principal
-            if (searchTerm !== busqueda) {
+            if (searchTerm !== busqueda || JSON.stringify(filtros) !== JSON.stringify(filtrosActivos)) {
                 setBusqueda(searchTerm);
-                setPagination(prev => ({ ...prev, page: 1 })); // Reset a pág 1
+                setFiltrosActivos(filtros);
+                setPagination(prev => ({ ...prev, page: 1 }));
             }
         }, 500);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [searchTerm, busqueda]);
+    }, [searchTerm, busqueda, filtros, filtrosActivos]);
+
+    useEffect(() => {
+        loadData(pagination.page, busqueda, filtrosActivos);
+    }, [loadData, pagination.page, busqueda, filtrosActivos]);
+
+    // Cargar sedes al montar el componente (para el select del formulario)
+    useEffect(() => {
+        let isMounted = true; // Evita fugas de memoria si el componente se desmonta
+
+        const cargarSedes = async () => {
+            try {
+                // El servicio devuelve { sedes, colegio }, así que desestructuramos "sedes"
+                const { sedes } = await fetchInitialData();
+
+                if (isMounted) {
+                    setSedesList(sedes);
+                }
+            } catch (err) {
+                showError("No se pudieron cargar las sedes: " + err.message);
+            }
+        };
+
+        cargarSedes();
+
+        // Función de limpieza
+        return () => {
+            isMounted = false;
+        };
+    }, []); // Array vacío = solo se ejecuta una vez al renderizar el componente
 
     // Cargar datos cuando cambia la página o la búsqueda confirmada
     useEffect(() => {
@@ -122,7 +163,7 @@ const Docentes = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        const requiredFields = ["documento", "nombre", "apellidos", "email", "nivelEducativo", "nivelEnsenanza", "vinculacion"];
+        const requiredFields = ["documento", "nombre", "apellidos", "email", "nivelEducativo", "nivelEnsenanza", "vinculacion", "sedeId"];
 
         // Validación de campos
         for (const field of requiredFields) {
@@ -132,7 +173,7 @@ const Docentes = () => {
         try {
             setLoading(true);
             if (mode === "agregar") {
-                const { id, ...payload } = formData;
+                const { _id, ...payload } = formData;
                 await crearDocente(payload);
 
                 showSuccess("Docente registrado exitosamente.");
@@ -177,6 +218,7 @@ const Docentes = () => {
             fechaNombrado: docente.fechaNombrado || "",
             fechaIngreso: docente.fechaIngreso || "",
             fechaRetiro: docente.fechaRetiro || "",
+            sedeId: docente.sedeId || "",
         });
         setMode("editar");
         formRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -207,6 +249,16 @@ const Docentes = () => {
         setMode("agregar");
     };
 
+    const handleFilterChange = (e) => {
+        const { name, value } = e.target;
+        setFiltros(prev => ({ ...prev, [name]: value }));
+    };
+
+    const limpiarFiltros = () => {
+        setFiltros(initialFilters);
+        setSearchTerm("");
+    };
+
     const totalPages = Math.ceil(pagination.total / pagination.limit);
 
     return (
@@ -228,6 +280,7 @@ const Docentes = () => {
                         handleChange={handleChange}
                         handleSubmit={handleSubmit}
                         resetForm={resetForm}
+                        sedes={sedesList}
                     />
                 </div>
 
@@ -255,6 +308,60 @@ const Docentes = () => {
                         </div>
                     </div>
 
+                    {/* --- BARRA DE FILTROS AVANZADOS --- */}
+                    <div className="bg-gray-50 p-4 mb-6 rounded-lg border border-gray-200 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+
+                        <div className="flex flex-col">
+                            <label className="text-xs text-gray-500 font-semibold mb-1">Estado</label>
+                            <select name="estado" value={filtros.estado} onChange={handleFilterChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
+                                <option value="">Todos</option>
+                                <option value="true">Activos</option>
+                                <option value="false">Inactivos</option>
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col">
+                            <label className="text-xs text-gray-500 font-semibold mb-1">Nivel Educativo</label>
+                            <select name="nivelEducativo" value={filtros.nivelEducativo} onChange={handleFilterChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
+                                <option value="">Todos</option>
+                                <option value="NS">Normalista Sup.</option>
+                                <option value="TC">Técnico/Tecnólogo</option>
+                                <option value="LC">Licenciatura</option>
+                                <option value="PF">Profesional</option>
+                                <option value="ES">Especialización</option>
+                                <option value="MA">Maestría</option>
+                                <option value="DO">Doctorado</option>
+                                <option value="OT">Otro</option>
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col">
+                            <label className="text-xs text-gray-500 font-semibold mb-1">Sede</label>
+                            <select name="sedeId" value={filtros.sedeId} onChange={handleFilterChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
+                                <option value="">Todas</option>
+                                {sedesList.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col">
+                            <label className="text-xs text-gray-500 font-semibold mb-1">Vinculación</label>
+                            <select name="vinculacion" value={filtros.vinculacion} onChange={handleFilterChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
+                                <option value="">Todas</option>
+                                <option value="PD">Propiedad</option>
+                                <option value="PP">Período de Prueba</option>
+                                <option value="PV">Provisionalidad</option>
+                                <option value="TR">Temporalidad</option>
+                                <option value="OT">Otro</option>
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col pb-1">
+                            <button onClick={limpiarFiltros} className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
+                                <FontAwesomeIcon icon={faFilter} className="mr-1" /> Limpiar Filtros
+                            </button>
+                        </div>
+                    </div>
+
                     {/* TABLA */}
                     {loading && docentes.length === 0 ? (
                         <LoadingSpinner />
@@ -266,6 +373,7 @@ const Docentes = () => {
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documento</th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Docente</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sede</th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Área / Profesión</th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vinculación</th>
                                         <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
@@ -285,6 +393,11 @@ const Docentes = () => {
                                                 <td className="px-4 py-3">
                                                     <div className="text-sm font-medium text-gray-900">{d.identidad?.apellidos} {d.identidad?.nombre}</div>
                                                     <div className="text-xs text-gray-500">{d.identidad?.email}</div>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <span className="text-sm text-gray-800 font-medium">
+                                                        {d.sede?.nombre || "Sin Asignar"}
+                                                    </span>
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="text-sm text-gray-800 font-medium">

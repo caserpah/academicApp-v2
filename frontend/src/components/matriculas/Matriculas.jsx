@@ -398,6 +398,13 @@ const Matriculas = () => {
         return v.activa || v.anio > vigenciaActiva.anio;
     });
 
+    // Función para armar el nombre completo sin espacios dobles
+    const obtenerNombreCompleto = (estudiante) => {
+        if (!estudiante) return "N/A";
+        const nombre = `${estudiante.primerNombre || ''} ${estudiante.segundoNombre || ''} ${estudiante.primerApellido || ''} ${estudiante.segundoApellido || ''}`;
+        return nombre.replace(/\s+/g, ' ').trim();
+    };
+
     // ----------------------------------------------------------------
     // RENDERIZADO
     // ----------------------------------------------------------------
@@ -512,26 +519,26 @@ const Matriculas = () => {
                     </div>
 
                     {/* --- Barra de Filtros Avanzados --- */}
-                    <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200 grid grid-cols-1 md:grid-cols-4 lg:grid-cols-8 gap-3 text-sm">
+                    <div className="bg-gray-50 p-4 mb-6 rounded-lg border border-gray-200 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
 
                         {/* Filtro Sede */}
-                        <div className="col-span-1 md:col-span-2">
-                            <label className="block text-xs font-medium text-gray-500 mb-1">Sede</label>
-                            <select name="sedeId" value={filtros.sedeId} onChange={handleFiltroChange} className="w-full border-gray-300 rounded-md text-sm p-1.5 focus:ring-blue-500 focus:border-blue-500">
+                        <div className="flex flex-col">
+                            <label className="text-xs text-gray-500 font-semibold mb-1">Sede</label>
+                            <select name="sedeId" value={filtros.sedeId} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
                                 <option value="">Todas las Sedes</option>
                                 {listasAuxiliares.sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
                             </select>
                         </div>
 
                         {/* --- Filtro Combinado Grado y Grupo --- */}
-                        <div className="col-span-1 md:col-span-2">
-                            <label className="block text-xs font-medium text-gray-500 mb-1">Grado y Grupo</label>
+                        <div className="flex flex-col">
+                            <label className="text-xs text-gray-500 font-semibold mb-1">Grado y Grupo</label>
                             <select
                                 name="grupoId"
                                 value={filtros.grupoId || ""}
                                 onChange={handleFiltroChange}
                                 disabled={!filtros.sedeId || gruposFiltro.length === 0}
-                                className="w-full border-gray-300 rounded-md text-sm p-1.5 disabled:bg-gray-200 disabled:text-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                                className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none"
                             >
                                 <option value="">Todos los grupos</option>
                                 {gruposFiltro.map(g => {
@@ -548,9 +555,9 @@ const Matriculas = () => {
                         </div>
 
                         {/* Filtro Estado */}
-                        <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">Estado</label>
-                            <select name="estado" value={filtros.estado} onChange={handleFiltroChange} className="w-full border-gray-300 rounded-md text-sm p-1.5">
+                        <div className="flex flex-col">
+                            <label className="text-xs text-gray-500 font-semibold mb-1">Estado</label>
+                            <select name="estado" value={filtros.estado} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
                                 <option value="">Todos</option>
                                 <option value="ACTIVA">Activa</option>
                                 <option value="PREMATRICULADO">Prematriculado</option>
@@ -560,9 +567,9 @@ const Matriculas = () => {
                         </div>
 
                         {/* Filtro Bloqueo */}
-                        <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">Bloqueo Notas</label>
-                            <select name="bloqueo_notas" value={filtros.bloqueo_notas} onChange={handleFiltroChange} className="w-full border-gray-300 rounded-md text-sm p-1.5">
+                        <div className="flex flex-col">
+                            <label className="text-xs text-gray-500 font-semibold mb-1">Bloqueo Notas</label>
+                            <select name="bloqueo_notas" value={filtros.bloqueo_notas} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
                                 <option value="">Todos</option>
                                 <option value="true">Sí (Bloqueado)</option>
                                 <option value="false">No</option>
@@ -570,9 +577,9 @@ const Matriculas = () => {
                         </div>
 
                         {/* Filtro Nuevo */}
-                        <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">Es Nuevo</label>
-                            <select name="es_nuevo" value={filtros.es_nuevo} onChange={handleFiltroChange} className="w-full border-gray-300 rounded-md text-sm p-1.5">
+                        <div className="flex flex-col">
+                            <label className="text-xs text-gray-500 font-semibold mb-1">Es Nuevo</label>
+                            <select name="es_nuevo" value={filtros.es_nuevo} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
                                 <option value="">Todos</option>
                                 <option value="true">Sí</option>
                                 <option value="false">No</option>
@@ -580,9 +587,9 @@ const Matriculas = () => {
                         </div>
 
                         {/* Filtro Repitente */}
-                        <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">Es Repitente</label>
-                            <select name="es_repitente" value={filtros.es_repitente} onChange={handleFiltroChange} className="w-full border-gray-300 rounded-md text-sm p-1.5">
+                        <div className="flex flex-col">
+                            <label className="text-xs text-gray-500 font-semibold mb-1">Es Repitente</label>
+                            <select name="es_repitente" value={filtros.es_repitente} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
                                 <option value="">Todos</option>
                                 <option value="true">Sí</option>
                                 <option value="false">No</option>
@@ -599,7 +606,7 @@ const Matriculas = () => {
                                     });
                                     setPage(1);
                                 }}
-                                className="text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center"
+                                className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
                             >
                                 <FontAwesomeIcon icon={faFilter} className="mr-1" /> Limpiar Filtros
                             </button>
@@ -632,8 +639,12 @@ const Matriculas = () => {
                                                 <td className="px-3 py-3 text-gray-500 font-mono text-xs whitespace-nowrap">{mat.folio}</td>
 
                                                 <td className="px-3 py-3 text-sm font-medium">
-                                                    {mat.estudiante?.primerApellido} {mat.estudiante?.primerNombre}
-                                                    <div className="text-xs text-gray-400">{mat.estudiante?.documento}</div>
+                                                    <div className="text-gray-800 font-semibold uppercase">
+                                                        {obtenerNombreCompleto(mat.estudiante)}
+                                                    </div>
+                                                    <div className="text-xs text-blue-600 mt-0.5">
+                                                        <span className="font-medium">{mat.estudiante?.tipoDocumento}:</span> {mat.estudiante?.documento}
+                                                    </div>
                                                 </td>
 
                                                 {/* Columna Sede y Grupo */}
@@ -641,7 +652,7 @@ const Matriculas = () => {
                                                     <div className="font-bold text-xs text-gray-800">{mat.sede?.nombre}</div>
                                                     {mat.grupo ? (
                                                         <span className="text-xs text-blue-600 block mt-0.5">
-                                                            {mat.grupo.grado?.nombre} - {mat.grupo.nombre} <span className="text-gray-400">({mat.grupo.jornada?.substring(0, 1)})</span>
+                                                            {mat.grupo.grado?.nombre} - {mat.grupo.nombre} <span className="text-gray-500">({mat.grupo.jornada?.substring(0, 1)})</span>
                                                         </span>
                                                     ) : <span className="text-xs text-gray-400 italic">Sin Grupo</span>}
                                                 </td>

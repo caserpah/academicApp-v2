@@ -119,6 +119,16 @@ export const Docente = sequelize.define("docente", {
         },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE'
+    },
+    sedeId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'sedes',
+            key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'RESTRICT' // No permitir eliminar una sede si tiene docentes
     }
 }, {
     tableName: "docentes",

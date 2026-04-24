@@ -75,6 +75,10 @@ try {
         as: "coordinadorSedes",
     });
 
+    /** 👨‍🏫 Sede ↔ Docente */
+    Sede.hasMany(Docente, { foreignKey: "sedeId", as: "docentes" });
+    Docente.belongsTo(Sede, { foreignKey: "sedeId", as: "sede" });
+
     /** 🧮 Área ↔ Asignatura */
     Area.hasMany(Asignatura, { foreignKey: "areaId", as: "asignaturas" });
     Asignatura.belongsTo(Area, { foreignKey: "areaId", as: "area" });
