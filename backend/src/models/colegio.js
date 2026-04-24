@@ -17,6 +17,10 @@ export const Colegio = sequelize.define('colegio', {
             }
         }
     },
+    nit: {
+        type: DataTypes.STRING(20),
+        allowNull: true
+    },
     nombre: {
         type: DataTypes.STRING(80),
         allowNull: false
