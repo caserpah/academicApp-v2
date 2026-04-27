@@ -25,9 +25,14 @@ const Navbar = ({ toggleSidebar }) => {
         '/acudientes': 'Estudiantes / Acudientes',
         '/calificaciones': 'Evaluación / Calificaciones',
         '/nivelaciones': 'Evaluación / Recuperaciones',
+        '/planillas': 'Evaluación / Planillas',
+        '/sabanas': 'Reportes / Sábanas',
         '/juicios': 'Evaluación / Juicios',
         '/ventanas': 'Evaluación / Ventanas',
         '/boletines': 'Evaluación / Boletines',
+        '/certificados': 'Documentos / Certificados',
+        '/libros': 'Documentos / Libros Reglamentarios',
+        '/listados': 'Documentos / Listados',
     };
 
     // Obtenemos el título actual o un defecto

@@ -258,10 +258,6 @@ try {
         Modelo.belongsTo(Vigencia, { foreignKey: "vigenciaId", as: "vigencia" });
     });
 
-    /*
-        AÑADE ESTA LÍNEA AL FINAL DEL TRY:
-        console.log("✅ TODAS LAS ASOCIACIONES SE CARGARON CON ÉXITO");
-    */
 } catch (error) {
     console.error("Error al definir asociaciones:", error);
 }

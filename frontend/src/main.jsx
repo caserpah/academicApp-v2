@@ -63,6 +63,7 @@ import {
   // Iconos de Documentos Oficiales
   faFileContract,      // Certificados
   faBook,              // Libros Reglamentarios
+  faListUl,            // Listados
 
   faEnvelope,
   faClipboardList,
@@ -79,7 +80,7 @@ faTimesCircle, faTimes, faAnglesLeft,faAngleLeft, faAngleRight, faBalanceScale,
 faAnglesRight, faSchool, faBuilding, faUserTie, faCalendarAlt, faUserShield,
 faLayerGroup, faBookOpen, faUsersRectangle, faChalkboardUser, faFilePdf, faKey,
 faEnvelope, faFilePen, faUsers, faHandsHoldingChild, faPersonChalkboard, faFileInvoice,
-faFileContract, faBook
+faFileContract, faBook, faListUl
 );
 // -----------------------------------------------------------------
 

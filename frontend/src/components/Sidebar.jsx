@@ -57,7 +57,8 @@ const menuStructure = [
         key: "documentos",
         items: [
             { path: "/certificados", label: "Emitir Certificados", icon: "file-contract", requiredRoles: ['admin', 'secretaria', 'coordinador', 'rector'] },
-            { path: "/libros", label: "Libros Reglamentarios", icon: "book", requiredRoles: ['admin', 'secretaria', 'rector'] }
+            { path: "/libros", label: "Libros Reglamentarios", icon: "book", requiredRoles: ['admin', 'secretaria', 'rector'] },
+            { path: "/listados", label: "Generar Listados", icon: "list-ul", requiredRoles: ['admin', 'secretaria', 'coordinador', 'rector'] }
         ]
     }
 ];

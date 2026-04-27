@@ -86,6 +86,7 @@ import codigoBoletinRoutes from "./codigoBoletin.routes.js";
 import planillaRoutes from "./planilla.routes.js";
 import certificadoRoutes from "./certificados.routes.js";
 import reporteRoutes from "./reportes.routes.js";
+import listadosRoutes from "./listados.routes.js";
 
 router.use("/vigencias-config", vigenciaConfigRoutes); // Configuración de vigencias
 router.use("/grupos", vigenciaContext, grupoRoutes);
@@ -105,6 +106,8 @@ router.use("/codigos-boletines", codigoBoletinRoutes);
 router.use("/planillas", vigenciaContext, planillaRoutes);
 router.use("/reportes", vigenciaContext, reporteRoutes);
 router.use("/certificados", certificadoRoutes);
+router.use("/listados", vigenciaContext, listadosRoutes);
+
 /* ============================================================
     🧭 EXPORTACIÓN DEL ENRUTADOR PRINCIPAL
    ============================================================ */

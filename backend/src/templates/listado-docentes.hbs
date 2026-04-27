@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Listado de Docentes</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 10mm;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+            margin: 0;
+            color: #000;
+        }
+
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5px;
+        }
+
+        .header-table td {
+            border: 1px solid #000;
+            padding: 5px;
+            text-align: center;
+        }
+
+        .logo-cell {
+            width: 15%;
+        }
+
+        .logo-cell img {
+            max-width: 60px;
+            max-height: 60px;
+        }
+
+        .info-cell h2 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .info-cell h3 {
+            margin: 0 0 3px 0;
+            font-size: 12px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+            margin-top: 15px;
+        }
+
+        .data-table th,
+        .data-table td {
+            border: 1px solid #000;
+            padding: 5px;
+        }
+
+        .data-table th {
+            background-color: #f2f2f2;
+            text-align: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .col-no {
+            width: 5%;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .col-doc {
+            width: 20%;
+            text-align: right;
+            padding-right: 10px;
+        }
+
+        .col-nombre {
+            width: 75%;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .page-break {
+            page-break-after: always;
+        }
+
+        .page-break:last-child {
+            page-break-after: auto;
+        }
+    </style>
+</head>
+
+<body>
+
+    {{#each sedes}}
+    <div class="page-break">
+        <table class="header-table">
+            <tr>
+                <td class="logo-cell"><img src="{{../urlEscudo}}" alt="Escudo"></td>
+                <td class="info-cell">
+                    <h2>{{../nombreInstitucion}}</h2>
+                    <h3>{{../titulo}}</h3>
+                    <h4>SEDE: {{this.nombreSede}}</h4>
+                </td>
+            </tr>
+        </table>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th class="col-no">No.</th>
+                    <th class="col-doc">DOCUMENTO</th>
+                    <th class="col-nombre">APELLIDOS Y NOMBRES</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each this.registros}}
+                <tr>
+                    <td class="col-no">{{this.nro}}</td>
+                    <td class="col-doc">{{this.documento}}</td>
+                    <td class="col-nombre">{{this.docenteNombre}}</td>
+                </tr>
+                {{/each}}
+            </tbody>
+        </table>
+    </div>
+    {{/each}}
+
+</body>
+
+</html>

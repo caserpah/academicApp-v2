@@ -137,7 +137,7 @@ export const mapearDatosMatricula = (matriculaRaw, esBlanco = false) => {
             barrio: est.barrio || "",
             estrato: est.estrato || "",
             municipioResidencia: est.municipioResidencia || "",
-            zona: "",
+            zona: est.zona || "",
             telefono: est.contacto || "",
             eps: est.eps || "",
             sisben: est.sisben || "",

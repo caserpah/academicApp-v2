@@ -14,7 +14,7 @@ const generarJWT = (usuario) => {
     return jwt.sign(
         { id: usuario.id, role: usuario.role, documento: usuario.documento },
         process.env.JWT_SECRET, // Se recomienda usar una clave secreta fuerte y rotarla
-        { expiresIn: '12h' }    // El token expira en 12 horas
+        { expiresIn: '72h' }    // El token expira en 72 horas
     );
 };
 

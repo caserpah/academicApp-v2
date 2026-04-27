@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Plan de Estudios</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 10mm;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+            margin: 0;
+            color: #000;
+        }
+
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        .header-table td {
+            border: 1px solid #000;
+            padding: 5px;
+            text-align: center;
+        }
+
+        .logo-cell {
+            width: 15%;
+        }
+
+        .logo-cell img {
+            max-width: 60px;
+            max-height: 60px;
+        }
+
+        .info-cell h2 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .info-cell h3 {
+            margin: 0 0 3px 0;
+            font-size: 12px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+        }
+
+        .data-table th,
+        .data-table td {
+            border: 1px solid #000;
+            padding: 6px;
+        }
+
+        .data-table th {
+            background-color: #e0e0e0;
+            text-align: center;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        /* Fila sombreada del Área */
+        .row-area {
+            background-color: #f2f2f2;
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        .col-codigo {
+            width: 15%;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .col-nombre {
+            width: 65%;
+            text-align: left;
+        }
+
+        .col-peso {
+            width: 20%;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <table class="header-table">
+        <tr>
+            <td class="logo-cell"><img src="{{urlEscudo}}" alt="Escudo"></td>
+            <td class="info-cell">
+                <h2>{{nombreInstitucion}}</h2>
+                {{#if incluirAsignaturas}}
+                <h3>LISTADO DE ÁREAS Y ASIGNATURAS</h3>
+                {{else}}
+                <h3>LISTADO DE ÁREAS</h3>
+                {{/if}}
+            </td>
+        </tr>
+    </table>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th class="col-codigo">CÓDIGO</th>
+                <th class="col-nombre">ÁREA</th>
+                {{#if incluirAsignaturas}}
+                <th class="col-peso">PESO (%)</th>
+                {{/if}}
+            </tr>
+        </thead>
+        <tbody>
+            {{#each areas}}
+            <tr class="row-area">
+                <td class="col-codigo">{{this.codigo}}</td>
+                <td {{#if ../incluirAsignaturas}}colspan="2" {{else}}colspan="1" {{/if}}>ÁREA: {{this.nombre}}</td>
+            </tr>
+
+            {{#if ../incluirAsignaturas}}
+            {{#each this.asignaturas}}
+            <tr>
+                <td class="col-codigo">{{this.codigo}}</td>
+                <td class="col-nombre">{{this.nombre}}</td>
+                <td class="col-peso">{{this.peso}}%</td>
+            </tr>
+            {{/each}}
+            {{/if}}
+            {{/each}}
+        </tbody>
+    </table>
+</body>
+
+</html>

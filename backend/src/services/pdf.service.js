@@ -222,5 +222,40 @@ export const pdfService = {
         } finally {
             if (browser) await browser.close();
         }
+    },
+
+    // Método específico para generar los Listados y Reportes Masivos
+    async crearPdfListado(dataListado, nombrePlantilla) {
+        let browser = null;
+        try {
+            const templatePath = path.join(__dirname, `../templates/${nombrePlantilla}`);
+            const htmlTemplate = await fs.readFile(templatePath, "utf-8");
+
+            const template = Handlebars.compile(htmlTemplate);
+            const htmlFinal = template(dataListado);
+
+            browser = await puppeteer.launch({
+                headless: "new",
+                args: ['--no-sandbox', '--disable-setuid-sandbox']
+            });
+
+            const page = await browser.newPage();
+            await page.setContent(htmlFinal, { waitUntil: "networkidle0" });
+
+            const pdfBuffer = await page.pdf({
+                format: "A4", // Formato vertical estándar
+                printBackground: true,
+                preferCSSPageSize: true, // Obliga a respetar el @page { margin: 10mm; } del HBS
+                margin: { top: 0, bottom: 0, left: 0, right: 0 } // Controlado desde el CSS
+            });
+
+            return pdfBuffer;
+
+        } catch (error) {
+            console.error(`Error al generar PDF de Listado (${nombrePlantilla}):`, error);
+            throw new Error(`Falló la generación del documento PDF para ${nombrePlantilla}.`);
+        } finally {
+            if (browser) await browser.close();
+        }
     }
 };

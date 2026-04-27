@@ -91,7 +91,8 @@ export const estudianteService = {
                 etnia,
                 lugarExpedicion,
                 lugarNacimiento,
-                municipioResidencia
+                municipioResidencia,
+                zona
             } = data;
 
             const nuevo = await estudianteRepository.create({
@@ -117,7 +118,8 @@ export const estudianteService = {
                 etnia,
                 lugarExpedicion,
                 lugarNacimiento,
-                municipioResidencia
+                municipioResidencia,
+                zona: zona === "" ? undefined : zona // Permitir valor vacío para zona, pero no nulo (usa default)
             });
 
             return nuevo;
@@ -140,6 +142,11 @@ export const estudianteService = {
                 throw err;
             }
 
+            // Si el cliente envía zona como cadena vacía, se interpreta como null (sin cambio)
+            if (data.zona === "") {
+                data.zona = null;
+            }
+
             // construir objeto limpio para actualizar
             const camposActualizables = {};
 
@@ -152,7 +159,8 @@ export const estudianteService = {
                 "estrato", "sisben", "subsidiado",
                 "eps", "victimas", "discapacidad",
                 "capacidades", "etnia", "lugarExpedicion",
-                "lugarNacimiento", "municipioResidencia"
+                "lugarNacimiento", "municipioResidencia",
+                "zona"
             ];
 
             for (const campo of campos) {

@@ -29,6 +29,7 @@ import AdministrarCodigos from "../components/boletines/AdministrarCodigos.jsx";
 import Planillas from "../components/planillas/PlanillasPage.jsx";
 import Sabanas from "../components/reportes/SabanasPage.jsx";
 import Certidicados from "../components/certificados/CertificadosPage.jsx";
+import Listados from "../components/listados/ListadosPage.jsx";
 import Estudiantes from '../components/estudiantes/Estudiantes.jsx';
 import Acudientes from '../components/acudientes/Acudientes.jsx';
 import AsignarAcudientes from '../components/estudiantes/AcudientesTab.jsx';
@@ -101,6 +102,7 @@ const AppRoutes = () => {
                     {/* === DOCUMENTOS OFICIALES === */}
                     <Route path="certificados" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador", "rector"]}><Certidicados /></ProtectedRoute>} />
                     <Route path="libros" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "rector"]}><PaginaEnConstruccion titulo="Libros Reglamentarios" /></ProtectedRoute>} />
+                    <Route path="listados" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador", "rector"]}><Listados /></ProtectedRoute>} />
 
                     {/* RUTAS TEMPORALES PARA MÓDULOS EN DESARROLLO */}
                     <Route path="configuracion" element={<ProtectedRoute requiredRoles="admin"><PaginaEnConstruccion titulo="Configuración" /></ProtectedRoute>} />

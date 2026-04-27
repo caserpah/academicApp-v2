@@ -46,6 +46,10 @@ const ETNIAS = [
     { val: "RAIZAL", label: "Raizal" },
     { val: "ROM_GITANO", label: "ROM / Gitano" }
 ];
+const ZONAS = [
+    { val: "URBANA", label: "Urbana" },
+    { val: "RURAL", label: "Rural" }
+];
 
 // Mapa de campos vs. Pestaña donde se encuentran
 const TAB_MAP = {
@@ -60,6 +64,8 @@ const TAB_MAP = {
     sexo: 1,
 
     // Tab 2: Ubicación
+    municipioResidencia: 2,
+    zona: 2,
     direccion: 2,
     barrio: 2,
     contacto: 2,
@@ -89,6 +95,7 @@ const INITIAL_STATE = {
     sexo: "",
     rh: "",
     municipioResidencia: "",
+    zona: "",
     direccion: "",
     barrio: "",
     contacto: "",
@@ -510,7 +517,17 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
                             />
                         </div>
 
-                        {/* 2. Dirección */}
+                        {/* 2. Zona */}
+                        <SelectGroup
+                            label="Zona"
+                            name="zona"
+                            value={formData.zona}
+                            onChange={handleChange}
+                            options={ZONAS}
+                            mapOption
+                        />
+
+                        {/* 3. Dirección */}
                         <InputGroup
                             label="Dirección Residencia"
                             name="direccion"
@@ -518,7 +535,7 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
                             onChange={handleChange}
                         />
 
-                        {/* 3. Barrio */}
+                        {/* 4. Barrio */}
                         <InputGroup
                             label="Barrio"
                             name="barrio"
@@ -526,7 +543,7 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
                             onChange={handleChange}
                         />
 
-                        {/* 4. Teléfono */}
+                        {/* 5. Teléfono */}
                         <InputGroup
                             label="Teléfono / Celular"
                             name="contacto"
@@ -534,7 +551,7 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
                             onChange={handleChange}
                         />
 
-                        {/* 5. Estrato */}
+                        {/* 6. Estrato */}
                         <InputGroup
                             label="Estrato"
                             name="estrato"
@@ -543,7 +560,7 @@ const EstudiantesForm = ({ estudianteEditar, onClose, onSuccess }) => {
                             type="number"
                         />
 
-                        {/* 6. SISBEN */}
+                        {/* 7. SISBEN */}
                         <InputGroup
                             label="Clasificación SISBEN"
                             name="sisben"

@@ -360,7 +360,7 @@ const GenerarBoletines = () => {
             {/* MODAL DE AUDITORÍA BOLETINES */}
             {reporteFaltantes && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden border-t-4 border-blue-500">
+                    <div className="bg-white rounded-xl shadow-3xl w-full max-w-4xl overflow-hidden border-t-4 border-blue-500">
                         <div className="p-5 border-b border-gray-100 bg-blue-50 flex justify-between items-center">
                             <h3 className="text-lg font-bold text-blue-800 flex items-center gap-2">
                                 <FontAwesomeIcon icon={faSearch} />

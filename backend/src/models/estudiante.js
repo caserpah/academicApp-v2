@@ -112,6 +112,12 @@ export const Estudiante = sequelize.define("estudiante", {
         allowNull: true
     },
 
+    zona: {
+        type: DataTypes.ENUM('URBANA', 'RURAL'),
+        allowNull: true,
+        defaultValue: 'URBANA'
+    },
+
     sisben: {
         type: DataTypes.STRING(40),
         allowNull: true
