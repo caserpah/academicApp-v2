@@ -27,14 +27,24 @@ export const generarListadoPdf = async (tipoListado, filtros) => {
             responseType: 'blob', // Crítico para recibir el PDF
         });
 
-        // Crear URL temporal
-        const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+        // Crear el Blob con el tipo correcto
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
 
-        // ABRIR EN NUEVA PESTAÑA (Requerimiento de usabilidad)
-        window.open(url, '_blank');
+        // Crear un elemento <a> invisible para forzar la descarga
+        const link = document.createElement('a');
+        link.href = url;
 
-        // Limpieza de memoria (damos un par de segundos para que la pestaña lo cargue)
-        setTimeout(() => window.URL.revokeObjectURL(url), 2000);
+        // El atributo 'download' es clave para la descarga automática
+        link.setAttribute('download', `Listado_${tipoListado}_${new Date().getTime()}.pdf`);
+
+        // Añadir al documento, hacer clic y remover
+        document.body.appendChild(link);
+        link.click();
+
+        // Limpieza inmediata después del clic
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
 
     } catch (error) {
         if (error.response && error.response.data) {

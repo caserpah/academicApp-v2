@@ -182,9 +182,9 @@ const ListadosPage = () => {
 
             Swal.fire({
                 icon: 'success',
-                title: 'Generado',
-                text: 'El documento se abrió en una nueva pestaña.',
-                timer: 2500,
+                title: '¡Éxito!',
+                text: 'Documento generado exitosamente.',
+                timer: 3000,
                 showConfirmButton: false
             });
         } catch (error) {
