@@ -206,7 +206,7 @@ const Docentes = () => {
             apellidos: docente.identidad?.apellidos || "",
             email: docente.identidad?.email || "",
             telefono: docente.identidad?.telefono || "",
-            activo: docente.identidad?.activo !== undefined ? docente.identidad.activo : true,
+            activo: docente.activo !== undefined ? docente.activo : true,
 
             // Mapeo seguro para evitar nulls en inputs (Datos Académicos)
             areaEnsenanza: docente.areaEnsenanza || "",
@@ -385,8 +385,8 @@ const Docentes = () => {
                                             <tr key={d.id} className={`hover:bg-blue-50 transition-colors ${!d.activo ? 'bg-gray-50' : ''}`}>
                                                 <td className="px-4 py-3 whitespace-nowrap">
                                                     <span className={`px-2 py-1 text-[10px] rounded-full font-bold uppercase tracking-wide border
-                                                        ${d.identidad?.activo ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-                                                        {d.identidad?.activo ? 'Activo' : 'Inactivo'}
+                                                        ${d.activo ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                                                        {d.activo ? 'Activo' : 'Inactivo'}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-gray-700 font-mono">{d.identidad?.documento}</td>

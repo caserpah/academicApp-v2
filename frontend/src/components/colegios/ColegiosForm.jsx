@@ -52,6 +52,7 @@ const ColegiosForm = ({
     const fields = [
         // Solo lectura permanente
         { name: "registroDane", label: "Registro DANE", required: true, readOnlyAlways: true, mode: "alphanumeric" },
+        { name: "nit", label: "NIT", required: false, readOnlyAlways: true, mode: "alphanumeric" },
         { name: "nombre", label: "Nombre", required: true, readOnlyAlways: true },
 
         // Editables con restricciones
@@ -80,20 +81,6 @@ const ColegiosForm = ({
 
     return (
         <form onSubmit={handleSubmit}>
-            {/* ID solo lectura */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-2">
-                <div className="space-y-1">
-                    <label className="block text-sm font-medium text-gray-700">ID</label>
-                    <input
-                        type="text"
-                        name="id"
-                        value={formData.id || ""}
-                        readOnly
-                        className={getInputClasses(true)}
-                    />
-                </div>
-            </div>
-
             {/* Campos */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {fields.map(({ name, label, type = "text", required, mode, readOnlyAlways, placeholder, maxLength }) => {

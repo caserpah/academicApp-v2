@@ -109,6 +109,10 @@ export const docenteService = {
 
             // 4. Creamos el perfil de Docente y lo enlazamos al usuarioId (nuevo o existente)
             datosDocente.usuarioId = usuarioId;
+
+            // Aseguramos que el docente nazca con el mismo estado que su usuario
+            datosDocente.activo = activo !== undefined ? activo : true;
+
             const nuevoDocente = await docenteRepository.create(datosDocente, t);
 
             await t.commit();
@@ -151,6 +155,9 @@ export const docenteService = {
                 transaction: t,
                 individualHooks: true // Obligatorio para que encripte la password si se cambió
             });
+
+            // Reasignamos el estado activo al payload del docente
+            if (activo !== undefined) datosDocente.activo = activo;
 
             // 3. Actualizar el Perfil Académico (Docente)
             await docenteRepository.updateById(id, datosDocente, t);

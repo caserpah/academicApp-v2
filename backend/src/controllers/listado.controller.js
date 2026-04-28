@@ -1,3 +1,5 @@
+
+
 import { listadoService } from "../services/listado.service.js";
 
 export const listadoController = {
@@ -28,7 +30,7 @@ export const listadoController = {
             const pdfBuffer = await listadoService.generarListadoEstudiantes(vigenciaId, anioLectivo, filtros);
 
             res.setHeader("Content-Type", "application/pdf");
-            res.setHeader("Content-Disposition", `inline; filename="Listado_Estudiantes_${new Date().getTime()}.pdf"`);
+            res.setHeader("Content-Disposition", `attachment; filename="Listado_Estudiantes_${new Date().getTime()}.pdf"`);
             return res.send(pdfBuffer);
         } catch (error) {
             console.error("Error al generar listado de estudiantes:", error);
@@ -45,7 +47,7 @@ export const listadoController = {
             const pdfBuffer = await listadoService.generarListadoDirectores(vigenciaId, sedeId);
 
             res.setHeader("Content-Type", "application/pdf");
-            res.setHeader("Content-Disposition", `inline; filename="Listado_Directores_${new Date().getTime()}.pdf"`);
+            res.setHeader("Content-Disposition", `attachment; filename="Listado_Directores_${new Date().getTime()}.pdf"`);
             return res.send(pdfBuffer);
         } catch (error) {
             return res.status(400).json({ message: error.message || "Error al generar el listado." });
@@ -59,7 +61,7 @@ export const listadoController = {
             const pdfBuffer = await listadoService.generarListadoDocentes(sedeId);
 
             res.setHeader("Content-Type", "application/pdf");
-            res.setHeader("Content-Disposition", `inline; filename="Listado_Docentes_${new Date().getTime()}.pdf"`);
+            res.setHeader("Content-Disposition", `attachment; filename="Listado_Docentes_${new Date().getTime()}.pdf"`);
             return res.send(pdfBuffer);
         } catch (error) {
             return res.status(400).json({ message: error.message || "Error al generar el listado." });
@@ -78,7 +80,7 @@ export const listadoController = {
             const pdfBuffer = await listadoService.generarListadoAreasAsignaturas(vigenciaId, conAsignaturas);
 
             res.setHeader("Content-Type", "application/pdf");
-            res.setHeader("Content-Disposition", `inline; filename="Listado_Areas_${new Date().getTime()}.pdf"`);
+            res.setHeader("Content-Disposition", `attachment; filename="Listado_Areas_${new Date().getTime()}.pdf"`);
             return res.send(pdfBuffer);
         } catch (error) {
             return res.status(400).json({ message: error.message || "Error al generar el listado." });

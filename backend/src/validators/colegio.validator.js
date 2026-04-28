@@ -25,6 +25,12 @@ export const validarCrearColegio = [
         .bail()
         .custom(validarCampoUnico(Colegio, "registroDane", "un colegio", false, null, "registro DANE")),
 
+    validarCampoRequerido("nit", "Ingrese el NIT del colegio.")
+        .isLength({ max: 20 }).withMessage("El NIT no debe exceder los 20 caracteres.")
+        .isAlphanumeric().withMessage("El NIT solo puede contener letras y números.")
+        .bail()
+        .custom(validarCampoUnico(Colegio, "nit", "un colegio", false, null, "NIT")),
+
     validarCampoRequerido("nombre", "Ingrese el nombre del colegio.")
         .isLength({ max: 80 }).withMessage("El nombre no debe exceder los 80 caracteres."),
 
@@ -80,15 +86,6 @@ export const validarActualizarColegio = [
         .withMessage("El colegio seleccionado no es válido.")
         .bail()
         .custom(verificarExistenciaPorId(Colegio, "id", "el colegio solicitado")),
-
-    validarCampoOpcionalRequerido("registroDane", "Ingrese el número de registro DANE si desea actualizarlo.")
-        .isLength({ max: 20 }).withMessage("El registro DANE no debe exceder los 20 caracteres.")
-        .isAlphanumeric().withMessage("El registro DANE solo puede contener letras y números.")
-        .bail()
-        .custom(validarCampoUnico(Colegio, "registroDane", "un colegio", true, null, "registro DANE")),
-
-    validarCampoOpcionalRequerido("nombre", "Ingrese el nombre del colegio si desea actualizarlo.")
-        .isLength({ max: 80 }).withMessage("El nombre no debe exceder los 80 caracteres."),
 
     body("email")
         .optional({ checkFalsy: true })

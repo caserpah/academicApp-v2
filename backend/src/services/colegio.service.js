@@ -30,6 +30,7 @@ export const colegioService = {
         try {
             const {
                 registroDane,
+                nit,
                 nombre,
                 email,
                 contacto,
@@ -48,6 +49,7 @@ export const colegioService = {
 
             const payload = {
                 registroDane,
+                nit,
                 nombre,
                 email,
                 contacto,
@@ -88,8 +90,6 @@ export const colegioService = {
             }
 
             const {
-                registroDane,
-                nombre,
                 email,
                 contacto,
                 direccion,
@@ -106,8 +106,6 @@ export const colegioService = {
             } = data;
 
             const payload = {
-                registroDane,
-                nombre,
                 email,
                 contacto,
                 direccion,

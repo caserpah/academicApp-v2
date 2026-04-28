@@ -27,7 +27,7 @@ export const docenteRepository = {
 
         // Filtro por Estado (Activo/Inactivo)
         if (estado !== undefined && estado !== '') {
-            where['$identidad.activo$'] = estado === 'true';
+            where.activo = estado === 'true';
         }
 
         // Filtro por Nivel Educativo
