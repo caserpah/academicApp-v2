@@ -85,5 +85,39 @@ export const listadoController = {
         } catch (error) {
             return res.status(400).json({ message: error.message || "Error al generar el listado." });
         }
+    },
+
+    // 6. Generar PDF: Intensidad Horaria por Grupos
+    async descargarCargaGrupos(req, res) {
+        try {
+            const vigenciaId = req.vigenciaActual.id;
+            const anioLectivo = req.vigenciaActual.anio;
+            const { sedeId } = req.query;
+
+            const pdfBuffer = await listadoService.generarListadoCargaGrupos(vigenciaId, anioLectivo, sedeId);
+
+            res.setHeader("Content-Type", "application/pdf");
+            res.setHeader("Content-Disposition", `attachment; filename="Intensidad_Grupos_${new Date().getTime()}.pdf"`);
+            return res.send(pdfBuffer);
+        } catch (error) {
+            return res.status(400).json({ message: error.message || "Error al generar el listado de intensidad." });
+        }
+    },
+
+    // 7. Generar PDF: Carga Académica por Docentes
+    async descargarCargaDocentes(req, res) {
+        try {
+            const vigenciaId = req.vigenciaActual.id;
+            const anioLectivo = req.vigenciaActual.anio;
+            const { sedeId, docenteId } = req.query;
+
+            const pdfBuffer = await listadoService.generarListadoCargaDocentes(vigenciaId, anioLectivo, sedeId, docenteId);
+
+            res.setHeader("Content-Type", "application/pdf");
+            res.setHeader("Content-Disposition", `attachment; filename="Carga_Docentes_${new Date().getTime()}.pdf"`);
+            return res.send(pdfBuffer);
+        } catch (error) {
+            return res.status(400).json({ message: error.message || "Error al generar el listado de carga docente." });
+        }
     }
 };

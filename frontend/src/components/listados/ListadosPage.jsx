@@ -6,6 +6,7 @@ import {
 import { useAuth } from "../../context/AuthContext.jsx";
 
 import { fetchListadosCatalogs, generarListadoPdf } from "../../api/listadosService.js";
+import { fetchDocentesData } from "../../api/docentesService.js";
 import { showError } from "../../utils/notifications.js";
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
 import Swal from "sweetalert2";
@@ -14,7 +15,9 @@ const TIPOS_LISTADO = [
     { id: 'estudiantes', label: 'Estudiantes' },
     { id: 'docentes', label: 'Planta Docente' },
     { id: 'directores', label: 'Directores de Grupo' },
-    { id: 'areas', label: 'Áreas y Asignaturas' }
+    { id: 'areas', label: 'Áreas y Asignaturas' },
+    { id: 'carga-grupos', label: 'Intensidad Horaria por Grupos' },
+    { id: 'carga-docentes', label: 'Carga Académica por Docentes' }
 ];
 
 // Función para mostrar bonito en la UI sin guiones bajos
@@ -36,10 +39,14 @@ const ListadosPage = () => {
     const [tipoListado, setTipoListado] = useState('');
     const [filters, setFilters] = useState({
         sedeId: '',
+        docenteId: '',
         incluirAsignaturas: false,
         rangoInicial: { gradoId: '', grupoId: '' },
         rangoFinal: { gradoId: '', grupoId: '' }
     });
+
+    // Catálogo de docentes para filtros
+    const [docentesCat, setDocentesCat] = useState([]);
 
     // Carga de catálogo (Sedes, Grados, Grupos agrupados)
     useEffect(() => {
@@ -52,6 +59,10 @@ const ListadosPage = () => {
                 if (sedesData.length === 1) {
                     setFilters(prev => ({ ...prev, sedeId: sedesData[0].id }));
                 }
+
+                // Cargamos docentes activos para el filtro de carga por docentes
+                const { docentesData } = await fetchDocentesData({ limit: 200, activo: true });
+                setDocentesCat(docentesData.items || []);
             } catch (err) {
                 showError(err.message);
             } finally {
@@ -165,8 +176,14 @@ const ListadosPage = () => {
             if (tipoListado === 'areas') {
                 payloadToApi.incluirAsignaturas = filters.incluirAsignaturas;
             }
-            else if (tipoListado === 'docentes' || tipoListado === 'directores') {
+            else if (tipoListado === 'docentes' || tipoListado === 'directores' || tipoListado === 'carga-grupos') {
                 payloadToApi.sedeId = filters.sedeId;
+            }
+            else if (tipoListado === 'carga-docentes') {
+                payloadToApi.sedeId = filters.sedeId;
+                if (filters.docenteId) {
+                    payloadToApi.docenteId = filters.docenteId;
+                }
             }
             else if (tipoListado === 'estudiantes') {
                 const grIn = gradosSede.find(g => String(g.id) === String(filters.rangoInicial.gradoId));
@@ -197,7 +214,7 @@ const ListadosPage = () => {
     const isFormComplete = useMemo(() => {
         if (!tipoListado) return false;
         if (tipoListado === 'areas') return true;
-        if ((tipoListado === 'docentes' || tipoListado === 'directores') && filters.sedeId) return true;
+        if ((tipoListado === 'docentes' || tipoListado === 'directores' || tipoListado === 'carga-grupos' || tipoListado === 'carga-docentes') && filters.sedeId) return true;
         if (tipoListado === 'estudiantes') {
             return filters.sedeId && filters.rangoInicial.grupoId && filters.rangoFinal.grupoId;
         }
@@ -241,24 +258,40 @@ const ListadosPage = () => {
                                         <input type="checkbox" name="incluirAsignaturas" checked={filters.incluirAsignaturas} onChange={handleFilterChange} className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
                                         <span>Desglosar las Asignaturas de cada Área</span>
                                     </label>
-                                    <p className="text-xs text-gray-500 mt-2 ml-8">Si no se marca, el sistema generará únicamente el listado general de las áreas obligatorias y optativas.</p>
+                                    <p className="text-sm text-gray-500 mt-2 ml-8">Si no se marca, el sistema generará únicamente el listado general de las áreas obligatorias y optativas.</p>
                                 </div>
                             )}
 
-                            {/* Filtro SEDE (Aplica para Estudiantes, Docentes, Directores) */}
+                            {/* Filtro SEDE (Aplica para Estudiantes, Docentes, Directores y Cargas) */}
                             {tipoListado !== 'areas' && (
                                 <div className="col-span-1 md:col-span-2">
                                     <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">Sede Educativa</label>
                                     <div className="relative">
                                         <select name="sedeId" value={filters.sedeId} onChange={handleFilterChange} className="w-full border border-gray-300 rounded-lg p-2.5 pl-8 text-sm outline-none bg-white focus:ring-2 focus:ring-blue-500">
                                             <option value="">-- Seleccione Sede --</option>
-                                            {(tipoListado === 'docentes' || tipoListado === 'directores') && (
+                                            {(tipoListado === 'docentes' || tipoListado === 'directores' || tipoListado === 'carga-grupos' || tipoListado === 'carga-docentes') && (
                                                 <option value="TODAS">📚 TODAS LAS SEDES (General)</option>
                                             )}
                                             {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
                                         </select>
                                         <FontAwesomeIcon icon={faSchool} className="absolute left-3 top-3 text-gray-400" />
                                     </div>
+                                </div>
+                            )}
+
+                            {/* Filtro DOCENTE (Solo para Carga por Docentes) */}
+                            {tipoListado === 'carga-docentes' && (
+                                <div className="col-span-1 md:col-span-2 mt-2 pt-4 border-t border-gray-200">
+                                    <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">Docente (Opcional)</label>
+                                    <select name="docenteId" value={filters.docenteId} onChange={handleFilterChange} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none bg-white focus:ring-2 focus:ring-blue-500">
+                                        <option value="">-- TODOS LOS DOCENTES (Reporte General) --</option>
+                                        {docentesCat && docentesCat.map(d => (
+                                            <option key={d.id} value={d.id}>
+                                                {d.identidad?.apellidos} {d.identidad?.nombre}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="text-sm text-gray-500 mt-2 ml-2">Si no selecciona un docente, se generará la carga de todos los docentes de la sede.</p>
                                 </div>
                             )}
 

@@ -64,7 +64,7 @@ export const cargaRepository = {
             as: "grupo",
             attributes: ["id", "nombre", "jornada", "gradoId"],
             duplicating: false,
-            include: [{ model: Grado, as: "grado", attributes: ["id", "nombre"], duplicating: false }]
+            include: [{ model: Grado, as: "grado", attributes: ["id", "nombre", "orden"], duplicating: false }]
         };
 
         if (gradoId || jornada) {

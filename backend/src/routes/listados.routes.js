@@ -55,4 +55,22 @@ router.get(
     listadoController.descargarAreas
 );
 
+// Generar PDF: Intensidad Horaria por Sedes y Grupos
+router.get(
+    "/carga-grupos",
+    protect,
+    restrictTo(["admin", "secretaria", "coordinador", "rector"]),
+    vigenciaContext,
+    listadoController.descargarCargaGrupos
+);
+
+// Generar PDF: Carga Académica por Docentes
+router.get(
+    "/carga-docentes",
+    protect,
+    restrictTo(["admin", "secretaria", "coordinador", "rector"]),
+    vigenciaContext,
+    listadoController.descargarCargaDocentes
+);
+
 export default router;

@@ -1,5 +1,6 @@
 import { listadoRepository } from "../repositories/listado.repository.js";
 import { pdfService } from "./pdf.service.js";
+import { cargaService } from "./carga.service.js";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -166,7 +167,8 @@ export const listadoService = {
         return await pdfService.crearPdfListado(contextoHbs, 'listado-estudiantes.hbs');
     },
 
-    /** * 3. Listado de Directores de Grupo
+    /**
+     * 3. Listado de Directores de Grupo
      */
     async generarListadoDirectores(vigenciaId, sedeId) {
         const grupos = await listadoRepository.findDirectoresGrupo(vigenciaId, sedeId);
@@ -204,7 +206,8 @@ export const listadoService = {
         return await pdfService.crearPdfListado(contextoHbs, 'listado-directores.hbs');
     },
 
-    /** * 4. Listado de Docentes
+    /**
+     * 4. Listado de Docentes
      */
     async generarListadoDocentes(sedeId) {
         const docentes = await listadoRepository.findDocentesListado(sedeId);
@@ -238,7 +241,8 @@ export const listadoService = {
         return await pdfService.crearPdfListado(contextoHbs, 'listado-docentes.hbs');
     },
 
-    /** * 5. Listado de Áreas y Asignaturas
+    /**
+     * 5. Listado de Áreas y Asignaturas
      */
     async generarListadoAreasAsignaturas(vigenciaId, incluirAsignaturas = true) {
         const areas = await listadoRepository.findAreasYAsignaturas(vigenciaId);
@@ -259,5 +263,202 @@ export const listadoService = {
             }))
         };
         return await pdfService.crearPdfListado(contextoHbs, 'listado-areas.hbs');
+    },
+
+    /**
+     * 6. Listado: Intensidad Horaria agrupada por Sedes y Grupos
+     */
+    async generarListadoCargaGrupos(vigenciaId, anioLectivo, sedeId) {
+        const nombreInstitucion = await listadoRepository.getDatosInstitucionales();
+
+        // Obtener directores para mapearlos luego (enviamos null si es TODAS para que no filtre)
+        const gruposConDirector = await listadoRepository.findDirectoresGrupo(vigenciaId, sedeId === 'TODAS' ? null : sedeId);
+        const directoresMap = {};
+        gruposConDirector.forEach(g => {
+            directoresMap[g.id] = g.director?.identidad ? `${g.director.identidad.apellidos} ${g.director.identidad.nombre}`.toUpperCase() : "SIN ASIGNAR";
+        });
+
+        // Construir filtros para la consulta de cargas académicas
+        const filtros = { vigenciaId, limit: 10000 };
+        if (sedeId && sedeId !== 'TODAS') filtros.sedeId = sedeId;
+
+        const resultado = await cargaService.list(filtros);
+        const cargas = resultado.items || resultado;
+
+        if (!cargas || cargas.length === 0) throw new Error("No se encontraron registros de intensidad horaria para la sede seleccionada.");
+
+        // Agrupación triple: Sede -> Grupo -> Asignaturas
+        const sedesDict = {};
+
+        cargas.forEach(c => {
+            const sedeNombre = c.sede.nombre.toUpperCase();
+            if (!sedesDict[sedeNombre]) sedesDict[sedeNombre] = { nombreSede: sedeNombre, grupos: {} };
+
+            const llaveGrupo = `${c.grupo.gradoId}-${c.grupoId}`;
+
+            if (!sedesDict[sedeNombre].grupos[llaveGrupo]) {
+                sedesDict[sedeNombre].grupos[llaveGrupo] = {
+                    gradoOrden: c.grupo.grado?.orden || 0,
+                    gradoNombre: _formatearTexto(c.grupo.grado?.nombre).toUpperCase(),
+                    grupoNombre: c.grupo.nombre,
+                    directorNombre: directoresMap[c.grupoId] || "SIN ASIGNAR",
+                    asignaturas: [],
+                    totalHoras: 0
+                };
+            }
+
+            const horas = Number(c.horas) || 0;
+            sedesDict[sedeNombre].grupos[llaveGrupo].asignaturas.push({
+                codigo: c.asignatura.codigo,
+                nombre: c.asignatura.nombre,
+                horas: horas,
+                docente: c.docente?.identidad ? `${c.docente.identidad.apellidos} ${c.docente.identidad.nombre}`.toUpperCase() : "SIN ASIGNAR"
+            });
+
+            sedesDict[sedeNombre].grupos[llaveGrupo].totalHoras += horas;
+        });
+
+        // Convertir a arreglos ordenados
+        const sedesFinales = Object.values(sedesDict).map(sede => {
+            sede.grupos = Object.values(sede.grupos).sort((a, b) =>
+                (a.gradoOrden - b.gradoOrden) || a.grupoNombre.localeCompare(b.grupoNombre)
+            );
+
+            // Ordenar asignaturas por nombre
+            sede.grupos.forEach(g => g.asignaturas.sort((a, b) => a.nombre.localeCompare(b.nombre)));
+            return sede;
+        }).sort((a, b) => a.nombreSede.localeCompare(b.nombreSede));
+
+        const contextoHbs = {
+            urlEscudo: await _obtenerLogoBase64(),
+            nombreInstitucion: nombreInstitucion.toUpperCase(),
+            anioLectivo: anioLectivo,
+            titulo: "INTENSIDAD HORARIA POR GRUPOS",
+            sedes: sedesFinales
+        };
+
+        return await pdfService.crearPdfListado(contextoHbs, 'reporte-intensidad-grupos.hbs');
+    },
+
+    /**
+     * 7. Listado: Carga Académica agrupada por Docentes
+     */
+    async generarListadoCargaDocentes(vigenciaId, anioLectivo, sedeId, docenteId) {
+        const nombreInstitucion = await listadoRepository.getDatosInstitucionales();
+
+        const filtros = { vigenciaId, limit: 10000 };
+        if (sedeId && sedeId !== 'TODAS') filtros.sedeId = sedeId;
+        if (docenteId) filtros.docenteId = docenteId;
+
+        const resultado = await cargaService.list(filtros);
+        let cargas = resultado.items || resultado;
+
+        if (sedeId && sedeId !== 'TODAS') {
+            cargas = cargas.filter(c => String(c.sedeId) === String(sedeId) || (c.sede && String(c.sede.id) === String(sedeId)));
+        }
+
+        if (!cargas || cargas.length === 0) {
+            throw new Error(docenteId
+                ? "El docente seleccionado no tiene carga académica asignada en la sede especificada."
+                : "No se encontraron cargas académicas para los filtros seleccionados."
+            );
+        }
+
+        const contextoHbs = {
+            urlEscudo: await _obtenerLogoBase64(),
+            nombreInstitucion: nombreInstitucion.toUpperCase(),
+            anioLectivo: anioLectivo,
+            titulo: "CARGA ACADÉMICA POR DOCENTE"
+        };
+
+        if (docenteId) {
+            // =========================================================
+            // LÓGICA 1: REPORTE INDIVIDUAL (Agrupado por Docente -> Sedes)
+            // =========================================================
+            contextoHbs.isIndividual = true; // <-- Bandera para la plantilla
+            const docentesDict = {};
+
+            cargas.forEach(c => {
+                if (!c.docente) return;
+                const docId = c.docenteId;
+                const identidad = c.docente.identidad;
+                const sedeNombre = c.sede.nombre.toUpperCase();
+
+                if (!docentesDict[docId]) {
+                    docentesDict[docId] = {
+                        documento: identidad.documento,
+                        nombreCompleto: `${identidad.apellidos} ${identidad.nombre}`.toUpperCase(),
+                        sedes: {},
+                        totalHorasGeneral: 0
+                    };
+                }
+                if (!docentesDict[docId].sedes[sedeNombre]) {
+                    docentesDict[docId].sedes[sedeNombre] = { nombreSede: sedeNombre, cargas: [], totalHorasSede: 0 };
+                }
+
+                const horas = Number(c.horas) || 0;
+                docentesDict[docId].sedes[sedeNombre].cargas.push({
+                    gradoNombre: _formatearTexto(c.grupo.grado?.nombre).toUpperCase(),
+                    grupoNombre: c.grupo.nombre,
+                    codigo: c.asignatura.codigo,
+                    asignaturaNombre: c.asignatura.nombre,
+                    horas: horas
+                });
+                docentesDict[docId].sedes[sedeNombre].totalHorasSede += horas;
+                docentesDict[docId].totalHorasGeneral += horas;
+            });
+
+            contextoHbs.docentes = Object.values(docentesDict).map(doc => {
+                doc.sedes = Object.values(doc.sedes).sort((a, b) => a.nombreSede.localeCompare(b.nombreSede));
+                doc.sedes.forEach(s => s.cargas.sort((a, b) => a.gradoNombre.localeCompare(b.gradoNombre) || a.grupoNombre.localeCompare(b.grupoNombre)));
+                return doc;
+            });
+
+        } else {
+            // =========================================================
+            // LÓGICA 2: REPORTE GENERAL (Agrupado por Sede -> Docentes)
+            // =========================================================
+            contextoHbs.isIndividual = false; // <-- Bandera para la plantilla
+            const sedesDict = {};
+
+            cargas.forEach(c => {
+                if (!c.docente) return;
+                const sedeNombre = c.sede.nombre.toUpperCase();
+                const docId = c.docenteId;
+                const identidad = c.docente.identidad;
+
+                if (!sedesDict[sedeNombre]) {
+                    sedesDict[sedeNombre] = { nombreSede: sedeNombre, docentes: {} };
+                }
+                if (!sedesDict[sedeNombre].docentes[docId]) {
+                    sedesDict[sedeNombre].docentes[docId] = {
+                        documento: identidad.documento,
+                        nombreCompleto: `${identidad.apellidos} ${identidad.nombre}`.toUpperCase(),
+                        cargas: [],
+                        totalHorasDocente: 0
+                    };
+                }
+
+                const horas = Number(c.horas) || 0;
+                sedesDict[sedeNombre].docentes[docId].cargas.push({
+                    gradoNombre: _formatearTexto(c.grupo.grado?.nombre).toUpperCase(),
+                    grupoNombre: c.grupo.nombre,
+                    codigo: c.asignatura.codigo,
+                    asignaturaNombre: c.asignatura.nombre,
+                    horas: horas
+                });
+                sedesDict[sedeNombre].docentes[docId].totalHorasDocente += horas;
+            });
+
+            contextoHbs.sedes = Object.values(sedesDict).map(sede => {
+                sede.docentes = Object.values(sede.docentes).sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto));
+                sede.docentes.forEach(doc => {
+                    doc.cargas.sort((a, b) => a.gradoNombre.localeCompare(b.gradoNombre) || a.grupoNombre.localeCompare(b.grupoNombre));
+                });
+                return sede;
+            }).sort((a, b) => a.nombreSede.localeCompare(b.nombreSede));
+        }
+
+        return await pdfService.crearPdfListado(contextoHbs, 'reporte-carga-docentes.hbs');
     }
 };

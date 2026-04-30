@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Carga Académica por Docente</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 12mm 15mm;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 10px;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        thead {
+            display: table-header-group;
+        }
+
+        /* Encabezado Institucional */
+        .header-table {
+            width: 100%;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 10px;
+        }
+
+        .logo-cell {
+            width: 80px;
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        .logo-cell img {
+            max-width: 70px;
+            max-height: 70px;
+        }
+
+        .info-cell {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .info-cell h2 {
+            margin: 0;
+            font-size: 16px;
+            color: #1e293b;
+        }
+
+        .info-cell h3 {
+            margin: 5px 0 0;
+            font-size: 14px;
+            color: #475569;
+        }
+
+        .info-cell h4 {
+            margin: 5px 0 0;
+            font-size: 12px;
+            color: #64748b;
+            font-weight: normal;
+        }
+
+        /* Contenedor de Sede (Reporte General) */
+        .sede-container {
+            page-break-after: always;
+        }
+
+        .sede-container:last-child {
+            page-break-after: auto;
+        }
+
+        .sede-title {
+            background: #1e293b;
+            color: white;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin: 0 0 15px 0;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        /* Sección de Docente */
+        .docente-section {
+            page-break-inside: avoid;
+            /* Previene partir al profesor a la mitad */
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            border-radius: 6px;
+            background-color: #fff;
+        }
+
+        .docente-info-header {
+            font-size: 11px;
+            font-weight: bold;
+            color: #0f172a;
+            border-bottom: 1px solid #cbd5e1;
+            padding-bottom: 5px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .sede-subtitle {
+            margin: 10px 0 6px 0;
+            font-size: 11px;
+            font-weight: bold;
+            color: #2563eb;
+        }
+
+        /* Tabla de Cargas */
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5px;
+        }
+
+        table.data-table th {
+            background-color: #f1f5f9;
+            color: #334155;
+            font-size: 9px;
+            padding: 5px;
+            text-align: left;
+            border: 1px solid #cbd5e1;
+        }
+
+        table.data-table td {
+            padding: 4px 6px;
+            border: 1px solid #cbd5e1;
+            font-size: 9px;
+            vertical-align: middle;
+        }
+
+        table.data-table tbody tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        .text-center {
+            text-align: center !important;
+        }
+
+        .bg-footer {
+            background-color: #f1f5f9;
+            font-weight: bold;
+        }
+
+        .total-box {
+            margin-top: 10px;
+            padding: 8px;
+            background-color: #1e293b;
+            color: white;
+            text-align: right;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <table class="header-table">
+        <tr>
+            <td class="logo-cell"><img src="{{urlEscudo}}" alt="Escudo"></td>
+            <td class="info-cell">
+                <h2>{{nombreInstitucion}}</h2>
+                <h3>{{titulo}}</h3>
+                <h4>AÑO LECTIVO {{anioLectivo}}</h4>
+            </td>
+        </tr>
+    </table>
+
+    {{#if isIndividual}}
+    {{#each docentes}}
+    <div class="docente-section">
+        <div class="docente-info-header">
+            <span>DOCENTE: {{this.nombreCompleto}}</span>
+        </div>
+
+        {{#each this.sedes}}
+        <div class="sede-subtitle">SEDE: {{this.nombreSede}}</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th width="20%">GRADO</th>
+                    <th width="10%" class="text-center">GRUPO</th>
+                    <th width="15%">CÓDIGO</th>
+                    <th width="45%">ASIGNATURA</th>
+                    <th width="10%" class="text-center">I.H.</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each this.cargas}}
+                <tr>
+                    <td>{{this.gradoNombre}}</td>
+                    <td class="text-center">{{this.grupoNombre}}</td>
+                    <td>{{this.codigo}}</td>
+                    <td>{{this.asignaturaNombre}}</td>
+                    <td class="text-center">{{this.horas}}</td>
+                </tr>
+                {{/each}}
+            </tbody>
+            <tfoot>
+                <tr class="bg-footer">
+                    <td colspan="4" style="text-align: right; padding-right: 10px;">Subtotal en Sede:</td>
+                    <td class="text-center">{{this.totalHorasSede}}</td>
+                </tr>
+            </tfoot>
+        </table>
+        {{/each}}
+
+        <div class="total-box">
+            TOTAL ASIGNACIÓN ACADÉMICA (I.H): {{this.totalHorasGeneral}} HORAS
+        </div>
+    </div>
+    {{/each}}
+
+    {{else}}
+    {{#each sedes}}
+    <div class="sede-container">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <td>
+                        <div class="sede-title">SEDE: {{this.nombreSede}}</div>
+                    </td>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        {{#each this.docentes}}
+                        <div class="docente-section">
+                            <div class="docente-info-header">
+                                <span>DOCENTE: {{this.nombreCompleto}}</span>
+                            </div>
+
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th width="20%">GRADO</th>
+                                        <th width="10%" class="text-center">GRUPO</th>
+                                        <th width="15%">CÓDIGO</th>
+                                        <th width="45%">ASIGNATURA</th>
+                                        <th width="10%" class="text-center">I.H.</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {{#each this.cargas}}
+                                    <tr>
+                                        <td>{{this.gradoNombre}}</td>
+                                        <td class="text-center">{{this.grupoNombre}}</td>
+                                        <td>{{this.codigo}}</td>
+                                        <td>{{this.asignaturaNombre}}</td>
+                                        <td class="text-center">{{this.horas}}</td>
+                                    </tr>
+                                    {{/each}}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="bg-footer">
+                                        <td colspan="4" style="text-align: right; padding-right: 10px;">TOTAL INTENSIDAD
+                                            HORARIA EN SEDE:</td>
+                                        <td class="text-center">{{this.totalHorasDocente}}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        {{/each}}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {{/each}}
+    {{/if}}
+
+</body>
+
+</html>
