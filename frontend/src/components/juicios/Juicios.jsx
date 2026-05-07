@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faEdit, faTrash, faScaleBalanced, faChevronLeft,
     faSearch, faChevronRight, faSpinner, faEraser,
-    faGlobe, faLayerGroup, faFileImport
+    faGlobe, faLayerGroup, faFileImport, faEye
 } from "@fortawesome/free-solid-svg-icons";
 
 import {
@@ -18,6 +18,7 @@ import { showSuccess, showError, showWarning, showConfirm } from "../../utils/no
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
 import JuiciosImportModal from "./JuiciosImportModal.jsx";
 import JuiciosForm from "./JuiciosForm.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 const Juicios = () => {
     // --- ESTADOS ---
@@ -38,11 +39,15 @@ const Juicios = () => {
     const [desempenos, setDesempenos] = useState([]);
     const [rangos, setRangos] = useState([]);
 
+    const { hasRole } = useAuth();
+    const isAdmin = hasRole('admin');
+
     // Filtros Estructurados
     const [filters, setFilters] = useState({
         gradoId: '',
         asignaturaId: '',
-        dimensionId: ''
+        dimensionId: '',
+        periodo: '',
     });
 
     // Búsqueda y Paginación
@@ -140,7 +145,7 @@ const Juicios = () => {
     };
 
     const clearFilters = () => {
-        setFilters({ gradoId: '', asignaturaId: '', dimensionId: '' });
+        setFilters({ gradoId: '', asignaturaId: '', dimensionId: '', periodo: '' });
         setSearchTerm("");
         setPagination(prev => ({ ...prev, page: 1 }));
     };
@@ -217,7 +222,11 @@ const Juicios = () => {
             activo: juicio.activo
         });
         setMode("editar");
-        formContainerRef.current?.scrollIntoView({ behavior: "smooth" });
+
+        // Pequeño delay para asegurar que el DOM se actualice antes de hacer scroll
+        setTimeout(() => {
+            formContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 150); // 150ms es suficiente para que el DOM se actualice
     };
 
     const handleDelete = async (juicio) => {
@@ -321,33 +330,38 @@ const Juicios = () => {
                         Gestión de Juicios
                     </h1>
 
-                    {/* Botón de Carga Masiva */}
-                    <button
-                        onClick={() => setShowImportModal(true)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition flex items-center shadow-sm text-sm font-medium"
-                    >
-                        <FontAwesomeIcon icon={faFileImport} />
-                        Carga Masiva
-                    </button>
+                    {/* Botón de Carga Masiva (Solo visible para admin) */}
+                    {isAdmin && (
+                        <button
+                            onClick={() => setShowImportModal(true)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition flex items-center shadow-sm text-sm font-medium"
+                        >
+                            <FontAwesomeIcon icon={faFileImport} className="mr-2" />
+                            Carga Masiva
+                        </button>
+                    )}
                 </div>
 
-                {/* Formulario */}
-                <div ref={formContainerRef}>
-                    <JuiciosForm
-                        formData={formData}
-                        mode={mode}
-                        loading={loading}
-                        handleChange={handleFormChange}
-                        handleSubmit={handleSubmit}
-                        resetForm={resetForm}
-                        asignaturas={asignaturas}
-                        vigencia={vigencia}
-                        grados={grados}
-                        dimensiones={dimensiones}
-                        desempenos={desempenos}
-                        rangos={rangos}
-                    />
-                </div>
+                {/* Formulario (Oculto para docentes si no han hecho click en un juicio) */}
+                {(isAdmin || mode === "editar") && (
+                    <div ref={formContainerRef}>
+                        <JuiciosForm
+                            formData={formData}
+                            mode={mode}
+                            loading={loading}
+                            handleChange={handleFormChange}
+                            handleSubmit={handleSubmit}
+                            resetForm={resetForm}
+                            asignaturas={asignaturas}
+                            vigencia={vigencia}
+                            grados={grados}
+                            dimensiones={dimensiones}
+                            desempenos={desempenos}
+                            rangos={rangos}
+                            isReadOnly={!isAdmin}
+                        />
+                    </div>
+                )}
 
                 {/* --- SECCIÓN DE FILTROS Y TABLA --- */}
                 <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-lg p-6">
@@ -380,7 +394,7 @@ const Juicios = () => {
                     </div>
 
                     {/* --- BARRA DE FILTROS DESPLEGABLES --- */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
                         {/* Filtro Grado */}
                         <div className="flex flex-col">
                             <label className="text-xs font-bold text-gray-500 mb-1 ml-1">Grado</label>
@@ -390,7 +404,7 @@ const Juicios = () => {
                                 onChange={handleFilterChange}
                                 className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
                             >
-                                <option value="">Todos los Grados</option>
+                                <option value="">Todos</option>
                                 {grados.map(g => <option key={g.id} value={g.id}>{g.nombre.replace(/_/g, " ")}</option>)}
                             </select>
                         </div>
@@ -404,7 +418,7 @@ const Juicios = () => {
                                 onChange={handleFilterChange}
                                 className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
                             >
-                                <option value="">Todas las Asignaturas</option>
+                                <option value="">Todas</option>
                                 {asignaturas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
                             </select>
                         </div>
@@ -418,8 +432,27 @@ const Juicios = () => {
                                 onChange={handleFilterChange}
                                 className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
                             >
-                                <option value="">Todas las Competencias</option>
+                                <option value="">Todas</option>
                                 {dimensiones.map(d => <option key={d.id} value={d.id}>{d.nombre.replace(/_/g, " ")}</option>)}
+                            </select>
+                        </div>
+
+                        {/* Filtro Periodo */}
+                        <div className="flex flex-col">
+                            <label className="text-xs font-bold text-gray-500 mb-1 ml-1">Periodo</label>
+                            <select
+                                name="periodo"
+                                value={filters.periodo}
+                                onChange={handleFilterChange}
+                                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                            >
+                                <option value="">Todos</option>
+                                <option value="1">Periodo 1</option>
+                                <option value="2">Periodo 2</option>
+                                <option value="3">Periodo 3</option>
+                                <option value="4">Periodo 4</option>
+                                <option value="5">Informe Final</option>
+                                <option value="0">Anual</option>
                             </select>
                         </div>
 
@@ -511,12 +544,20 @@ const Juicios = () => {
                                                     </span>
                                                 </td>
                                                 <td className="px-3 py-3 text-right space-x-2">
-                                                    <button onClick={() => handleEdit(juicio)} className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50 transition" title="Editar">
-                                                        <FontAwesomeIcon icon={faEdit} />
-                                                    </button>
-                                                    <button onClick={() => handleDelete(juicio)} className="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-50 transition" title="Eliminar">
-                                                        <FontAwesomeIcon icon={faTrash} />
-                                                    </button>
+                                                    {isAdmin ? (
+                                                        <>
+                                                            <button onClick={() => handleEdit(juicio)} className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50 transition" title="Editar">
+                                                                <FontAwesomeIcon icon={faEdit} />
+                                                            </button>
+                                                            <button onClick={() => handleDelete(juicio)} className="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-50 transition" title="Eliminar">
+                                                                <FontAwesomeIcon icon={faTrash} />
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <button onClick={() => handleEdit(juicio)} className="text-indigo-600 hover:text-indigo-800 p-1 rounded-full hover:bg-indigo-50 transition" title="Ver Detalles">
+                                                            <FontAwesomeIcon icon={faEye} />
+                                                        </button>
+                                                    )}
                                                 </td>
                                             </tr>
                                         );

@@ -47,7 +47,7 @@ const menuStructure = [
             { path: "/nivelaciones", label: "Recuperaciones", icon: "balance-scale", requiredRoles: ['admin', 'docente', 'coordinador'] },
             { path: "/planillas", label: "Imprimir Planillas", icon: "file-invoice", requiredRoles: ['admin', 'docente', 'secretaria', 'coordinador', 'director'] },
             { path: "/sabanas", label: "Sábanas / Reportes", icon: "chart-line", requiredRoles: ['admin', 'docente', 'secretaria', 'coordinador', 'director'] },
-            { path: "/juicios", label: "Juicios Académicos", icon: "gavel", requiredRole: 'admin' },
+            { path: "/juicios", label: "Juicios Académicos", icon: "gavel", requiredRoles: ['admin', 'secretaria', 'coordinador', 'docente'] },
             { path: "/boletines", label: "Generar Boletines", icon: "file-pdf", requiredRoles: ['admin', 'secretaria', 'coordinador'] },
             { path: "/administrar-codigos", label: "Códigos de Boletín", icon: "key", requiredRoles: ['admin', 'secretaria', 'coordinador'] }
         ]

@@ -28,7 +28,8 @@ const JuiciosForm = ({
     grados = [],
     dimensiones = [],
     desempenos = [],
-    rangos = []
+    rangos = [],
+    isReadOnly = false
 }) => {
     // --- ESTILOS ---
     const inputBaseClasses = "mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150 disabled:bg-gray-100 disabled:text-gray-500";
@@ -230,12 +231,14 @@ const JuiciosForm = ({
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-center border-b border-gray-200 pb-4 mb-6 gap-4">
                     <div className="flex items-center gap-3">
-                        <h3 className="text-lg font-semibold text-gray-700">{mode === "agregar" ? "Registrar Nuevo Juicio" : "Editar Juicio"}</h3>
+                        <h3 className="text-lg font-semibold text-gray-700">
+                            {mode === "agregar" ? "Registrar Nuevo Juicio" : (isReadOnly ? "Detalles del Juicio" : "Editar Juicio")}
+                        </h3>
                         {vigencia && <span className="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-bold">Año {vigencia.anio}</span>}
                     </div>
                     <div className="flex items-center">
                         <label className="mr-2 text-sm font-medium text-gray-600">Estado:</label>
-                        <button type="button" onClick={() => handleChange({ target: { name: 'activo', value: !formData.activo } })} disabled={loading} className={`${formData.activo ? 'bg-green-500' : 'bg-gray-300'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none`}>
+                        <button type="button" onClick={() => handleChange({ target: { name: 'activo', value: !formData.activo } })} disabled={loading || isReadOnly} className={`${formData.activo ? 'bg-green-500' : 'bg-gray-300'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}>
                             <span className={`${formData.activo ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
                         </button>
                     </div>
@@ -254,7 +257,7 @@ const JuiciosForm = ({
                             value={(esComportamiento || esAcumulativa) ? "" : (formData.gradoId || "")}
                             onChange={handleLocalChange}
                             className={inputBaseClasses}
-                            disabled={esComportamiento || esAcumulativa}
+                            disabled={esComportamiento || esAcumulativa || isReadOnly}
                             required={!esComportamiento && !esAcumulativa && (!esLaboralSocial || esPreescolar)}
                         >
                             <option value="">
@@ -281,7 +284,7 @@ const JuiciosForm = ({
                             value={(esAcumulativa || (esLaboralSocial && esGradoGlobal)) ? "" : (formData.asignaturaId || "")}
                             onChange={handleLocalChange}
                             className={inputBaseClasses}
-                            disabled={esAcumulativa || (esLaboralSocial && esGradoGlobal)}
+                            disabled={esAcumulativa || (esLaboralSocial && esGradoGlobal) || isReadOnly}
                             required={!esAcumulativa && (!esLaboralSocial || !esGradoGlobal)}
                         >
                             <option value="">{esAcumulativa ? "TRANSVERSAL" : "-- Seleccione Asignatura --"}</option>
@@ -301,7 +304,7 @@ const JuiciosForm = ({
                             value={esComportamiento ? DIMENSION.COMPORTAMIENTO : (formData.dimensionId || "")}
                             onChange={handleLocalChange}
                             className={inputBaseClasses}
-                            disabled={esComportamiento}
+                            disabled={esComportamiento || isReadOnly}
                             required
                         >
                             <option value="">{esComportamiento ? "-- NO APLICA --" : "-- Seleccione --"}</option>
@@ -318,7 +321,7 @@ const JuiciosForm = ({
                             value={(esComportamiento || esAcumulativa || (esLaboralSocial && esGradoGlobal)) ? "0" : (formData.periodo || "")}
                             onChange={handleLocalChange}
                             className={inputBaseClasses}
-                            disabled={esComportamiento || esAcumulativa || (esLaboralSocial && esGradoGlobal)}
+                            disabled={esComportamiento || esAcumulativa || (esLaboralSocial && esGradoGlobal) || isReadOnly}
                             required={!esComportamiento && !esAcumulativa && (!esLaboralSocial || !esGradoGlobal)}
                         >
                             <option value="">-- Seleccione --</option>
@@ -336,7 +339,7 @@ const JuiciosForm = ({
                             value={formData.desempenoId || ""}
                             onChange={handleLocalChange}
                             className={inputBaseClasses}
-                            disabled={esAcademica && !esPreescolar}
+                            disabled={(esAcademica && !esPreescolar) || isReadOnly}
                             required
                         >
                             <option value="">-- Seleccione --</option>
@@ -357,13 +360,27 @@ const JuiciosForm = ({
                 {/* TEXTO Y BOTONES */}
                 <div className="mt-4">
                     <label className="block text-sm font-medium text-gray-600 mb-1">Texto del Juicio <span className="text-red-500">*</span></label>
-                    <textarea name="texto" value={formData.texto || ""} onChange={handleLocalChange} rows="4" className="w-full border border-gray-300 rounded-lg p-3 focus:ring-blue-500" required />
+                    <textarea
+                        name="texto"
+                        value={formData.texto || ""}
+                        onChange={handleLocalChange}
+                        rows="4"
+                        disabled={isReadOnly}
+                        className="w-full border border-gray-300 rounded-lg p-3 focus:ring-blue-500"
+                        required
+                    />
                     <div className="flex justify-end mt-1"><span className={`text-xs ${formData.texto?.length < 10 ? 'text-red-500' : 'text-green-600'}`}>{formData.texto?.length || 0} caracteres</span></div>
                 </div>
 
                 <div className="pt-4 flex justify-center space-x-3 border-t border-gray-100 mt-4">
-                    <button type="submit" disabled={loading} className="bg-blue-600 text-white px-5 py-2 rounded-lg shadow-md hover:bg-blue-700 transition duration-150 flex items-center"><FontAwesomeIcon icon={faSave} className="mr-2" /> {mode === "agregar" ? "Guardar" : "Guardar Cambios"}</button>
-                    <button type="button" onClick={resetForm} disabled={loading} className="bg-red-500 text-white px-5 py-2 rounded-lg shadow-md hover:bg-red-600 transition duration-150 flex items-center hover:scale-[1.01]"><FontAwesomeIcon icon={faTimes} className="mr-2" /> Cancelar</button>
+                    {!isReadOnly && (
+                        <button type="submit" disabled={loading} className="bg-blue-600 text-white px-5 py-2 rounded-lg shadow-md hover:bg-blue-700 transition duration-150 flex items-center">
+                            <FontAwesomeIcon icon={faSave} className="mr-2" /> {mode === "agregar" ? "Guardar" : "Guardar Cambios"}
+                        </button>
+                    )}
+                    <button type="button" onClick={resetForm} disabled={loading} className={`${isReadOnly ? 'bg-red-500 hover:bg-red-600' : 'bg-red-500 hover:bg-red-600'} text-white px-5 py-2 rounded-lg shadow-md transition duration-150 flex items-center hover:scale-[1.01]`}>
+                        <FontAwesomeIcon icon={faTimes} className="mr-2" /> {isReadOnly ? "Cerrar detalles" : "Cancelar"}
+                    </button>
                 </div>
             </div>
         </form>

@@ -15,10 +15,20 @@ const router = express.Router();
  */
 
 // Listar rangos de desempeño
-router.get("/", protect, restrictTo(["admin"]), desempenoRangoController.list);
+router.get(
+    "/",
+    protect,
+    restrictTo(["admin", "secretaria", "coordinador", "docente"]),
+    desempenoRangoController.list
+);
 
-// Obtener rango de desempeño por ID
-router.get("/:id", protect, restrictTo(["admin"]), desempenoRangoController.get);
+// Obtener rango de desempeño por ID (LECTURA HABILITADA)
+router.get(
+    "/:id",
+    protect,
+    restrictTo(["admin", "secretaria", "coordinador", "docente"]),
+    desempenoRangoController.get
+);
 
 // Crear rango de desempeño
 router.post(
