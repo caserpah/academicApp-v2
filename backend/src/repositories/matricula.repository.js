@@ -23,7 +23,8 @@ export const matriculaRepository = {
         busqueda,
         orderBy = "estudiante.primerApellido",
         order = "ASC",
-        bloqueo_notas, es_nuevo, es_repitente, situacion_ano_anterior
+        bloqueo_notas, es_nuevo, es_repitente, situacion_ano_anterior,
+        jornada
     } = {}) {
         const where = {};
         const include = [];
@@ -104,9 +105,16 @@ export const matriculaRepository = {
             whereGrado.id = gradoId;
         }
 
+        // Filtro adicional de Jornada en Grupo (si se provee)
+        const whereGrupo = {};
+        if (jornada) {
+            whereGrupo.jornada = jornada;
+        }
+
         include.push({
             model: Grupo,
             as: "grupo",
+            where: Object.keys(whereGrupo).length > 0 ? whereGrupo : undefined,
             include: [
                 {
                     model: Grado,

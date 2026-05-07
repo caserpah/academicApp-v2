@@ -12,6 +12,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 import CargasForm from "./CargasForm.jsx";
+import { formatearJornada } from "../../utils/formatters.js";
 import { fetchCargas, fetchCargasCatalogs, crearCarga, actualizarCarga, eliminarCarga } from "../../api/cargasService.js";
 import { showSuccess, showError, showConfirm } from "../../utils/notifications.js";
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
@@ -190,7 +191,7 @@ const Cargas = () => {
                                 <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Grado</label>
                                 <select name="gradoId" value={filtros.gradoId} onChange={handleFiltroChange} className="w-full border border-gray-300 rounded-md p-2 text-sm bg-white">
                                     <option value="">Todos los Grados</option>
-                                    {catalogos.grados.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+                                    {catalogos.grados.map(g => <option key={g.id} value={g.id}>{g.nombre.replace(/_/g, " ")}</option>)}
                                 </select>
                             </div>
                             <div>
@@ -240,7 +241,7 @@ const Cargas = () => {
                                             <tr key={c.id} className="hover:bg-blue-50 transition">
                                                 <td className="px-4 py-3">
                                                     <div className="text-sm font-bold text-gray-800">{c.grupo?.nombre}</div>
-                                                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{c.grupo?.grado?.nombre}</span>
+                                                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{c.grupo?.grado?.nombre ? c.grupo.grado.nombre.replace(/_/g, " ") : ""}</span>
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="text-sm font-medium text-gray-900">{c.asignatura?.nombre}</div>
@@ -255,7 +256,9 @@ const Cargas = () => {
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="text-xs text-gray-500">{c.sede?.nombre}</div>
-                                                    <span className={`text-[10px] font-bold uppercase ${c.grupo?.jornada === 'MAÑANA' ? 'text-orange-500' : 'text-blue-500'}`}>{c.grupo?.jornada}</span>
+                                                    <span className={`text-[10px] font-bold uppercase ${c.grupo?.jornada === 'MANANA' || c.grupo?.jornada === 'MAÑANA' ? 'text-blue-500' : 'text-blue-500'}`}>
+                                                        {c.grupo?.jornada ? formatearJornada(c.grupo.jornada) : ""}
+                                                    </span>
                                                 </td>
                                                 <td className="px-4 py-3 text-center">
                                                     <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-800 font-bold text-sm">{c.horas}</span>

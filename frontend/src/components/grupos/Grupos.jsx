@@ -15,6 +15,7 @@ import {
 import { showSuccess, showError, showWarning, showConfirm } from "../../utils/notifications.js";
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
 import GruposForm from "./GruposForm.jsx";
+import { formatearJornada } from "../../utils/formatters.js";
 
 // Función auxiliar para limpiar los datos del formulario, convirtiendo cadenas vacías a null
 const cleanData = (data) => {
@@ -363,9 +364,9 @@ const Grupos = () => {
                                     grupos.map((grupo, index) => (
                                         <tr key={grupo.id} className="hover:bg-gray-50 transition-colors duration-150">
                                             <td className="px-3 py-3 text-sm font-bold text-gray-700">{grupo.nombre}</td>
-                                            <td className="px-3 py-3 text-sm text-gray-600">{grupo.grado?.nombre || "N/A"}</td>
+                                            <td className="px-3 py-3 text-sm text-gray-600">{grupo.grado?.nombre ? grupo.grado.nombre.replace(/_/g, ' ') : "N/A"}</td>
                                             <td className="px-3 py-3 text-sm text-gray-600">{grupo.sede?.nombre || "N/A"}</td>
-                                            <td className="px-3 py-3 text-sm text-gray-600 capitalize">{grupo.jornada.toLowerCase()}</td>
+                                            <td className="px-3 py-3 text-sm text-gray-600 capitalize">{grupo.jornada ? formatearJornada(grupo.jornada).toLowerCase() : "N/A"}</td>
                                             <td className="px-3 py-3 text-sm text-gray-600">
                                                 {grupo.director ?
                                                     `${grupo.director.identidad?.nombre || grupo.director.nombre || ''} ${grupo.director.identidad?.apellidos || grupo.director.apellidos || ''}` :

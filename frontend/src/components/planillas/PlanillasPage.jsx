@@ -10,6 +10,7 @@ import { descargarPlanillaPdf } from "../../api/planillasService.js";
 import { fetchDocentesData } from "../../api/docentesService.js";
 
 import { showError } from "../../utils/notifications.js";
+import { formatearNombreGrupo } from "../../utils/formatters.js";
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
 import Swal from "sweetalert2";
 
@@ -179,7 +180,11 @@ const PlanillasPage = () => {
                                     <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">Grupo</label>
                                     <select name="grupoId" value={filters.grupoId} onChange={handleFilterChange} disabled={!filters.sedeId} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none disabled:bg-gray-100">
                                         <option value="">-- Seleccione Grupo --</option>
-                                        {gruposDisponibles.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
+                                        {gruposDisponibles.map(g => (
+                                            <option key={g.id} value={g.id}>
+                                                {formatearNombreGrupo(g.label)}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
                             </>

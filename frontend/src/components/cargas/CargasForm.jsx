@@ -226,7 +226,7 @@ const CargasForm = ({
                                     >
                                         <option value="">-- Seleccione --</option>
                                         {catalogos.grados.map(g => (
-                                            <option key={g.id} value={g.id}>{g.nombre}</option>
+                                            <option key={g.id} value={g.id}>{g.nombre.replace(/_/g, " ")}</option>
                                         ))}
                                     </select>
                                 </div>

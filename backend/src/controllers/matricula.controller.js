@@ -32,7 +32,8 @@ export const matriculaController = {
                 bloqueo_notas: req.query.bloqueo_notas,
                 es_nuevo: req.query.es_nuevo,
                 es_repitente: req.query.es_repitente,
-                situacion_ano_anterior: req.query.situacion_ano_anterior
+                situacion_ano_anterior: req.query.situacion_ano_anterior,
+                jornada: req.query.jornada
             };
 
             // Llamar al servicio

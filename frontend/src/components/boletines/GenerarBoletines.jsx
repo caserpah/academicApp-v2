@@ -133,7 +133,7 @@ const GenerarBoletines = () => {
 
         const nombreSede = sedeInfo ? sedeInfo.nombre : 'Sede';
         const nombreGrupo = grupoInfo ? grupoInfo.nombre : 'Grupo';
-        const nombreGrado = gradoInfo ? gradoInfo.nombre : 'Grado';
+        const nombreGrado = gradoInfo ? gradoInfo.nombre.replace(/_/g, ' ') : 'Grado';
 
         // Unimos los nombres para que quede bien claro (Ej: "SEXTO - A")
         const SedeGradoGrupo = `${nombreSede} ${nombreGrado} ${nombreGrupo}`.trim();
@@ -261,7 +261,9 @@ const GenerarBoletines = () => {
                                     <label className={labelClasses}>Grado <span className="text-red-500">*</span></label>
                                     <select name="gradoId" value={formData.gradoId} onChange={handleChange} className={inputClasses} required>
                                         <option value="">-- Seleccione --</option>
-                                        {catalogos.grados.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+                                        {catalogos.grados.map(g => (
+                                            <option key={g.id} value={g.id}>{g.nombre.replace(/_/g, " ")}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div>

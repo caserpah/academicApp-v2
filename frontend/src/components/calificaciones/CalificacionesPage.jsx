@@ -21,6 +21,7 @@ import LoadingSpinner from "../common/LoadingSpinner.jsx";
 import GrillaCalificaciones from "./GrillaCalificaciones.jsx";
 import JustificacionModal from "./JustificacionModal.jsx";
 import CalificacionesImportModal from "./CalificacionesImportModal.jsx"
+import { formatearNombreGrupo } from "../../utils/formatters.js";
 
 const CalificacionesPage = () => {
     // --- AUTH CONTEXT ---
@@ -377,7 +378,9 @@ const CalificacionesPage = () => {
                             >
                                 <option value="">-- Seleccione Grupo --</option>
                                 {gruposDisponibles.map(g => (
-                                    <option key={g.id} value={g.id}>{g.label}</option>
+                                    <option key={g.id} value={g.id}>
+                                        {formatearNombreGrupo(g.label)}
+                                    </option>
                                 ))}
                             </select>
                         </div>

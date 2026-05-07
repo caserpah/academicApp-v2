@@ -48,6 +48,7 @@ const Matriculas = () => {
     const [filtros, setFiltros] = useState({
         sedeId: "",
         grupoId: "",
+        jornada: "",
         estado: "",
         bloqueo_notas: "",
         es_nuevo: "",
@@ -523,16 +524,16 @@ const Matriculas = () => {
 
                         {/* Filtro Sede */}
                         <div className="flex flex-col">
-                            <label className="text-xs text-gray-500 font-semibold mb-1">Sede</label>
+                            <label className="text-sm text-gray-500 font-semibold mb-1">Sede</label>
                             <select name="sedeId" value={filtros.sedeId} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
-                                <option value="">Todas las Sedes</option>
+                                <option value="">Todas</option>
                                 {listasAuxiliares.sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
                             </select>
                         </div>
 
                         {/* --- Filtro Combinado Grado y Grupo --- */}
                         <div className="flex flex-col">
-                            <label className="text-xs text-gray-500 font-semibold mb-1">Grado y Grupo</label>
+                            <label className="text-sm text-gray-500 font-semibold mb-1">Grado y Grupo</label>
                             <select
                                 name="grupoId"
                                 value={filtros.grupoId || ""}
@@ -540,7 +541,7 @@ const Matriculas = () => {
                                 disabled={!filtros.sedeId || gruposFiltro.length === 0}
                                 className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none"
                             >
-                                <option value="">Todos los grupos</option>
+                                <option value="">Todos</option>
                                 {gruposFiltro.map(g => {
                                     // Extraemos el nombre del grado y aseguramos que no quede en blanco
                                     const gradoNombre = g.grado?.nombre ? g.grado.nombre.replace(/_/g, " ") : "Sin Grado";
@@ -554,9 +555,22 @@ const Matriculas = () => {
                             </select>
                         </div>
 
+                        {/* Filtro Jornada */}
+                        <div className="flex flex-col">
+                            <label className="text-sm text-gray-500 font-semibold mb-1">Jornada</label>
+                            <select name="jornada" value={filtros.jornada} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
+                                <option value="">Todas</option>
+                                <option value="MANANA">Mañana</option>
+                                <option value="TARDE">Tarde</option>
+                                <option value="NOCHE">Nocturna</option>
+                                <option value="SABATINA">Sabatina</option>
+                                <option value="UNICA">Única</option>
+                            </select>
+                        </div>
+
                         {/* Filtro Estado */}
                         <div className="flex flex-col">
-                            <label className="text-xs text-gray-500 font-semibold mb-1">Estado</label>
+                            <label className="text-sm text-gray-500 font-semibold mb-1">Estado</label>
                             <select name="estado" value={filtros.estado} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
                                 <option value="">Todos</option>
                                 <option value="ACTIVA">Activa</option>
@@ -568,7 +582,7 @@ const Matriculas = () => {
 
                         {/* Filtro Bloqueo */}
                         <div className="flex flex-col">
-                            <label className="text-xs text-gray-500 font-semibold mb-1">Bloqueo Notas</label>
+                            <label className="text-sm text-gray-500 font-semibold mb-1">Bloqueo Notas</label>
                             <select name="bloqueo_notas" value={filtros.bloqueo_notas} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
                                 <option value="">Todos</option>
                                 <option value="true">Sí (Bloqueado)</option>
@@ -578,7 +592,7 @@ const Matriculas = () => {
 
                         {/* Filtro Nuevo */}
                         <div className="flex flex-col">
-                            <label className="text-xs text-gray-500 font-semibold mb-1">Es Nuevo</label>
+                            <label className="text-sm text-gray-500 font-semibold mb-1">Es Nuevo</label>
                             <select name="es_nuevo" value={filtros.es_nuevo} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
                                 <option value="">Todos</option>
                                 <option value="true">Sí</option>
@@ -588,7 +602,7 @@ const Matriculas = () => {
 
                         {/* Filtro Repitente */}
                         <div className="flex flex-col">
-                            <label className="text-xs text-gray-500 font-semibold mb-1">Es Repitente</label>
+                            <label className="text-sm text-gray-500 font-semibold mb-1">Es Repitente</label>
                             <select name="es_repitente" value={filtros.es_repitente} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
                                 <option value="">Todos</option>
                                 <option value="true">Sí</option>
@@ -601,7 +615,7 @@ const Matriculas = () => {
                             <button
                                 onClick={() => {
                                     setFiltros({
-                                        sedeId: "", grupoId: "", estado: "", bloqueo_notas: "",
+                                        sedeId: "", grupoId: "", jornada: "", estado: "", bloqueo_notas: "",
                                         es_nuevo: "", es_repitente: "", situacion_ano_anterior: ""
                                     });
                                     setPage(1);
@@ -652,7 +666,10 @@ const Matriculas = () => {
                                                     <div className="font-bold text-xs text-gray-800">{mat.sede?.nombre}</div>
                                                     {mat.grupo ? (
                                                         <span className="text-xs text-blue-600 block mt-0.5">
-                                                            {mat.grupo.grado?.nombre} - {mat.grupo.nombre} <span className="text-gray-500">({mat.grupo.jornada?.substring(0, 1)})</span>
+                                                            {mat.grupo.grado?.nombre?.replace(/_/g, " ")} - {mat.grupo.nombre} {" "}
+                                                            <span className="text-gray-800">
+                                                                ({mat.grupo.jornada ? mat.grupo.jornada.replace("MANANA", "MAÑANA") : ""})
+                                                            </span>
                                                         </span>
                                                     ) : <span className="text-xs text-gray-400 italic">Sin Grupo</span>}
                                                 </td>

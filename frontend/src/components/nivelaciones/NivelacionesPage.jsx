@@ -11,6 +11,7 @@ import { fetchPendientesNivelacion, generarConsolidadosMasivos } from "../../api
 
 import { showSuccess, showError, showWarning, showConfirm } from "../../utils/notifications.js";
 import GrillaNivelaciones from "./GrillaNivelaciones.jsx";
+import { formatearNombreGrupo } from "../../utils/formatters.js";
 
 const NivelacionesPage = () => {
     const { user } = useAuth();
@@ -168,8 +169,11 @@ const NivelacionesPage = () => {
 
         // Solo pedimos confirmación normal si NO estamos forzando
         if (!forzarCierreReal) {
+
+            const nombreGrupoLimpio = formatearNombreGrupo(grupoInfo.label);
+
             const confirm = await showConfirm(
-                `¿Está seguro de Generar Consolidados (Cierre de Año) para el grupo ${grupoInfo.label}? Esta acción calculará los promedios finales y determinará qué estudiantes deben nivelar.`,
+                `¿Está seguro de Generar Consolidados (Cierre de Año) para el grupo ${nombreGrupoLimpio}? Esta acción calculará los promedios finales y determinará qué estudiantes deben nivelar.`,
                 "Confirmar Cierre de Año"
             );
             if (!confirm) return;
@@ -215,7 +219,8 @@ const NivelacionesPage = () => {
         const grupoInfo = gruposDisponibles?.find(g => String(g.id) === String(filters.grupoId));
 
         const nombreSede = sedeInfo ? (sedeInfo.label || sedeInfo.nombre) : 'No especificada';
-        const nombreGrupo = grupoInfo ? (grupoInfo.label || grupoInfo.nombre) : 'No especificado';
+        const nombreGrupoRaw = grupoInfo ? (grupoInfo.label || grupoInfo.nombre) : 'No especificado';
+        const nombreGrupo = formatearNombreGrupo(nombreGrupoRaw);
 
         const fechaReporte = new Date().toLocaleString('es-CO', {
             year: 'numeric', month: 'long', day: 'numeric',
@@ -303,7 +308,9 @@ const NivelacionesPage = () => {
                         >
                             <option value="">-- Seleccione Grupo --</option>
                             {gruposDisponibles.map(g => (
-                                <option key={g.id} value={g.id}>{g.label}</option>
+                                <option key={g.id} value={g.id}>
+                                    {formatearNombreGrupo(g.label)}
+                                </option>
                             ))}
                         </select>
                     </div>
