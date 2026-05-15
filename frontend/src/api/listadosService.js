@@ -19,7 +19,7 @@ export const generarListadoPdf = async (tipoListado, filtros) => {
 
         // Si es estudiantes, el backend espera el objeto filtros en string JSON
         const params = tipoListado === 'estudiantes'
-            ? { vigenciaId: filtros.vigenciaId, filtros: JSON.stringify(filtros) }
+            ? { filtros: JSON.stringify(filtros) }
             : filtros;
 
         const response = await apiClient.get(endpoint, {
