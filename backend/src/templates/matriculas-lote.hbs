@@ -249,28 +249,30 @@
 
         <table>
             <tr>
-                <th colspan="4" class="section-title">II. Datos Personales del Estudiante</th>
+                <th colspan="5" class="section-title">II. Datos Personales del Estudiante</th>
             </tr>
             <tr>
-                <td colspan="4"><span class="label">Apellidos y Nombres Completos</span><span
+                <td colspan="5"><span class="label">Apellidos y Nombres Completos</span><span
                         class="value-left">{{this.estudiante.apellidos}} {{this.estudiante.nombres}}</span></td>
             </tr>
             <tr>
-                <td colspan="1"><span class="label">Tipo de Documento</span><span
+                <td colspan="1"><span class="label">Tipo de Doc.</span><span
                         class="value">{{this.estudiante.tipoDoc}}</span></td>
-                <td colspan="1"><span class="label">Número de Documento</span><span
+                <td colspan="2"><span class="label">Número de Documento</span><span
                         class="value">{{this.estudiante.documento}}</span></td>
                 <td colspan="2"><span class="label text-center">Lugar de Expedición</span><span
                         class="value">{{this.estudiante.lugarExpedicion}}</span></td>
             </tr>
             <tr>
-                <td colspan="1"><span class="label">Fecha de Nacimiento</span><span
+                <td colspan="1"><span class="label">Fecha Nac.</span><span
                         class="value">{{this.estudiante.fechaNac}}</span></td>
-                <td colspan="1"><span class="label text-center">Lugar de Nacimiento</span><span
+                <td colspan="1"><span class="label text-center">Edad</span><span
+                class="value text-center">{{this.estudiante.edad}}</span></td>
+                <td colspan="1"><span class="label text-center">Lugar Nac.</span><span
                         class="value">{{this.estudiante.lugarNacimiento}}</span></td>
                 <td colspan="1"><span class="label">Género</span><span class="value">{{this.estudiante.genero}}</span>
                 </td>
-                <td colspan="1"><span class="label">Grupo Sanguíneo (RH)</span><span
+                <td colspan="1"><span class="label">Grupo Sang. (RH)</span><span
                         class="value">{{this.estudiante.rh}}</span></td>
             </tr>
         </table>

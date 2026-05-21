@@ -42,6 +42,11 @@ export const usuarioController = {
             const usuario = await Usuario.findByPk(id);
             if (!usuario) throw new Error("Usuario no encontrado");
 
+            // Solo actualizamos la contraseña si se proporciona y no está vacía
+            if (password && password.trim() !== "") {
+                data.password = password.trim();
+            }
+
             await usuario.update(data);
 
             return sendSuccess(res, usuario, "Usuario actualizado exitosamente.");

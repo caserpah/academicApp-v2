@@ -1,8 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSave, faTimes, faUserShield } from "@fortawesome/free-solid-svg-icons";
+import { faSave, faTimes, faUserShield, faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 
 const UsuariosForm = ({ formData, mode, loading, handleChange, handleSubmit, resetForm }) => {
+
+    // Estado local para controlar la visibilidad de la contraseña
+    const [showPassword, setShowPassword] = useState(false);
 
     // Clases base para inputs (Tailwind)
     const inputClasses = "mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 transition outline-none";
@@ -130,16 +133,33 @@ const UsuariosForm = ({ formData, mode, loading, handleChange, handleSubmit, res
                     <label className="block text-sm font-bold text-blue-800 mb-1">
                         {mode === "agregar" ? "Contraseña Inicial *" : "Cambiar Contraseña (Opcional)"}
                     </label>
-                    <input
-                        type="password"
-                        name="password"
-                        value={formData.password || ""}
-                        onChange={handleChange}
-                        className={inputClasses}
-                        required={mode === "agregar"} // Solo obligatoria al crear
-                        placeholder={mode === "agregar" ? "Mínimo 8 caracteres" : "Dejar en blanco para mantener la actual"}
-                        minLength={8}
-                    />
+
+                    {/* Contenedor relativo para el input y el botón */}
+                    <div className="relative">
+                        <input
+                            // Cambiamos el tipo dinámicamente
+                            type={showPassword ? "text" : "password"}
+                            name="password"
+                            value={formData.password || ""}
+                            onChange={handleChange}
+                            // Añadimos pr-10 para que el texto no se superponga al ícono
+                            className={`${inputClasses} pr-10`}
+                            required={mode === "agregar"}
+                            placeholder={mode === "agregar" ? "Mínimo 8 caracteres" : "Dejar en blanco para mantener la actual"}
+                            minLength={8}
+                        />
+
+                        {/* Botón posicionado absolutamente a la derecha */}
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-blue-600 transition focus:outline-none"
+                            title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                        >
+                            <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                        </button>
+                    </div>
+
                     {mode === "editar" && (
                         <p className="text-xs text-blue-600 mt-1">
                             Solo llena este campo si deseas cambiar la contraseña del usuario.

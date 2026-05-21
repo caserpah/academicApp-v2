@@ -14,6 +14,19 @@ const diccionarios = {
 
 const formatEnum = (valor, dict) => valor && dict[valor] ? dict[valor] : (valor || "N/A");
 
+// Función para calcular la edad exacta en el PDF
+export const calcularEdadPDF = (fecha) => {
+    if (!fecha) return "N/A";
+    const hoy = new Date();
+    const nacimiento = new Date(fecha);
+    let edad = hoy.getFullYear() - nacimiento.getFullYear();
+    const m = hoy.getMonth() - nacimiento.getMonth();
+    if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) {
+        edad--;
+    }
+    return isNaN(edad) ? "N/A" : `${edad} años`;
+};
+
 // Función: Conversor inteligente de fechas y horas
 export const formatearFecha = (fecha, incluirHora = false) => {
     if (!fecha) return "N/A";
@@ -69,6 +82,7 @@ export const mapearDatosMatricula = (matriculaRaw, esBlanco = false) => {
                 lugarExpedicion: "____________________",
                 mupioExp: "________________", deptoExp: "",
                 fechaNac: "________________",
+                edad: "_____",
                 mupioNac: "________________", deptoNac: "",
                 genero: "________", rh: "____",
                 direccion: "____________________________________",
@@ -130,6 +144,7 @@ export const mapearDatosMatricula = (matriculaRaw, esBlanco = false) => {
             documento: est.documento || "",
             lugarExpedicion: est.lugarExpedicion || "",
             fechaNac: formatearFecha(est.fechaNacimiento, false),
+            edad: calcularEdadPDF(est.fechaNacimiento),
             lugarNacimiento: est.lugarNacimiento || "",
             genero: formatEnum(est.sexo, diccionarios.sexo),
             rh: est.rh || "",

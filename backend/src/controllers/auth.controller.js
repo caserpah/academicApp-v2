@@ -300,7 +300,7 @@ export const verifyOtp = async (req, res, next) => {
 };
 
 /**
- * 🛠️ SCRIPT DE MANTENIMIENTO TEMPORAL: 
+ * 🛠️ SCRIPT DE MANTENIMIENTO TEMPORAL:
  * Busca contraseñas en texto plano y las hashea masivamente.
  * Uso de una sola vez tras una importación masiva.
  */
@@ -311,7 +311,7 @@ export const hashearPasswordsImportados = async (req, res, next) => {
         let actualizados = 0;
 
         for (const usuario of usuarios) {
-            // ¿Cómo sabemos si está en texto plano? 
+            // ¿Cómo sabemos si está en texto plano?
             // Los hashes de bcrypt siempre empiezan con "$2a$", "$2b$" o "$2y$" y tienen 60 caracteres.
             // Si no empieza con "$2", es seguro asumir que es un texto plano.
             if (usuario.password && !usuario.password.startsWith('$2')) {
