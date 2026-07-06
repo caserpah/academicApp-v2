@@ -91,7 +91,7 @@ export const obtenerJuicio = async (nota, rangos, context, dimensionId) => {
 };
 
 // Helper para obtener el juicio de las áreas para el informe final, basándose en los rangos definidos
-export const obtenerJucioArea = (desempeno, nombreArea, esPreescolar) => {
+export const obtenerJuicioArea = (desempeno, nombreArea, esPreescolar) => {
     const areaFormat = nombreArea.toUpperCase();
     const esComportamiento = areaFormat === 'COMPORTAMIENTO' || areaFormat === 'DISCIPLINA';
 
@@ -107,17 +107,17 @@ export const obtenerJucioArea = (desempeno, nombreArea, esPreescolar) => {
                 case 'BASICO':
                 case 'BÁSICO': return `Se encuentra en proceso de comprender y aplicar los acuerdos de convivencia. Se recomienda seguir fortaleciendo el respeto y la escucha activa.`;
                 case 'BAJO': return `Requiere acompañamiento constante para integrarse armónicamente y respetar los acuerdos básicos de convivencia en el aula.`;
-                default: return `Presenta un desarrollo ${desempeno} en su proceso de socialización y convivencia.`;
+                default: return `Evidenció un desarrollo ${desempeno} en su proceso de socialización y convivencia.`;
             }
         } else {
             // Comportamiento Primaria / Secundaria / Ciclos
             switch (desempeno) {
-                case 'SUPERIOR': return `Su comportamiento es excelente, demostrando un alto sentido de pertenencia, liderazgo positivo y un estricto respeto por el Manual de Convivencia.`;
-                case 'ALTO': return `Evidencia un buen comportamiento y respeto por las normas de la institución, manteniendo un trato cordial con la comunidad educativa.`;
+                case 'SUPERIOR': return `Durante el año lectivo, cumplió y promovió las normas de convivencia, destacándose por su responsabilidad, compromiso y buen ejemplo en el cumplimiento de sus deberes, conforme a lo establecido en el Manual de Convivencia.`;
+                case 'ALTO': return `Durante el año lectivo, cumplió de manera adecuada las normas de convivencia y asumió con responsabilidad sus deberes, de acuerdo con lo establecido en el Manual de Convivencia.`;
                 case 'BASICO':
-                case 'BÁSICO': return `Su comportamiento es aceptable, pero se hace necesario un mayor compromiso para acatar plenamente los acuerdos establecidos en el Manual de Convivencia.`;
-                case 'BAJO': return `Presenta llamados de atención reiterados por el incumplimiento del Manual de Convivencia, afectando la armonía institucional.`;
-                default: return `Evidencia un comportamiento ${desempeno} durante el año lectivo.`;
+                case 'BÁSICO': return `Durante el año lectivo, cumplió algunas normas de convivencia y asumió sus deberes con acompañamiento y orientación permanente, evidenciando avances en el seguimiento de lo establecido en el Manual de Convivencia.`;
+                case 'BAJO': return `Durante el año lectivo, presentó dificultades para cumplir las normas de convivencia y asumir con responsabilidad los deberes establecidos en el Manual de Convivencia, a pesar del acompañamiento y la orientación brindados.`;
+                default: return `Evidenció un comportamiento ${desempeno} durante el año lectivo.`;
             }
         }
     }

@@ -2,7 +2,7 @@ import { sequelize } from "../database/db.connect.js";
 import { nivelacionRepository } from "../repositories/nivelacion.repository.js";
 import { calificacionRepository } from "../repositories/calificacion.repository.js";
 import { handleSequelizeError } from "../middleware/handleSequelizeError.js";
-import { PORCENTAJES, DIM, obtenerJuicio, obtenerJucioArea } from "../utils/calificacion.helpers.js";
+import { PORCENTAJES, DIM, obtenerJuicio, obtenerJuicioArea } from "../utils/calificacion.helpers.js";
 export const nivelacionService = {
     /**
      * Registra o actualiza la nota de nivelación de un estudiante en una asignatura.
@@ -414,7 +414,7 @@ export const nivelacionService = {
                     // Pasamos un "falso" nombre de área ('COMPORTAMIENTO' o 'GENERAL') porque la función auxiliar
                     // solo necesita saber si es comportamiento o no para bifurcar su lógica.
                     const nombreFicticio = areaData.esComportamiento ? 'COMPORTAMIENTO' : 'GENERAL';
-                    const juicioHistorico = obtenerJucioArea(nombreDesempeno, nombreFicticio, esPreescolar);
+                    const juicioHistorico = obtenerJuicioArea(nombreDesempeno, nombreFicticio, esPreescolar);
 
                     // Alimentamos el Consolidado Final (Historial permanente del alumno)
                     registrosConsolidados.push({
