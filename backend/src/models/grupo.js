@@ -45,6 +45,12 @@ export const Grupo = sequelize.define("grupo", {
         comment: "Si se permite superar el número de cupos definidos."
     },
 
+    cierreGenerado: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        allowNull: false
+    },
+
     sedeId: {
         type: DataTypes.INTEGER,
         allowNull: false,

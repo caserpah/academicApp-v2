@@ -199,6 +199,38 @@ export const matriculaController = {
     },
 
     /**
+     * POST /api/matriculas/masivo
+     * Matrículas masiva.
+     */
+    async activarMasivo(req, res, next) {
+        try {
+            const usuarioId = req.user?.id;
+            const vigenciaContexto = getVigenciaFromRequest(req); // Obtenemos la vigencia por defecto del sistema
+
+            // Priorizamos la vigenciaId enviada de forma explícita por el frontend.
+            // Si por alguna razón no viaja, se respalda en la vigencia del contexto actual.
+            const vigenciaIdFinal = req.body.vigenciaId || vigenciaContexto?.id;
+
+            // Validación de seguridad: asegurarse de que se seleccione una sede y un grupo
+            if (!req.body.sedeId || !req.body.grupoId) {
+                return sendError(res, "Por seguridad, debe seleccionar una sede y un grupo específico para realizar la matriculación masiva.", 400);
+            }
+
+            // Se capturan los filtros aplicados en pantalla
+            const filtros = {
+                sedeId: req.body.sedeId,
+                grupoId: req.body.grupoId,
+                vigenciaId: vigenciaIdFinal
+            };
+
+            const resultado = await matriculaService.activarPrematriculasMasivo({ filtros, usuarioId });
+            return sendSuccess(res, resultado, resultado.mensaje, 200);
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
      * GET /api/matriculas/:id/pdf
      */
     async descargarPdfActa(req, res, next) {

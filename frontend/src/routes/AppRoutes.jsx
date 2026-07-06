@@ -22,7 +22,6 @@ import Docentes from '../components/docentes/Docentes.jsx';
 import Cargas from '../components/cargas/Cargas.jsx';
 import Juicios from '../components/juicios/Juicios.jsx';
 import Calificaciones from '../components/calificaciones/CalificacionesPage.jsx';
-import Nivelaciones from '../components/nivelaciones/NivelacionesPage.jsx';
 import GenerarBoletines from "../components/boletines/GenerarBoletines.jsx";
 import PortalAcudiente from "../components/boletines/PortalAcudiente.jsx";
 import AdministrarCodigos from "../components/boletines/AdministrarCodigos.jsx";
@@ -37,6 +36,7 @@ import Matriculas from "../components/matriculas/Matriculas.jsx";
 import PromocionMasiva from "../components/matriculas/PromocionMasiva.jsx";
 import Vigencias from '../components/vigencias/Vigencias.jsx';
 import Ventanas from '../components/ventanas/Ventanas.jsx';
+import Nivelaciones from '../components/nivelaciones/Nivelaciones.jsx';
 
 // --- COMPONENTE TEMPORAL PARA RUTAS FALTANTES ---
 // Utilizar mientras se está en desarrollo de componentes reales

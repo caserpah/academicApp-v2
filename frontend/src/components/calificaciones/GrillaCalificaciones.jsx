@@ -99,19 +99,26 @@ const GrillaCalificaciones = ({
 
     // --- CÁLCULOS MATEMÁTICOS ---
     const calcularDefinitiva = (row) => {
-        const nAcad = parseFloat(row.notaAcademica || 0);
-        const nAcum = parseFloat(row.notaAcumulativa || 0);
-        const nLab = parseFloat(row.notaLaboral || 0);
-        const nSoc = parseFloat(row.notaSocial || 0);
+        // Función auxiliar para validar que el campo tenga un valor real
+        const esValido = (val) => val !== "" && val !== null && val !== undefined && !isNaN(parseFloat(val));
 
-        // Sumamos los porcentajes
-        const def = (nAcad * WEIGHTS.academica) +
-            (nAcum * WEIGHTS.acumulativa) +
-            (nLab * WEIGHTS.laboral) +
-            (nSoc * WEIGHTS.social);
+        if (esValido(row.notaAcademica) && esValido(row.notaAcumulativa) && esValido(row.notaLaboral) && esValido(row.notaSocial)) {
+            const nAcad = parseFloat(row.notaAcademica);
+            const nAcum = parseFloat(row.notaAcumulativa);
+            const nLab = parseFloat(row.notaLaboral);
+            const nSoc = parseFloat(row.notaSocial);
 
-        // Pasamos el resultado por el redondeo estándar
-        return roundExcel(def);
+            // Sumamos los porcentajes
+            const def = (nAcad * WEIGHTS.academica) +
+                (nAcum * WEIGHTS.acumulativa) +
+                (nLab * WEIGHTS.laboral) +
+                (nSoc * WEIGHTS.social);
+
+            // Pasamos el resultado por el redondeo estándar
+            return roundExcel(def);
+        }
+        // Si falta alguna nota, devolvemos vacío para no mostrar un cálculo parcial
+        return "";
     };
 
     // --- HANDLERS INDIVIDUALES ---
@@ -534,7 +541,7 @@ const GrillaCalificaciones = ({
                         placeholder="0.0"
                     />
                     {isSaving && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded">
+                        <div className="absolute -right-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
                             <FontAwesomeIcon icon={faSpinner} spin className="text-blue-500 text-xs" />
                         </div>
                     )}

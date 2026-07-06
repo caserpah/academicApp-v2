@@ -3,7 +3,7 @@ import { sequelize } from "../database/db.connect.js";
 
 /**
  * Modelo: Nivelacion
- * Almacena el resultado anual del estudiante en una asignatura,
+ * Almacena el resultado anual del estudiante en una área específica que perdió,
  * enlazado directamente a su matrícula. Gestiona el proceso de
  * recuperación con sus evidencias legales.
  */
@@ -17,7 +17,12 @@ export const Nivelacion = sequelize.define("nivelacion", {
     notaDefinitivaOriginal: {
         type: DataTypes.FLOAT,
         allowNull: false,
-        comment: "Promedio matemático real con el que terminó el año/ciclo."
+        comment: "Promedio ponderado del área con el que perdió."
+    },
+    detalleAsignaturas: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        comment: "JSON con el resumen de las asignaturas perdidas que provocaron la pérdida del área. Útil para el docente."
     },
     estadoOriginal: {
         type: DataTypes.ENUM("APROBADO", "REPROBADO"),
@@ -35,9 +40,10 @@ export const Nivelacion = sequelize.define("nivelacion", {
         comment: "Nota definitiva final (Máximo 3.0 si fue nivelado)."
     },
     estadoFinal: {
-        type: DataTypes.ENUM("APROBADO", "REPROBADO", "NIVELADO"),
+        type: DataTypes.ENUM("APROBADO", "REPROBADO", "NIVELADO", "PENDIENTE"),
         allowNull: false,
-        comment: "Estado definitivo que leerá el motor de promoción."
+        defaultValue: "PENDIENTE",
+        comment: "El estado empieza en PENDIENTE hasta que se suba el acta."
     },
     fecha_nivelacion: {
         type: DataTypes.DATE,
@@ -45,13 +51,12 @@ export const Nivelacion = sequelize.define("nivelacion", {
     },
     observacion_nivelacion: {
         type: DataTypes.TEXT,
-        allowNull: true,
-        comment: "Comentarios del docente sobre el proceso de nivelación."
+        allowNull: true
     },
     url_evidencia_nivelacion: {
         type: DataTypes.STRING,
         allowNull: true,
-        comment: "Ruta al acta física o examen (ej: uploads/evidencias/acta-123.pdf)"
+        comment: "Ruta al acta PDF (Max 2MB)"
     },
 
     // --- RELACIONES OBLIGATORIAS ---
@@ -60,13 +65,13 @@ export const Nivelacion = sequelize.define("nivelacion", {
         allowNull: false,
         references: { model: "matriculas", key: "id" },
         onUpdate: "CASCADE",
-        onDelete: "CASCADE", // Si se elimina la matrícula (error de digitación), se borra esto.
+        onDelete: "CASCADE",
         comment: "Enlaza al estudiante, grupo, sede y vigencia."
     },
-    asignaturaId: {
+    areaId: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        references: { model: "asignaturas", key: "id" },
+        references: { model: "areas", key: "id" },
         onUpdate: "CASCADE",
         onDelete: "RESTRICT"
     },
@@ -77,6 +82,18 @@ export const Nivelacion = sequelize.define("nivelacion", {
         onUpdate: "CASCADE",
         onDelete: "SET NULL",
         comment: "Docente que subió la nota de nivelación."
+    },
+    usuarioId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: { model: "usuarios", key: "id" },
+        onUpdate: "CASCADE",
+        onDelete: "SET NULL"
+    },
+    vigenciaId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: { model: "vigencias", key: "id" }
     }
 }, {
     tableName: "nivelaciones",
@@ -84,11 +101,11 @@ export const Nivelacion = sequelize.define("nivelacion", {
     createdAt: "fechaCreacion",
     updatedAt: "fechaActualizacion",
     indexes: [
-        // Un estudiante (vía su matrícula) solo tiene un registro de nivelación por asignatura
+        // Un estudiante (vía su matrícula) solo tiene un registro de nivelación por área
         {
             unique: true,
-            name: "idx_unique_nivelacion_matricula_asignatura",
-            fields: ["matriculaId", "asignaturaId"],
+            name: "idx_unique_nivelacion_matricula_area",
+            fields: ["matriculaId", "areaId"],
         },
         // Índices para búsquedas rápidas en la promoción masiva
         { fields: ["matriculaId"], name: "idx_nivelacion_matricula" },

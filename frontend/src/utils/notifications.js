@@ -50,6 +50,12 @@ export const showWarning = (message, title = "Advertencia") =>
     showNotification(title, message, "warning");
 
 /**
+ * ℹ️ Alerta informativa
+ */
+export const showInfo = (message, title = "Información") =>
+    showNotification(title, message, "info");
+
+/**
  * ❓ Diálogo de confirmación (para eliminar o acciones críticas)
  * Retorna una promesa con `result.isConfirmed`
  */

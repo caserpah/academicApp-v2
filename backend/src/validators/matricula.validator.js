@@ -18,6 +18,9 @@ export const validarCrearMatricula = [
         .bail()
         .custom(verificarExistenciaPorId(Estudiante, "id", "el estudiante")),
 
+    validarCampoRequerido("gradoId", "El grado es obligatorio.")
+        .isInt({ min: 1 }).withMessage("El grado seleccionado no es válido."),
+
     validarCampoRequerido("grupoId", "Seleccione un grupo.")
         .isInt({ min: 1 }).withMessage("El grupo seleccionado no es válido.")
         .bail()
@@ -47,6 +50,10 @@ export const validarCrearMatricula = [
 export const validarActualizarMatricula = [
     param("id")
         .isInt().withMessage("La matrícula seleccionada no es válida."),
+
+    body("gradoId")
+        .optional()
+        .isInt(),
 
     body("grupoId")
         .optional()

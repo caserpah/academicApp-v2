@@ -10,10 +10,8 @@
            ======================================================= */
         @page {
             margin: 7mm;
-            /* Márgenes estrictos para aprovechar la hoja A4 */
         }
 
-        /* Contenedor del encabezado con logo, textos y rangos */
         .header-container {
             display: flex;
             justify-content: space-between;
@@ -79,7 +77,6 @@
             border-bottom: none;
         }
 
-        /* Estilos para las dimensiones y juicios */
         .caja-dimensiones {
             margin-top: 4px;
             padding-left: 2px;
@@ -92,21 +89,18 @@
             text-transform: uppercase;
         }
 
-        /* Estructura de columnas para el juicio */
         .fila-juicio {
             display: flex;
             font-size: 10px;
             margin-bottom: 3px;
             align-items: flex-start;
             line-height: 1.25;
-            /* Mejora la legibilidad en textos largos */
         }
 
         .col-formula {
             width: 15%;
             white-space: nowrap;
             font-weight: bold;
-            /* Destacar la fórmula ayuda a la lectura */
         }
 
         .col-texto {
@@ -114,23 +108,19 @@
             text-align: justify;
         }
 
-        /* Estilos generales para todo el boletín */
         body {
             font-family: Arial, Helvetica, sans-serif;
             font-size: 9px;
-            /* Tamaño reducido para encajar textos largos */
             line-height: 1.2;
             color: #000;
             margin: 0;
             padding: 0;
         }
 
-        /* Salto de página obligatorio por estudiante */
         .salto-pagina {
             page-break-after: always;
         }
 
-        /* Evita que una asignatura se corte a la mitad entre dos páginas */
         tr {
             page-break-inside: avoid;
         }
@@ -156,36 +146,19 @@
             font-weight: bold;
             text-align: center;
             font-size: 8px;
-            /* Cabeceras un poco más pequeñas */
         }
 
         /* =======================================================
-            3. CLASES ESPECÍFICAS (Tipografía y colores)
+            3. CLASES ESPECÍFICAS
            ======================================================= */
         .encabezado-institucional {
             text-align: center;
             margin-bottom: 10px;
         }
 
-        .encabezado-institucional h2 {
-            margin: 0;
-            font-size: 14px;
-        }
-
-        .encabezado-institucional p {
-            margin: 2px 0;
-            font-size: 9px;
-        }
-
-        .encabezado-institucional h3 {
-            margin: 5px 0 0 0;
-            font-size: 12px;
-        }
-
         .nombre-asignatura {
             font-weight: bold;
             font-size: 10px;
-            /* Destaca sobre los juicios de 10px */
         }
 
         .titulo-area {
@@ -200,9 +173,7 @@
             font-style: italic;
             color: #333;
             font-weight: normal !important;
-            /* Fuerza a que no herede la negrita del área */
-            text-transform: none !important;
-            /* Bloquea la herencia de mayúsculas del área */
+            text-transform: capitalize !important;
         }
 
         .docente-separador::before {
@@ -212,28 +183,11 @@
             font-style: normal;
         }
 
-        .caja-dimensiones {
-            margin-top: 4px;
-            padding-left: 5px;
-        }
-
-        .subtitulo-dimension {
-            text-decoration: underline;
-            font-style: italic;
-            font-size: 9px;
-            margin-top: 4px;
-        }
-
         .texto-juicio {
             font-size: 10px;
             text-align: justify;
             margin: 2px 0;
             line-height: 1.25;
-            /* Mejora la legibilidad en textos largos */
-        }
-
-        .texto-formula {
-            font-weight: bold;
         }
 
         .caja-recomendaciones {
@@ -259,11 +213,9 @@
             font-size: 9px;
         }
 
-        /* Primera columna (Textos descriptivos) */
         .tabla-pie td:first-child,
         .tabla-pie th:first-child {
             width: 52%;
-            /* Le da más de la mitad del espacio de la tabla a los textos */
             text-align: left;
             padding-left: 4px;
         }
@@ -273,11 +225,9 @@
             font-weight: bold;
         }
 
-        /* Columnas de los periodos (1, 2, 3, 4) */
         .tabla-pie th:not(:first-child),
         .tabla-pie td:not(:first-child) {
             width: 12%;
-            /* Hace que las columnas de números sean exactamente iguales y angostas */
             text-align: center;
         }
 
@@ -285,16 +235,12 @@
             margin-top: 35px;
             font-size: 9.5px;
             clear: both;
-            /* Muy importante para que baje después de la tabla flotante */
             display: flex;
             flex-direction: column;
             align-items: center;
-            /* Centra la línea y los textos */
             width: 100%;
-            /* Asegura que ocupe todo el ancho disponible para centrar bien */
         }
 
-        /* Alineaciones utilitarias */
         .centrado {
             text-align: center !important;
         }
@@ -303,7 +249,6 @@
             font-weight: bold;
         }
 
-        /* Estilos para el código al pie de página */
         .footer-codigo {
             text-align: center;
             margin-top: 25px;
@@ -312,7 +257,6 @@
             padding-top: 6px;
             color: #444;
             clear: both;
-            /* Asegura que se ponga debajo de todo */
         }
 
         .footer-codigo span.codigo-resaltado {
@@ -321,6 +265,27 @@
             font-weight: bold;
             letter-spacing: 1.5px;
             margin-left: 4px;
+        }
+
+        /* Estilos nuevos para el pie de página del periodo final */
+        .tabla-pie-final {
+            width: 100%;
+            border: none;
+            margin-top: 15px;
+            font-size: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tabla-pie-final td {
+            border: none;
+            padding: 4px;
+        }
+
+        .concepto-definitivo {
+            color: #666;
+            font-size: 8.5px;
+            font-weight: bold;
+            text-transform: uppercase;
         }
     </style>
 </head>
@@ -331,12 +296,24 @@
     <div class="salto-pagina">
 
         <table>
-
+            <!-- Definición dinámica de anchos de columna -->
             {{#if ../configuracionImpresion.esPreescolar}}
             <colgroup>
                 <col style="width: 75%;">
                 <col style="width: 5%;">
                 <col style="width: 5%;">
+                <col style="width: 15%;">
+            </colgroup>
+            {{else}}
+            {{#if ../configuracionImpresion.esPeriodoFinal}}
+            <colgroup>
+                <col style="width: 48%;">
+                <col style="width: 5%;">
+                <col style="width: 5%;">
+                <col style="width: 5%;">
+                <col style="width: 5%;">
+                <col style="width: 5%;">
+                <col style="width: 12%;">
                 <col style="width: 15%;">
             </colgroup>
             {{else}}
@@ -365,10 +342,11 @@
             </colgroup>
             {{/if}}
             {{/if}}
+            {{/if}}
 
             <thead>
                 <tr>
-                    <td colspan="{{#if ../configuracionImpresion.esPreescolar}}4{{else}}{{#if ../configuracionImpresion.esValorativo}}9{{else}}8{{/if}}{{/if}}"
+                    <td colspan="{{#if ../configuracionImpresion.esPreescolar}}4{{else}}{{#if ../configuracionImpresion.esPeriodoFinal}}8{{else}}{{#if ../configuracionImpresion.esValorativo}}9{{else}}8{{/if}}{{/if}}{{/if}}"
                         style="border: none; padding: 0; padding-bottom: 10px;">
 
                         <div class="header-container">
@@ -379,8 +357,9 @@
                                 <h2>{{../encabezadoInstitucional.nombre}}</h2>
                                 <p>{{../encabezadoInstitucional.dane_nit}} | {{../encabezadoInstitucional.contacto}}</p>
                                 <h3>{{../configuracionImpresion.tituloBoletin}} - PERIODO
-                                    {{../configuracionImpresion.periodoActual}} &nbsp;|&nbsp; AÑO LECTIVO
-                                    {{../configuracionImpresion.anioLectivo}}</h3>
+                                    {{#if
+                                    ../configuracionImpresion.esPeriodoFinal}}FINAL{{else}}{{../configuracionImpresion.periodoActual}}{{/if}}
+                                    &nbsp;|&nbsp; AÑO LECTIVO {{../configuracionImpresion.anioLectivo}}</h3>
                             </div>
                             <div class="header-rangos">
                                 <table class="tabla-mini-rangos">
@@ -424,8 +403,9 @@
                     </td>
                 </tr>
 
+                <!-- TITULOS DE COLUMNAS DINÁMICOS -->
                 <tr>
-                    <th>ÁREAS / ASIGNATURAS</th>
+                    <th>ÁREA Ó ASIGNATURA</th>
                     <th>Fallas</th>
                     {{#if ../configuracionImpresion.esPreescolar}}
                     <th>I.H</th>
@@ -435,10 +415,15 @@
                     <th>P2</th>
                     <th>P3</th>
                     <th>P4</th>
+                    {{#if ../configuracionImpresion.esPeriodoFinal}}
+                    <th>Definitiva</th>
+                    <th>Desempeño</th>
+                    {{else}}
                     <th>Acumulado</th>
-                    <th>Estado</th>
+                    <th>Estado Acum.</th>
                     {{#if ../configuracionImpresion.esValorativo}}
                     <th>Desempeño</th>
+                    {{/if}}
                     {{/if}}
                     {{/if}}
                 </tr>
@@ -447,11 +432,18 @@
             <tbody>
                 {{#each this.areas}}
 
+                {{!--==============================================
+                1. ENCABEZADO DEL ÁREA
+                ==============================================--}}
                 <tr class="titulo-area">
                     <td>
                         {{this.nombreArea}}
-                        {{#if this.esComportamiento}}
-
+                        {{#unless this.esComportamiento}}
+                        {{#if ../../configuracionImpresion.esPeriodoFinal}}
+                        {{#if this.asignaturas.[0].docente}}
+                        <span class="docente-texto" style="margin-left: 10px;"> Prof:
+                            {{this.asignaturas.[0].docente}}</span>
+                        {{/if}}
                         {{else}}
                         {{#if ../../configuracionImpresion.esValorativo}}
                         {{#unless this.mostrarNombreAsignatura}}
@@ -462,8 +454,10 @@
                         {{/unless}}
                         {{/if}}
                         {{/if}}
+                        {{/unless}}
                     </td>
 
+                    {{!-- COLUMNAS DE NOTAS --}}
                     {{#if ../../configuracionImpresion.esPreescolar}}
                     <td class="centrado">{{this.fallasArea}}</td>
                     <td class="centrado">{{this.ihArea}}</td>
@@ -474,15 +468,52 @@
                     <td class="centrado">{{this.p2Area}}</td>
                     <td class="centrado">{{this.p3Area}}</td>
                     <td class="centrado">{{this.p4Area}}</td>
-                    <td class="centrado">{{this.acumuladoActualArea}}</td>
+                    <td class="centrado">
+                        {{this.acumuladoActualArea}}
+                        {{#if this.notaNivelacion}}
+                        <span style="font-size: 7.5px; color: #555; vertical-align: super; font-weight: bold;"> (Niv.)</span>
+                        {{/if}}
+                    </td>
+                    {{#if ../../configuracionImpresion.esPeriodoFinal}}
+                    <td class="centrado" style="font-weight: bold; font-size: 8px;">{{this.desempenoArea}}</td>
+                    {{else}}
                     <td class="centrado">{{this.estadoGanandoPerdiendo}}</td>
                     {{#if ../../configuracionImpresion.esValorativo}}
                     <td class="centrado" style="font-weight: bold; font-size: 8px;">{{this.desempenoArea}}</td>
                     {{/if}}
                     {{/if}}
+                    {{/if}}
                 </tr>
 
+                {{!--==============================================
+                2. CONTENIDO: BIFURCACIÓN ENTRE PERIODO FINAL Y REGULAR
+                ==============================================--}}
                 {{#unless this.esComportamiento}}
+
+                {{#if ../../configuracionImpresion.esPeriodoFinal}}
+
+                {{!-- A. VISTA DEL PERIODO FINAL --}}
+                {{#unless ../../configuracionImpresion.esValorativo}}
+                {{!-- Boletín Descriptivo Final: Muestra el Concepto Definitivo --}}
+                <tr>
+                    <td colspan="8" style="padding: 3px 10px; font-size: 10px; background-color: #fafafa;">
+                        <span class="concepto-definitivo">CONCEPTO DEFINITIVO</span><br>
+                        {{#if this.notaNivelacion}}
+                        <div style="margin-bottom: 2px; font-size: 9px; font-style: italic; color: #333;">
+                            <strong>* Nota de recuperación:</strong> El estudiante presentó actividades de nivelación,
+                            alcanzando una valoración de {{this.notaNivelacion}}.
+                        </div>
+                        {{/if}}
+                        <span style="text-align: justify; display: block; margin-top: 2px;">
+                            {{this.juicioAutomaticoArea}}
+                        </span>
+                    </td>
+                </tr>
+                {{/unless}}
+
+                {{else}}
+
+                {{!-- B. VISTA REGULAR (PERIODOS 1 AL 4) --}}
                 {{#each this.asignaturas}}
 
                 {{#if ../../../configuracionImpresion.esValorativo}}
@@ -493,7 +524,6 @@
                         {{#if this.formulaPorcentajeExtra}}
                         <span style="font-size: 9px; font-style: italic;">{{this.formulaPorcentajeExtra}}</span>
                         {{/if}}
-
                         {{#if this.docente}}
                         <span class="docente-texto" style="margin-left: 10px;">| Doc: {{this.docente}}</span>
                         {{/if}}
@@ -510,7 +540,6 @@
                         {{/if}}
                         <br>
                         {{/if}}
-
                         {{#if this.docente}}
                         <span class="docente-texto">Docente: {{this.docente}}</span>
                         {{/if}}
@@ -553,25 +582,87 @@
                 </tr>
                 {{/if}}
 
-                {{/each}}
+                {{/each}} {{!-- Fin del #each asignaturas --}}
+
+                {{/if}} {{!-- Fin de la bifurcación esPeriodoFinal --}}
 
                 {{else}}
-                {{#if this.textoComportamiento}}
+                {{!-- 3. CASO ESPECIAL: COMPORTAMIENTO --}}
+                {{#if ../../configuracionImpresion.esPeriodoFinal}}
+                {{!-- EN EL BOLETÍN FINAL: El texto consolidado viene de calificaciones_areas --}}
+                {{#if this.juicioAutomaticoArea}}
                 <tr>
-                    <td colspan="{{#if ../../configuracionImpresion.esPreescolar}}4{{else}}{{#if ../../configuracionImpresion.esValorativo}}9{{else}}8{{/if}}{{/if}}"
-                        style="padding: 4px 10px; font-size: 10px;">
+                    <td colspan="{{#if ../../configuracionImpresion.esPreescolar}}4{{else}}8{{/if}}"
+                        style="padding: 6px 10px; font-size: 10px; border-bottom: 2px solid #000;">
+
                         <span
-                            style="text-align: justify; display: block; margin-top: 2px;">{{this.textoComportamiento}}</span>
+                            style="font-weight: bold; font-style: italic; text-transform: uppercase; font-size: 10px; display: block; margin-bottom: 4px;">
+                            OBSERVACIONES DE COMPORTAMIENTO
+                        </span>
+
+                        <span style="text-align: justify; display: block;">
+                            {{this.juicioAutomaticoArea}}
+                        </span>
                     </td>
                 </tr>
                 {{/if}}
+                {{else}}
+                {{!-- EN PERIODOS REGULARES (1 AL 4): El texto proviene de las notas por periodos --}}
+                {{#if this.textoComportamiento}}
+                <tr>
+                    <td colspan="{{#if ../../configuracionImpresion.esPreescolar}}4{{else}}{{#if ../../configuracionImpresion.esValorativo}}9{{else}}8{{/if}}{{/if}}"
+                        style="padding: 6px 10px; font-size: 10px; border-bottom: 2px solid #000;">
+
+                        <span style="text-align: justify; display: block;">
+                            {{this.textoComportamiento}}
+                        </span>
+                    </td>
+                </tr>
+                {{/if}}
+                {{/if}}
                 {{/unless}}
 
-                {{/each}}
+                {{/each}} {{!-- Fin del #each this.areas --}}
             </tbody>
         </table>
 
         {{#unless ../configuracionImpresion.esPreescolar}}
+
+        {{#if ../configuracionImpresion.esPeriodoFinal}}
+        <!-- PIE DE PÁGINA PARA EL INFORME FINAL (Como en la foto) -->
+        <table class="tabla-pie-final">
+            <tr>
+                <td style="width: 50%; text-align: left;">
+                    <strong>Promedio del Grupo</strong>
+                    <span style="margin-left: 20px;">{{#if
+                        ../grupo.promedioGrupoHistorico.p4}}{{../grupo.promedioGrupoHistorico.p4}}{{else}}{{#if
+                        ../grupo.promedioGrupoHistorico.p3}}{{../grupo.promedioGrupoHistorico.p3}}{{else}}{{../grupo.promedioGrupoHistorico.p2}}{{/if}}{{/if}}</span>
+                </td>
+                <td style="width: 50%; text-align: right;">
+                    <strong>Puesto del Estudiante en el Grupo</strong>
+                    <span style="margin-left: 10px;">{{#if
+                        this.cuadroHistorico.puestosEstudiante.p4}}{{this.cuadroHistorico.puestosEstudiante.p4}}{{else}}{{#if
+                        this.cuadroHistorico.puestosEstudiante.p3}}{{this.cuadroHistorico.puestosEstudiante.p3}}{{else}}{{this.cuadroHistorico.puestosEstudiante.p2}}{{/if}}{{/if}}
+                        Entre {{this.cuadroHistorico.totalEstudiantes}}</span>
+                </td>
+            </tr>
+            <tr>
+                <td style="text-align: left;">
+                    <strong>Promedio del Estudiante en el Grupo</strong>
+                    <span style="margin-left: 20px;">{{#if
+                        this.cuadroHistorico.promediosEstudiante.p4}}{{this.cuadroHistorico.promediosEstudiante.p4}}{{else}}{{#if
+                        this.cuadroHistorico.promediosEstudiante.p3}}{{this.cuadroHistorico.promediosEstudiante.p3}}{{else}}{{this.cuadroHistorico.promediosEstudiante.p2}}{{/if}}{{/if}}</span>
+                </td>
+                <td style="text-align: right;">
+                    <strong>Promocion:</strong>
+                    <span
+                        style="margin-left: 10px; font-weight: bold; text-transform: uppercase;">{{this.infoPersonal.estadoPromocion}}</span>
+                </td>
+            </tr>
+        </table>
+
+        {{else}}
+        <!-- PIE DE PÁGINA REGULAR (Tabla de promedios P1, P2, P3, P4) -->
         <table class="tabla-pie">
             <tr>
                 <th>PERIODO</th>
@@ -602,6 +693,8 @@
                 <td>{{../grupo.promedioGrupoHistorico.p4}}</td>
             </tr>
         </table>
+        {{/if}}
+
         {{/unless}}
 
         <div class="firma-caja">

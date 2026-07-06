@@ -1,31 +1,41 @@
+import { Op } from "sequelize";
+import { Vigencia } from "../models/vigencia.js";
 import { Nivelacion } from "../models/nivelacion.js";
 import { Matricula } from "../models/matricula.js";
-import { Asignatura } from "../models/asignatura.js";
+import { Area } from "../models/area.js";
 import { Estudiante } from "../models/estudiante.js";
+import { CalificacionArea } from "../models/calificacionArea.js";
+import { Carga } from "../models/carga.js"
+import { Asignatura } from "../models/asignatura.js"
+import { Grado } from "../models/grado.js"
+import { Grupo } from "../models/grupo.js"
+import { DesempenoRango } from "../models/desempeno_rango.js"
+import { Desempeno } from "../models/desempeno.js"
+import { Docente } from "../models/docente.js"
+import { Usuario } from "../models/usuario.js"
 
 export const nivelacionRepository = {
     /**
      * CREACIÓN MASIVA (Cierre de Periodos)
      * Inserta los promedios originales de todos los estudiantes de una sola vez.
-     * @param {Array} registros - Arreglo de objetos a insertar.
      */
     async crearMasivo(registros, { transaction } = {}) {
         return await Nivelacion.bulkCreate(registros, {
             transaction,
             validate: true,
-            // updateOnDuplicate es súper útil por si se vuelve a correr el proceso de cierre
+            updateOnDuplicate: ["notaDefinitivaOriginal", "detalleAsignaturas", "estadoOriginal", "fechaActualizacion"]
+            // updateOnDuplicate es útil por si se vuelve a correr el proceso de cierre
             // y se necesita actualizar el promedio original sin duplicar registros.
-            updateOnDuplicate: ["notaDefinitivaOriginal", "estadoOriginal", "fechaActualizacion"]
         });
     },
 
     /**
      * BUSCAR REGISTRO EXACTO
-     * Útil cuando el profesor va a subir la nota de nivelación y el archivo.
+     * Útil cuando el profesor va a subir la nota de nivelación y el acta de nivelación.
      */
-    async findByMatriculaYAsignatura(matriculaId, asignaturaId, { transaction } = {}) {
+    async findByMatriculaYArea(matriculaId, areaId, { transaction } = {}) {
         return await Nivelacion.findOne({
-            where: { matriculaId, asignaturaId },
+            where: { matriculaId, areaId },
             transaction
         });
     },
@@ -44,15 +54,48 @@ export const nivelacionRepository = {
         return updatedRows > 0 ? await Nivelacion.findByPk(id, { transaction }) : null;
     },
 
+
+    async findReprobadosPorGrupo(grupoId) {
+        return await Nivelacion.findAll({
+            include: [
+                {
+                    model: Matricula,
+                    as: "matricula",
+                    where: { grupoId: grupoId, estado: "ACTIVA" },
+                    attributes: ["id", "folio"],
+                    include: [
+                        {
+                            model: Estudiante,
+                            as: "estudiante",
+                            attributes: [
+                                "id", "documento", "primerNombre", "segundoNombre",
+                                "primerApellido", "segundoApellido"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    model: Area,
+                    as: "area",
+                    attributes: ["id", "nombre"]
+                }
+            ],
+            // Ordenamos alfabéticamente por el apellido del estudiante
+            order: [
+                [{ model: Matricula, as: "matricula" }, { model: Estudiante, as: "estudiante" }, 'primerApellido', 'ASC']
+            ]
+        });
+    },
+
     /**
      * LISTAR REPROBADOS (Vista del Profesor)
-     * Trae SOLO a los estudiantes que perdieron una materia en un grupo específico,
-     * listos para que el profesor les ingrese la nivelación.
+     * Trae los reprobados por ÁREA. El frontend usará el JSON 'detalleAsignaturas'
+     * para mostrarle al profesor qué materias causaron la pérdida.
      */
-    async findReprobadosPorGrupoYAsignatura(grupoId, asignaturaId) {
+    async findReprobadosPorGrupoYArea(grupoId, areaId) {
         return await Nivelacion.findAll({
             where: {
-                asignaturaId: asignaturaId,
+                areaId: areaId,
                 estadoOriginal: "REPROBADO"
             },
             include: [
@@ -90,11 +133,185 @@ export const nivelacionRepository = {
             where: { matriculaId },
             include: [
                 {
-                    model: Asignatura,
-                    as: "asignatura",
-                    attributes: ["id", "nombre", "areaId"]
+                    model: Area,
+                    as: "area",
+                    attributes: ["id", "nombre"]
                 }
             ]
         });
+    },
+
+    /**
+     * VERIFICAR CONSOLIDADOS (Para UX de Promoción Masiva)
+     * Revisa si un grupo ya tiene el cierre de año generado.
+     */
+    async verificarConsolidadoGenerado(grupoId, vigenciaId) {
+        return await CalificacionArea.findOne({
+            include: [{
+                model: Matricula,
+                as: 'matricula',
+                where: { grupoId, vigenciaId }
+            }]
+        });
+    },
+
+    /**
+     * TRAER ÁREAS REPROBADAS DEL GRUPO (Para Auditoría Administrativa)
+     * Extrae todas las calificaciones consolidadas que tengan una nota inferior a 3.0
+     * mapeando la información de matrícula, estudiante y área académica.
+     */
+    async findAreasPerdidasPorGrupo(grupoId, vigenciaId) {
+        return await CalificacionArea.findAll({
+            where: {
+                notaDefinitiva: { [Op.lt]: 3.0 }, // Filtro para notas menores a 3.0
+                vigenciaId
+            },
+            include: [
+                {
+                    model: Matricula,
+                    as: "matricula",
+                    where: { grupoId },
+                    attributes: ["id", "folio"],
+                    include: [
+                        {
+                            model: Estudiante,
+                            as: "estudiante",
+                            attributes: [
+                                "id", "documento", "primerNombre", "segundoNombre",
+                                "primerApellido", "segundoApellido"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    model: Area,
+                    as: "area",
+                    attributes: ["id", "nombre"]
+                }
+            ],
+            order: [
+                [{ model: Matricula, as: "matricula" }, { model: Estudiante, as: "estudiante" }, 'primerApellido', 'ASC']
+            ]
+        });
+    },
+
+    async findDocenteOficialPorArea(matriculaId, areaId) {
+        // Primero, necesitamos saber en qué grupo está el estudiante
+        const matricula = await Matricula.findByPk(matriculaId, { attributes: ['grupoId'] });
+        if (!matricula) return null;
+
+        // Segundo, buscamos la carga académica de ese grupo y de las asignaturas de esta área
+        const cargaOficial = await Carga.findOne({
+            where: { grupoId: matricula.grupoId },
+            include: [{
+                model: Asignatura,
+                as: 'asignatura',
+                where: { areaId: areaId },
+                attributes: ['id']
+            }]
+        });
+        // Si por alguna razón no hay carga asignada, queda en null, pero no rompe el sistema
+        return cargaOficial ? cargaOficial.docenteId : null;
+    },
+
+    async findAreasPermitidasPorDocente(grupoId, docenteId) {
+        const cargas = await Carga.findAll({
+            where: { grupoId, docenteId },
+            include: [{ model: Asignatura, as: 'asignatura', attributes: ['areaId'] }]
+        });
+        return cargas.map(c => c.asignatura.areaId);
+    },
+
+    async findGradoById(gradoId) {
+        return await Grado.findByPk(gradoId);
+    },
+
+    async findRangosDesempeno(vigenciaId) {
+        return await DesempenoRango.findAll({
+            where: { vigenciaId },
+            include: [{ model: Desempeno, as: "desempeno" }]
+        });
+    },
+
+    async findCargasConDetalles(grupoId, vigenciaId) {
+        return await Carga.findAll({
+            where: { grupoId, vigenciaId },
+            include: [
+                { model: Asignatura, as: 'asignatura', attributes: ['id', 'nombre', 'porcentual', 'areaId'] },
+                { model: Docente, as: 'docente', include: [{ model: Usuario, as: 'identidad', attributes: ["documento", "nombre", "apellidos"] }] }
+            ]
+        });
+    },
+
+    async guardarConsolidadosMasivo(registros, transaction) {
+        return await CalificacionArea.bulkCreate(registros, {
+            transaction,
+            updateOnDuplicate: ["notaDefinitiva", "estadoFinal", "juicioAcademico", "fechaActualizacion"]
+        });
+    },
+
+    async findMatriculaConNivelAcademico(estudianteId, vigenciaId, transaction) {
+        return await Matricula.findOne({
+            where: { estudianteId, vigenciaId },
+            include: [{ model: Grupo, as: "grupo", include: [{ model: Grado, as: "grado" }] }],
+            transaction
+        });
+    },
+
+    /**
+     * Busca nivelaciones en estado PENDIENTE para un grupo de matrículas
+     */
+    async findNivelacionesPendientes(matriculasIds, vigenciaId, transaction) {
+        return await Nivelacion.findAll({
+            where: {
+                matriculaId: { [Op.in]: matriculasIds },
+                vigenciaId: vigenciaId,
+                estadoFinal: 'PENDIENTE'
+            },
+            attributes: ['id', 'matriculaId', 'areaId'],
+            raw: true,
+            transaction
+        });
+    },
+
+    /**
+     * Elimina físicamente registros de nivelación que ya no son válidos
+     */
+    async eliminarMasivoPorIds(ids, transaction) {
+        return await Nivelacion.destroy({
+            where: {
+                id: { [Op.in]: ids }
+            },
+            transaction
+        });
+    },
+
+    /**
+     * Obtiene todas las nivelaciones registradas para un grupo de matrículas en la vigencia actual
+     */
+    async findNivelacionesPorMatriculas(matriculasIds, vigenciaId, transaction) {
+        return await Nivelacion.findAll({
+            where: { matriculaId: { [Op.in]: matriculasIds }, vigenciaId },
+            transaction
+        });
+    },
+
+    async marcarCierreGrupo(grupoId, transaction) {
+        await Grupo.update(
+            { cierreGenerado: true },
+            { where: { id: grupoId }, transaction }
+        );
+    },
+
+    /**
+     * Verifica si un grupo específico ya realizó el cierre de año
+     */
+    async verificarCierreGrupo(grupoId) {
+        const grupo = await Grupo.findByPk(grupoId, {
+            attributes: ['cierreGenerado']
+        });
+
+        // Retornamos true si está marcado, de lo contrario false
+        return grupo ? grupo.cierreGenerado : false;
     }
 };

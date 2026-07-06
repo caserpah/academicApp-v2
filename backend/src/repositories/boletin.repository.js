@@ -8,6 +8,8 @@ import { Grado } from "../models/grado.js";
 import { Estudiante } from "../models/estudiante.js";
 import { Matricula } from "../models/matricula.js";
 import { Calificacion } from "../models/calificacion.js";
+import { CalificacionArea } from "../models/calificacionArea.js";
+import { Nivelacion } from "../models/nivelacion.js";
 import { Asignatura } from "../models/asignatura.js";
 import { Area } from "../models/area.js";
 import { Juicio } from "../models/juicio.js";
@@ -168,6 +170,24 @@ export const boletinRepository = {
                 activo: true
             },
             attributes: ["id", "texto", "dimensionId", "desempenoId", "asignaturaId", "periodo"]
+        });
+    },
+
+    /**
+     * 6. Extrae los consolidados de áreas (Período 5)
+     */
+    async findCalificacionesAreasLote(idsMatriculas) {
+        return CalificacionArea.findAll({
+            where: { matriculaId: { [Op.in]: idsMatriculas } }
+        });
+    },
+
+    /**
+     * 7. Extrae las nivelaciones del año
+     */
+    async findNivelacionesLote(idsMatriculas) {
+        return Nivelacion.findAll({
+            where: { matriculaId: { [Op.in]: idsMatriculas } }
         });
     }
 

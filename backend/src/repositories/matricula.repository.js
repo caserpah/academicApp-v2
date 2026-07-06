@@ -236,6 +236,16 @@ export const matriculaRepository = {
         }
     },
 
+    async actualizarEstadosMatriculas(actualizaciones, { transaction } = {}) {
+        const promesas = actualizaciones.map(act =>
+            Matricula.update(
+                { estado: act.estado, usuarioActualizacion: act.usuarioId },
+                { where: { id: act.id }, transaction }
+            )
+        );
+        await Promise.all(promesas);
+    }, // En MySQL, Promise.all con updates individuales es seguro y maneja bien los hooks
+
     /**
      * Conteo rápido de matriculados en un grupo.
      * Vital para validar cupos antes de una inserción masiva.
@@ -264,9 +274,13 @@ export const matriculaRepository = {
             include: [
                 {
                     model: Estudiante,
-                    as: "estudiante",
-                    attributes: ["id", "primerNombre", "primerApellido"]
+                    as: "estudiante"
                 }
+            ],
+            order: [
+                [{ model: Estudiante, as: 'estudiante' }, 'primerApellido', 'ASC'],
+                [{ model: Estudiante, as: 'estudiante' }, 'segundoApellido', 'ASC'],
+                [{ model: Estudiante, as: 'estudiante' }, 'primerNombre', 'ASC']
             ],
             raw: true,
             nest: true

@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import { Vigencia } from "../models/vigencia.js";
 
 /**
@@ -59,4 +60,22 @@ export const vigenciaRepository = {
     async deleteById(id) {
         return Vigencia.destroy({ where: { id } });
     },
+
+    /**
+     * Obtiene la vigencia siguiente basada en el año o ID actual
+     */
+    async findVigenciaSiguiente(vigenciaActualId) {
+        const actual = await Vigencia.findByPk(vigenciaActualId);
+        if (!actual) return null;
+        const anioSiguiente = parseInt(actual.anio) + 1;
+        return await Vigencia.findOne({ where: { anio: anioSiguiente } });
+    },
+
+    async findVigenciasByIds(ids, transaction) {
+        return await Vigencia.findAll({
+            where: { id: { [Op.in]: ids } },
+            attributes: ['id', 'anio'],
+            transaction
+        });
+    }
 };

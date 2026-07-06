@@ -151,8 +151,9 @@ export const calificacionController = {
             // Respuesta matizada
             if (!resultado.exito || resultado.reporte.errores.length > 0) {
                 return res.status(200).json({
-                    status: 'warning',
-                    message: `Proceso finalizado con observaciones.`,
+                    status: "warning",
+                    title: "Carga completada con observaciones",
+                    message: `Las calificaciones se cargaron correctamente. Algunos registros no pudieron procesarse; revise las observaciones para conocer el detalle.`,
                     data: resultado.reporte // Frontend mostrará la lista de errores
                 });
             }

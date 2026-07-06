@@ -4,7 +4,7 @@ import {
     faFileExcel, faUpload, faCheckCircle, faExclamationTriangle,
     faTimes, faSpinner, faUndo, faInfoCircle
 } from "@fortawesome/free-solid-svg-icons";
-import { showSuccess, showError, showWarning } from "../../utils/notifications.js";
+import { showSuccess, showError, showWarning, showInfo } from "../../utils/notifications.js";
 
 import { importarArchivoDocente } from "../../api/calificacionesService.js"
 
@@ -51,7 +51,7 @@ const CalificacionesImportModal = ({
             if (listaErrores.length > 0) {
                 // Caso: Importación parcial o fallida con reporte detallado
                 setErroresCarga(listaErrores);
-                showWarning(response.message || "El archivo se procesó con observaciones.");
+                showInfo(response.message, response.title || "El archivo se procesó con observaciones.");
 
                 // Si hubo procesados, notificamos al padre para refrescar
                 if (reporte.procesados > 0) {
@@ -158,8 +158,8 @@ const CalificacionesImportModal = ({
                                     <div className="flex items-center gap-2">
                                         <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-600" />
                                         <div>
-                                            <h4 className="font-bold text-red-800 text-sm">Observaciones encontradas</h4>
-                                            <p className="text-xs text-red-700">Algunas filas no pudieron procesarse:</p>
+                                            <h4 className="font-bold text-red-800 text-md">Carga completada con observaciones</h4>
+                                            <p className="text-sm text-red-700">Algunas filas no se procesaron:</p>
                                         </div>
                                     </div>
                                     <button
@@ -188,8 +188,8 @@ const CalificacionesImportModal = ({
                                 </div>
                             </div>
 
-                            <p className="text-center text-gray-500 text-xs mt-4">
-                                Revise el archivo Excel, corrija los errores indicados y vuelva a cargarlo.
+                            <p className="text-gray-500 text-sm mt-4">
+                                Se registraron correctamente las calificaciones válidas. Algunos registros no pudieron procesarse; consulte las observaciones para conocer el detalle.
                             </p>
                         </div>
                     )}
@@ -201,7 +201,7 @@ const CalificacionesImportModal = ({
                         onClick={onClose}
                         className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition"
                     >
-                        Cancelar
+                        Cerrar
                     </button>
 
                     {/* Botón de Acción Principal */}

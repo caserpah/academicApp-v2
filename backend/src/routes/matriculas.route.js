@@ -87,6 +87,14 @@ router.delete(
     matriculaController.eliminar
 );
 
+// Activar matrículas masivamente (Pasar de PREMATRICULADO a ACTIVA)
+router.patch(
+    "/masivo/activar",
+    protect,
+    restrictTo(["admin", "secretaria"]),
+    matriculaController.activarMasivo
+);
+
 // Crear Matrícula / Promoción Masiva
 router.post(
     "/masivo",

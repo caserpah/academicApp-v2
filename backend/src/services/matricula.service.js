@@ -8,6 +8,7 @@ import { HistorialMatriculas } from "../models/historial_matriculas.js";
 import { Grupo } from "../models/grupo.js";
 import { Calificacion } from "../models/calificacion.js";
 import { Colegio } from "../models/colegio.js";
+import { Matricula } from "../models/matricula.js";
 import { mapearDatosMatricula, formatearFecha } from "../utils/matriculaMapper.js";
 import { formatearErrorForaneo } from "../utils/dbUtils.js";
 import { handleSequelizeError } from "../middleware/handleSequelizeError.js";
@@ -59,7 +60,7 @@ export const matriculaService = {
             return await sequelize.transaction(async (t) => {
                 // Desestructuración de campos permitidos
                 const {
-                    estudianteId, grupoId, sedeId, vigenciaId, anioVigencia, observaciones, estado,
+                    estudianteId, grupoId, gradoId, sedeId, vigenciaId, anioVigencia, observaciones, estado,
                     metodologia, es_nuevo, es_repitente, bloqueo_notas, situacion_ano_anterior
                 } = datos;
 
@@ -92,6 +93,7 @@ export const matriculaService = {
                 const nuevaMatriculaData = {
                     folio: generarFolio(anioVigencia || new Date().getFullYear()),
                     estudianteId,
+                    gradoId,
                     grupoId,
                     sedeId,
                     vigenciaId,
@@ -143,7 +145,7 @@ export const matriculaService = {
 
                 // Extraer campos permitidos para update
                 const {
-                    grupoId, sedeId, estado, observaciones, metodologia, motivoRetiro,
+                    grupoId, gradoId, sedeId, estado, observaciones, metodologia, motivoRetiro,
                     es_nuevo, es_repitente, bloqueo_notas, situacion_ano_anterior
                 } = datos;
 
@@ -186,6 +188,7 @@ export const matriculaService = {
                 // Asignar solo los campos que vienen.
                 if (observaciones !== undefined) datosActualizar.observaciones = observaciones;
                 if (metodologia !== undefined) datosActualizar.metodologia = metodologia;
+                if (gradoId) datosActualizar.gradoId = gradoId;
                 if (grupoId) datosActualizar.grupoId = grupoId;
                 if (sedeId) datosActualizar.sedeId = sedeId;
                 if (estado) datosActualizar.estado = estado;
@@ -268,7 +271,7 @@ export const matriculaService = {
 
     /**
      * PROCESO MASIVO (Para Prematrícula / Promoción)
-     * Recibe un array de estudiantes y los matricula en un grupo destino.
+     * Recibe un array de estudiantes y los Prematricula en un grupo destino.
      */
     async prematricularMasivo({ estudiantesIds, grupoDestinoId, sedeId, vigenciaId, anioVigencia, usuarioId }) {
         try {
@@ -316,6 +319,66 @@ export const matriculaService = {
                 await HistorialMatriculas.bulkCreate(historialParaCrear, { transaction: t });
 
                 return { procesados: matriculasParaCrear.length, mensaje: "Proceso masivo exitoso." };
+            });
+        } catch (error) {
+            throw handleSequelizeError(error);
+        }
+    },
+
+    /**
+     * Activar (Matricular) Prematriculas masivamente
+     * Recibe un array de estudiantes Prematriculados y los Matricula en un grupo destino.
+     */
+    async activarPrematriculasMasivo({ filtros, usuarioId }) {
+        try {
+            return await sequelize.transaction(async (t) => {
+                const where = { estado: "PREMATRICULADO" };
+
+                if (filtros.sedeId) where.sedeId = filtros.sedeId;
+                if (filtros.grupoId) where.grupoId = filtros.grupoId;
+                if (filtros.vigenciaId) where.vigenciaId = filtros.vigenciaId;
+
+                // Recuperar únicamente los IDs y datos necesarios para el historial de auditoría
+                const prematriculas = await Matricula.findAll({
+                    where,
+                    attributes: ['id', 'grupoId', 'sedeId'],
+                    transaction: t
+                });
+
+                if (prematriculas.length === 0) {
+                    const error = new Error("No hay estudiantes prematriculados que coincidan con los filtros seleccionados.");
+                    error.status = 404;
+                    throw error;
+                }
+
+                const idsAfectados = prematriculas.map(m => m.id);
+
+                // Ejecutar la actualización masiva (Bulk Update optimizado en BD)
+                await Matricula.update(
+                    { estado: "ACTIVA", usuarioActualizacion: usuarioId },
+                    { where: { id: idsAfectados }, transaction: t }
+                );
+
+                // Estructurar el lote para el Historial Académico
+                const historialLote = prematriculas.map(m => ({
+                    matriculaId: m.id,
+                    estadoAnterior: "PREMATRICULADO",
+                    estadoNuevo: "ACTIVA",
+                    grupoAnteriorId: m.grupoId,
+                    grupoNuevoId: m.grupoId,
+                    sedeAnteriorId: m.sedeId,
+                    sedeNuevoId: m.sedeId,
+                    usuarioId: usuarioId,
+                    motivo: "Asentamiento masivo en firme (Matrícula Masiva)"
+                }));
+
+                // Inserción masiva de historial
+                await HistorialMatriculas.bulkCreate(historialLote, { transaction: t });
+
+                return {
+                    procesados: idsAfectados.length,
+                    mensaje: `Se procesaron y activaron exitosamente ${idsAfectados.length} matrículas.`
+                };
             });
         } catch (error) {
             throw handleSequelizeError(error);

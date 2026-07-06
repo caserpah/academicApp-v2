@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSearch, faFileContract, faUserGraduate, faDownload, faSpinner, faUsers, faFileAlt } from "@fortawesome/free-solid-svg-icons";
 
 import { buscarEstudianteConMatriculas, descargarCertificadoMatricula, descargarCertificadoNotas } from "../../api/certificadosService.js";
-import { showError } from "../../utils/notifications.js";
+import { showError, showWarning } from "../../utils/notifications.js";
 import Swal from "sweetalert2";
 
 const CertificadosPage = () => {
@@ -15,6 +15,54 @@ const CertificadosPage = () => {
 
     // Estado para controlar que documento se va a generar (MATRICULA o NOTAS)
     const [tipoDocumento, setTipoDocumento] = useState("MATRICULA");
+
+    // Estado para controlar qué año de matrícula se ha seleccionado
+    const [vigenciaSeleccionada, setVigenciaSeleccionada] = useState("");
+
+    // Extraemos los años de vigencia disponibles del estudiante seleccionado
+    const vigenciasDisponibles = estudiante?.matriculas
+        ? [...new Set(estudiante.matriculas.map(m => m.anio).filter(Boolean))].sort((a, b) => b - a)
+        : [];
+
+    // Filtramos las matrículas del estudiante según el año de vigencia seleccionado
+    const matriculasDelAnio = estudiante?.matriculas?.filter(
+        m => m.anio === Number(vigenciaSeleccionada)
+    ) || [];
+
+    // Selector dinámico de periodos según el grado del estudiante y la matrícula seleccionada
+    const getOpcionesPeriodo = () => {
+        const mat = estudiante?.matriculas?.find(m => String(m.id) === String(config.matriculaId));
+        if (!mat || !mat.grado) return [];
+
+        const grado = mat.grado.toUpperCase();
+
+        // Evaluamos PRIMERO el Ciclo VI para evitar falsos positivos con el Ciclo V
+        if (grado.includes('CICLO_VI') || grado.includes('CICLO VI')) {
+            return [
+                { value: "3", label: "Tercer Periodo" },
+                { value: "4", label: "Cuarto Periodo" },
+                { value: "5", label: "Informe Final (Definitivas)", isFinal: true }
+            ];
+        }
+        // Evaluamos el Ciclo V después
+        else if (grado.includes('CICLO_V') || grado.includes('CICLO V')) {
+            return [
+                { value: "1", label: "Primer Periodo" },
+                { value: "2", label: "Segundo Periodo" },
+                { value: "3", label: "Informe Final (Definitivas)", isFinal: true }
+            ];
+        }
+        // Modalidad Tradicional
+        else {
+            return [
+                { value: "1", label: "Primer Periodo" },
+                { value: "2", label: "Segundo Periodo" },
+                { value: "3", label: "Tercer Periodo" },
+                { value: "4", label: "Cuarto Periodo" },
+                { value: "5", label: "Informe Final (Definitivas)", isFinal: true }
+            ];
+        }
+    };
 
     // Opciones del Certificado
     const [config, setConfig] = useState({
@@ -48,10 +96,10 @@ const CertificadosPage = () => {
                     seleccionarEstudiante(data[0]);
                 }
             } else {
-                showError("No se encontraron registros.");
+                showWarning("No se encontraron registros.");
             }
         } catch (error) {
-            showError(error.message || "No se encontró ningún estudiante.");
+            showWarning(error.message || "No se encontró ningún estudiante.");
         } finally {
             setIsSearching(false);
         }
@@ -62,7 +110,7 @@ const CertificadosPage = () => {
         if (est.matriculas?.length > 0) {
             setConfig(prev => ({ ...prev, matriculaId: est.matriculas[0].id }));
         } else {
-            showError("El estudiante seleccionado no tiene matrículas registradas.");
+            showWarning("El estudiante seleccionado no tiene matrículas registradas.");
         }
     };
 
@@ -74,7 +122,7 @@ const CertificadosPage = () => {
 
     const handleGenerar = async () => {
         if (!config.matriculaId) {
-            showError("Debe seleccionar un año de matrícula.");
+            showWarning("Debe seleccionar un año de matrícula.");
             return;
         }
 
@@ -86,7 +134,7 @@ const CertificadosPage = () => {
                 await descargarCertificadoMatricula(config);
             } else if (tipoDocumento === "NOTAS") {
                 if (!config.periodo) {
-                    showError("Seleccione el periodo a certificar.");
+                    showWarning("Seleccione el periodo a certificar.");
                     setIsGenerating(false);
                     return;
                 }
@@ -104,7 +152,11 @@ const CertificadosPage = () => {
                 showConfirmButton: false
             });
         } catch (error) {
-            showError(error.message || "Error al generar el documento.");
+            if (error.message.includes("no tiene calificaciones") || error.status === 404) {
+                showWarning(error.message);
+            } else {
+                showError(error.message || "Error al generar el documento.");
+            }
         } finally {
             setIsGenerating(false);
         }
@@ -190,8 +242,8 @@ const CertificadosPage = () => {
                         </div>
 
                         <div className="space-y-6">
-                            {/* Fila: Tipo de Documento y Año Lectivo */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Fila: Tipo de Documento, Año Lectivo y Grado */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
                                     <label className="text-xs font-bold text-gray-700 mb-1 ml-1 flex items-center gap-1.5">
                                         <FontAwesomeIcon icon={faFileAlt} className="text-gray-400" /> Tipo de Documento
@@ -207,16 +259,34 @@ const CertificadosPage = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700 mb-1 ml-1">Año Lectivo / Matrícula</label>
+                                    <label className="block text-xs font-bold text-gray-700 mb-1 ml-1">Vigencia (Año)</label>
                                     <select
-                                        value={config.matriculaId}
-                                        onChange={(e) => setConfig({ ...config, matriculaId: e.target.value })}
+                                        value={vigenciaSeleccionada}
+                                        onChange={(e) => {
+                                            setVigenciaSeleccionada(e.target.value);
+                                            setConfig({ ...config, matriculaId: "", periodo: "" });
+                                        }}
                                         className="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500 bg-white"
                                     >
                                         <option value="">-- Seleccione el año --</option>
-                                        {estudiante.matriculas.map(mat => (
+                                        {vigenciasDisponibles.map(anio => (
+                                            <option key={anio} value={anio}>Año Lectivo {anio}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 mb-1 ml-1">Grado cursado</label>
+                                    <select
+                                        value={config.matriculaId}
+                                        onChange={(e) => setConfig({ ...config, matriculaId: e.target.value, periodo: "" })}
+                                        disabled={!vigenciaSeleccionada}
+                                        className="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500 bg-white disabled:bg-gray-100"
+                                    >
+                                        <option value="">-- Seleccione el grado --</option>
+                                        {matriculasDelAnio.map(mat => (
                                             <option key={mat.id} value={mat.id}>
-                                                Año {mat.anio} - Grado {mat.grado} ({mat.sede})
+                                                {mat.grado.replace(/_/g, ' ')} - Sede {mat.sede}
                                             </option>
                                         ))}
                                     </select>
@@ -276,20 +346,21 @@ const CertificadosPage = () => {
                                 )}
 
                                 {tipoDocumento === "NOTAS" && (
-                                    <div className="animate-fade-in">
+                                    <div className="animate-fade-in mt-4">
                                         <h4 className="text-sm font-bold text-gray-700 mb-3">Opciones del Certificado</h4>
                                         <label className="block text-xs text-gray-500 mb-1">Periodo a Certificar <span className="text-red-500">*</span></label>
                                         <select
                                             value={config.periodo}
                                             onChange={(e) => setConfig({ ...config, periodo: e.target.value })}
-                                            className="w-full md:w-1/2 border border-gray-300 rounded-md p-2 text-sm outline-none focus:border-blue-500 bg-white"
+                                            disabled={!config.matriculaId}
+                                            className="w-full md:w-1/3 border border-gray-300 rounded-md p-2 text-sm outline-none focus:border-blue-500 bg-white disabled:bg-gray-100"
                                         >
-                                            <option value="">-- Seleccione un periodo --</option>
-                                            <option value="1">Primer Periodo</option>
-                                            <option value="2">Segundo Periodo</option>
-                                            <option value="3">Tercer Periodo</option>
-                                            <option value="4">Cuarto Periodo</option>
-                                            <option value="5" className="font-bold text-blue-700">Informe Final (Definitivas)</option>
+                                            <option value="">-- Seleccione --</option>
+                                            {getOpcionesPeriodo().map(opt => (
+                                                <option key={opt.value} value={opt.value} className={opt.isFinal ? "font-bold text-blue-700" : ""}>
+                                                    {opt.label}
+                                                </option>
+                                            ))}
                                         </select>
                                     </div>
                                 )}

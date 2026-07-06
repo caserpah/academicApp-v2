@@ -1,5 +1,3 @@
-
-
 import { listadoService } from "../services/listado.service.js";
 
 export const listadoController = {

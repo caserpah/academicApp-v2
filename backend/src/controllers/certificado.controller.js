@@ -43,7 +43,7 @@ export const certificadoController = {
             const estudiantes = await certificadoRepository.buscarEstudiantesGeneral(busqueda);
 
             if (!estudiantes || estudiantes.length === 0) {
-                const error = new Error("No se encontró ningún estudiante con esos datos.");
+                const error = new Error("No se encontró ningún estudiante con el criterio de busqueda ingresado.");
                 error.status = 404;
                 throw error;
             }

@@ -20,7 +20,7 @@ export const coordinadorRepository = {
             include: [
                 {
                     model: Sede,
-                    as: "sedes",
+                    as: "sedesAsignadas",
                     attributes: ["id", "nombre"],
                     // Traemos los datos para poder mostrarlos en el formulario
                     through: {
@@ -37,7 +37,7 @@ export const coordinadorRepository = {
         return Coordinador.findByPk(id, {
             include: [{
                 model: Sede,
-                as: "sedes",
+                as: "sedesAsignadas",
                 through: { attributes: ["vigenciaId", "tipo", "jornada"] },
             }],
         });

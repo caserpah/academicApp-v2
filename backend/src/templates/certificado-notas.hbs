@@ -3,16 +3,18 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Certificado de Calificaciones</title>
+    <title>Certificado de Estudios</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
         @page {
             size: Letter portrait;
             margin: 10mm 20mm 10mm 20mm;
         }
 
         body {
-            font-family: 'Times New Roman', Times, serif;
-            font-size: 13px;
+            font-family: 'Inter', Arial, sans-serif;
+            font-size: 12px;
             line-height: 1.6;
             color: #000;
             text-align: justify;
@@ -45,7 +47,7 @@
 
         .info-cell {
             text-align: center;
-            font-family: 'Times New Roman', Times, serif;
+            font-family: 'Inter', Arial, sans-serif;
             font-size: 11px;
         }
 
@@ -91,7 +93,7 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
-            font-family: 'Times New Roman', Times, serif;
+            font-family: 'Inter', Arial, sans-serif;
             font-size: 10px;
         }
 
@@ -104,7 +106,7 @@
         .grades-table th {
             text-align: center;
             background-color: #f3f4f6;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: bold;
         }
 
@@ -126,8 +128,7 @@
         .formula {
             float: right;
             font-size: 10px;
-            color: #555;
-            font-family: 'Courier New', Courier, monospace;
+            color: #2e2d2d;
         }
 
         .center {
@@ -141,7 +142,7 @@
             text-align: center;
             page-break-inside: avoid;
             /* Previene que la línea quede en una página y el nombre en otra */
-            font-family: 'Times New Roman', Times, serif;
+            font-family: 'Inter', Arial, sans-serif;
             font-size: 12px;
         }
 
@@ -181,23 +182,26 @@
         CERTIFICAN
     </div>
 
-    <div class="estudiante-info">
-        <p>Que el (la) estudiante <strong>{{estudiante.nombreCompleto}}</strong>, identificado(a) con
-            {{estudiante.tipoDocumento}} No. {{estudiante.documento}} {{#if estudiante.lugarExpedicion}}de
-            {{estudiante.lugarExpedicion}}{{/if}}.</p>
+    {{#if esInformeFinal}}
+    <div style="margin-bottom: 15px;">
+        <p>
+            Que <strong>{{estudiante.nombreCompleto}}</strong>, identificado(a) con
+            {{estudiante.tipoDocumento}} No. {{estudiante.documento}}, en el año lectivo {{vigencia.anio}} cursó el
+            {{grado.nombre}} de {{grado.nivelAcademicoTexto}} y fue <strong>{{matricula.estado}}(A)</strong> acorde con
+            el
+            decreto 1290 del 16 de abril del 2009, en la jornada {{matricula.jornada}}, y el Sistema Institucional de
+            Evaluación aprobado por el Consejo Directivo, con los siguientes niveles de desempeño en las áreas
+            establecidas por la Ley 115 de 1994 y el Plan de estudio consignado en el PEI institucional:
+        </p>
     </div>
-
-    </div>
-
-    <p>{{parrafoLegal}}</p>
 
     <table class="grades-table">
         <thead>
             <tr>
-                <th style="width: 60%;">ÁREAS Y ASIGNATURAS</th>
-                <th style="width: 10%;">I.H.</th>
-                <th style="width: 10%;">NOTA</th>
-                <th style="width: 20%;">DESEMPEÑO</th>
+                <th style="width: 55%;">ÁREAS</th>
+                <th style="width: 15%;">I.H.</th>
+                <th style="width: 15%;">NOTA</th>
+                <th style="width: 15%;">DESEMPEÑO</th>
             </tr>
         </thead>
         <tbody>
@@ -235,7 +239,90 @@
         </tbody>
     </table>
 
-    <div style="margin-top: 10px;">
+    {{#if tieneNivelaciones}}
+    <div style="margin-top: 15px;">
+        <p style="font-weight: bold; margin-bottom: 5px; font-size: 11px;">NIVELACIONES Y RECUPERACIONES:</p>
+        <table class="grades-table">
+            <thead>
+                <tr>
+                    <th style="width: 55%;">ÁREA</th>
+                    <th style="width: 15%;">NOTA ANT.</th>
+                    <th style="width: 15%;">NOTA FIN.</th>
+                    <th style="width: 15%;">ESTADO</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each nivelaciones}}
+                <tr class="row-asignatura">
+                    <td style="padding-left: 5px;">{{nombreArea}}</td>
+                    <td class="center" style="color: #2e2d2d; text-decoration: line-through;">{{notaAnterior}}</td>
+                    <td class="center" style="font-weight: bold;">{{notaFinal}}</td>
+                    <td class="center">{{#if aprobado}}APROBADO{{else}}REPROBADO{{/if}}</td>
+                </tr>
+                {{/each}}
+            </tbody>
+        </table>
+    </div>
+    {{/if}}
+
+    {{else}}
+    <div class="estudiante-info">
+        <p>Que el (la) estudiante <strong>{{estudiante.nombreCompleto}}</strong>, identificado(a) con
+            {{estudiante.tipoDocumento}} No. {{estudiante.documento}} {{#if estudiante.lugarExpedicion}}de
+            {{estudiante.lugarExpedicion}}{{/if}}.</p>
+    </div>
+    <p>{{parrafoLegal}}</p>
+
+    <table class="grades-table">
+        <thead>
+            <tr>
+                <th style="width: 60%;">ÁREAS Y ASIGNATURAS</th>
+                <th style="width: 10%;">I.H.</th>
+                <th style="width: 10%;">NOTA</th>
+                <th style="width: 20%;">DESEMPEÑO</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each areas}}
+            <tr class="row-area">
+                <td>{{nombreArea}}</td>
+                <td class="center">{{ihArea}}</td>
+                <td class="center">{{notaArea}}</td>
+                <td class="center">{{desempenoArea}}</td>
+            </tr>
+
+            {{#if mostrarAsignaturas}}
+            {{#each asignaturas}}
+            <tr class="row-asignatura">
+                <td class="asignatura-nombre">
+                    {{nombreAsignatura}}
+                    <span class="formula">{{formulaCalculo}}</span>
+                    {{!-- Ocultamiento de docente en comportamiento protegido --}}
+                    {{#unless ../esComportamiento}}
+                    {{#if nombreDocente}}<br><small style="color: #666;">Docente: {{nombreDocente}}</small>{{/if}}
+                    {{/unless}}
+                </td>
+                <td class="center">{{ih}}</td>
+                <td class="center"></td>
+                <td class="center"></td>
+            </tr>
+            {{/each}}
+            {{/if}}
+            {{/each}}
+
+            {{#if comportamiento}}
+            <tr class="row-area">
+                <td>COMPORTAMIENTO</td>
+                <td class="center"></td>
+                <td class="center">{{comportamiento.nota}}</td>
+                <td class="center">{{comportamiento.desempeno}}</td>
+            </tr>
+            {{/if}}
+        </tbody>
+    </table>
+    {{/if}}
+
+    <div style="margin-top: 20px;">
         <p>{{textoExpedicion}}</p>
     </div>
 

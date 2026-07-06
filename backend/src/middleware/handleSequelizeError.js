@@ -100,8 +100,8 @@ export const handleSequelizeError = (error) => {
         }
 
         // Caso 10: Especial para matriculas
-        if (indexName === "idx_unique_estudiante_vigencia") {
-            const err = new Error("No es posible crear la matrícula. Ya existe una matrícula registrada para este estudiante en el mismo año lectivo.");
+        if (indexName === "idx_unique_estudiante_vigencia_grado") {
+            const err = new Error("Este estudiante ya tiene una matrícula activa para este grado en el año lectivo seleccionado.");
             err.status = 409;
             return err;
         }
@@ -130,6 +130,20 @@ export const handleSequelizeError = (error) => {
         // Caso 14: Usuarios (Email)
         if (indexName === "unique_email_index") {
             const err = new Error("El correo electrónico ingresado ya está siendo utilizado por otro usuario.");
+            err.status = 409;
+            return err;
+        }
+
+        // Caso 15: Calificaciones definitivas (Estudiante + Área + Matrícula)
+        if (indexName === "idx_unique_calif_area_matricula_area") {
+            const err = new Error("Ya existe una calificación definitiva registrada para este estudiante en esta área.");
+            err.status = 409;
+            return err;
+        }
+
+        // Caso 16: Nivelaciones (Estudiante + Área)
+        if (indexName === "idx_unique_nivelacion_matricula_area") {
+            const err = new Error("Este estudiante ya tiene una nivelación registrada para esta área.");
             err.status = 409;
             return err;
         }

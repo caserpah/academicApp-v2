@@ -315,11 +315,13 @@ const MatriculasForm = ({
                                 className={getInputClasses(mode === "agregar")}
                             // disabled={mode === "agregar"}
                             >
-                                <option value="PREMATRICULADO">Prematriculado</option>
+                                <option value="">Todos</option>
                                 <option value="ACTIVA">Activa</option>
+                                <option value="PREMATRICULADO">Prematriculado</option>
                                 <option value="RETIRADO">Retirado</option>
-                                <option value="ANULADO">Anulado</option>
                                 <option value="DESERTADO">Desertado</option>
+                                <option value="ANULADO">Anulado</option>
+                                <option value="REPROBADO">Reprobado</option>
                                 <option value="PROMOVIDO">Promovido</option>
                             </select>
                         </div>

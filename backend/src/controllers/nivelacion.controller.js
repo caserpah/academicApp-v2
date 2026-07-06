@@ -2,26 +2,39 @@ import { nivelacionService } from "../services/nivelacion.service.js";
 import { Docente } from "../models/docente.js";
 import { Usuario } from "../models/usuario.js";
 import { sendSuccess } from "../middleware/responseHandler.js";
+import { nivelacionRepository } from "../repositories/nivelacion.repository.js";
 
 export const nivelacionController = {
 
     /**
      * Obtener listado de estudiantes que reprobaron y necesitan nivelación
-     * Query params esperados: ?grupoId=1&asignaturaId=5
+     * Query params esperados: ?grupoId=1&areaId=5
      */
     async obtenerParaNivelar(req, res, next) {
         try {
-            const { grupoId, asignaturaId } = req.query;
+            const { grupoId } = req.query;
+            const vigenciaId = req.vigenciaActual?.id;
 
-            if (!grupoId || !asignaturaId) {
-                const error = new Error("Seleccione el grupo y asignatura.");
-                error.status = 400;
-                throw error;
+            if (!grupoId) {
+                return res.status(400).json({ message: "Seleccione el grupo para cargar los estudiantes que necesitan nivelación." });
             }
 
-            const estudiantes = await nivelacionService.obtenerEstudiantesParaNivelar(grupoId, asignaturaId);
+            let docenteId = null;
+            const usuarioId = req.user.id;
 
-            return sendSuccess(res, estudiantes, "Lista de estudiantes para nivelación cargada exitosamente.");
+            // Lógica para detectar si es profesor y obtener su docenteId para filtrar solo sus estudiantes
+            const rolUsuario = (req.user.role || req.user.rol || '').toUpperCase();
+
+            if (rolUsuario === 'DOCENTE') {
+                const docente = await Docente.findOne({ where: { usuarioId: usuarioId } });
+                if (docente) {
+                    docenteId = docente.id;
+                }
+            }
+
+            const areasAgrupadas = await nivelacionService.obtenerEstudiantesParaNivelar(grupoId, docenteId, vigenciaId);
+
+            return sendSuccess(res, areasAgrupadas, "Lista de nivelaciones cargada exitosamente.");
         } catch (error) {
             next(error);
         }
@@ -29,40 +42,27 @@ export const nivelacionController = {
 
     /**
      * Guardar la nota de nivelación y la evidencia adjunta
-     * Params esperados en URL: /:matriculaId/:asignaturaId
+     * Params esperados en URL: /:matriculaId/:areaId
      * Body esperado: formData (notaNivelacion, observacion_nivelacion, evidencia)
      */
     async registrar(req, res, next) {
         try {
-            const { matriculaId, asignaturaId } = req.params;
-            const usuarioId = req.user.id;
+            const { matriculaId, areaId } = req.params;
+            const usuarioAuditorId = req.user.id;
 
             // 1. Manejo del archivo de evidencia (Si el middleware lo procesó)
             let fileUrl = null;
             if (req.file) {
-                fileUrl = `uploads/evidencias/${req.file.filename}`;
+                fileUrl = `/uploads/evidencias/${req.file.filename}`;
             }
 
-            // 2. Descubrir el docenteId a partir del usuarioId para auditoría
-            let docenteId = null;
-            const usuario = await Usuario.findByPk(usuarioId);
-
-            if (usuario && usuario.documento) {
-                const docente = await Docente.findOne({
-                    where: { documento: usuario.documento }
-                });
-                if (docente) {
-                    docenteId = docente.id;
-                }
-            }
-
-            // 3. Enviar todo al servicio
+            // 2. Enviar todo al servicio
             const resultado = await nivelacionService.registrarNivelacion(
                 matriculaId,
-                asignaturaId,
+                areaId,
                 req.body,
                 fileUrl,
-                docenteId
+                usuarioAuditorId
             );
 
             return sendSuccess(res, resultado, "Nivelación registrada exitosamente.");
@@ -78,14 +78,25 @@ export const nivelacionController = {
      */
     async generarConsolidados(req, res, next) {
         try {
-            const { sedeId, gradoId, grupoId, vigenciaId, forzarCierre = false } = req.body;
+            const { sedeId, gradoId, grupoId, forzarCierre = false, estudiantesExcluidos } = req.body;
+
+            const vigenciaId = req.vigenciaActual?.id;
 
             if (!vigenciaId) {
-                return res.status(400).json({ message: "No se proporcionó la vigencia activa o año lectivo vigente." });
+                return res.status(400).json({ message: "No se detectó un año lectivo activo en el contexto." });
+            }
+
+            if (!sedeId || !gradoId || !grupoId) {
+                return res.status(400).json({ message: "Selecciona la sede, el grado y el grupo para generar los consolidados." });
             }
 
             const resultado = await nivelacionService.generarConsolidadosAnuales({
-                sedeId, gradoId, grupoId, vigenciaId, forzarCierre
+                sedeId,
+                gradoId,
+                grupoId,
+                vigenciaId,
+                forzarCierre,
+                estudiantesExcluidos: estudiantesExcluidos || []
             });
 
             // Si el status es warning, enviamos un 200 OK pero con la data del reporte
@@ -102,10 +113,87 @@ export const nivelacionController = {
                 message: resultado.mensaje,
                 data: { procesados: resultado.procesados }
             });
-            // Si es success, enviamos 201 Created
-            //return sendSuccess(res, resultado, resultado.mensaje, 201);
         } catch (error) {
             next(error);
         }
-    }
+    },
+
+    /**
+     * Verificar si ya existen consolidados generados para un grupo específico en la vigencia actual
+     * Endpoint: GET /api/nivelaciones/verificar-consolidados?grupoId=1
+     */
+    async verificarConsolidados(req, res, next) {
+        try {
+            const { grupoId } = req.query;
+            const vigenciaId = req.vigenciaActual?.id;
+
+            if (!grupoId || !vigenciaId) {
+                return res.json({ consolidadosGenerados: false });
+            }
+
+            // Preguntamos a la tabla grupo si el grupo seleccionado ya tiene el cierre
+            const existe = await nivelacionRepository.verificarCierreGrupo(grupoId);
+
+            return res.json({ consolidadosGenerados: existe });
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
+     * Obtener estudiantes que reprueban el año directamente (3 o más áreas perdidas)
+     * Endpoint: GET /api/nivelaciones/reprobados-directos?grupoId=1
+     */
+    async obtenerReprobadosDirectos(req, res, next) {
+        try {
+            const { grupoId } = req.query;
+            const vigenciaId = req.vigenciaActual?.id;
+
+            if (!grupoId || !vigenciaId) {
+                return res.status(400).json({
+                    message: "Selecciona el grupo y el año lectivo."
+                });
+            }
+
+            // Llamamos a la lógica de negocio en el servicio
+            const reprobados = await nivelacionService.obtenerReprobadosDirectos(grupoId, vigenciaId);
+
+            // Respondemos con la estructura que espera el frontend (response.data.data)
+            return res.status(200).json({
+                status: 'success',
+                data: reprobados
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
+     * Guardar de manera masiva las notas faltantes detectadas en la auditoría de cierre de año
+     * Endpoint: POST /api/nivelaciones/completar-notas-faltantes
+     */
+    async completarNotasFaltantes(req, res, next) {
+        try {
+            const { notas } = req.body;
+            const vigenciaId = req.vigenciaActual?.id;
+
+            if (!notas || !Array.isArray(notas) || notas.length === 0) {
+                return res.status(400).json({ message: "No se recibieron calificaciones para registrar." });
+            }
+
+            if (!vigenciaId) {
+                return res.status(400).json({ message: "No se detectó un año lectivo activo en el contexto." });
+            }
+
+            // Delegamos la inserción masiva a la capa de servicios
+            await nivelacionService.guardarCalificacionesPendientes(notas, vigenciaId);
+
+            return res.status(200).json({
+                status: 'success',
+                message: "Calificaciones registradas correctamente. Para finalizar el proceso, presione el botón Generar Consolidados"
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
 };

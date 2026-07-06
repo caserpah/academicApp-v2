@@ -24,242 +24,256 @@ import { ConfigGrado } from "../../models/config_grado.js";
 import { DesempenoRango } from "../../models/desempeno_rango.js";
 import { Usuario } from "../../models/usuario.js";
 import { CodigoBoletin } from "../../models/codigoBoletin.js";
+import { CalificacionArea } from "../../models/calificacionArea.js";
 
 export const definirAsociaciones = () => {
 
-try {
+    try {
 
-    /** 🏫 Colegio ↔ Sede */
-    Colegio.hasMany(Sede, { foreignKey: "colegioId", as: "sedes" });
-    Sede.belongsTo(Colegio, { foreignKey: "colegioId", as: "colegio" });
+        /** 🏫 Colegio ↔ Sede */
+        Colegio.hasMany(Sede, { foreignKey: "colegioId", as: "sedes" });
+        Sede.belongsTo(Colegio, { foreignKey: "colegioId", as: "colegio" });
 
-    /** 👩‍💼 Coordinador ↔ Sede (N:M) */
-    Coordinador.belongsToMany(Sede, {
-        through: CoordinadorSedes,
-        as: "sedes",
-        foreignKey: "coordinadorId",
-        otherKey: "sedeId"
-    });
-    Sede.belongsToMany(Coordinador, {
-        through: CoordinadorSedes,
-        as: "coordinadores",
-        foreignKey: "sedeId",
-        otherKey: "coordinadorId",
-    });
+        /** 👩‍💼 Coordinador ↔ Sede (N:M) */
+        Coordinador.belongsToMany(Sede, {
+            through: CoordinadorSedes,
+            as: "sedesAsignadas",
+            foreignKey: "coordinadorId",
+            otherKey: "sedeId"
+        });
+        Sede.belongsToMany(Coordinador, {
+            through: CoordinadorSedes,
+            as: "coordinadores",
+            foreignKey: "sedeId",
+            otherKey: "coordinadorId",
+        });
 
-    /** Relaciones directas del modelo intermedio coordinador_sedes */
-    CoordinadorSedes.belongsTo(Coordinador, {
-        foreignKey: "coordinadorId",
-        as: "coordinador",
-    });
-    Coordinador.hasMany(CoordinadorSedes, {
-        foreignKey: "coordinadorId",
-        as: "coordinadorSedes",
-    });
+        /** Relaciones directas del modelo intermedio coordinador_sedes */
+        CoordinadorSedes.belongsTo(Coordinador, {
+            foreignKey: "coordinadorId",
+            as: "coordinador",
+        });
+        Coordinador.hasMany(CoordinadorSedes, {
+            foreignKey: "coordinadorId",
+            as: "coordinadorSedes",
+        });
 
-    CoordinadorSedes.belongsTo(Sede, {
-        foreignKey: "sedeId",
-        as: "sede",
-    });
-    Sede.hasMany(CoordinadorSedes, {
-        foreignKey: "sedeId",
-        as: "coordinadorSedes",
-    });
+        CoordinadorSedes.belongsTo(Sede, {
+            foreignKey: "sedeId",
+            as: "sedeAsociada",
+        });
+        Sede.hasMany(CoordinadorSedes, {
+            foreignKey: "sedeId",
+            as: "coordinadorSedes",
+        });
 
-    CoordinadorSedes.belongsTo(Vigencia, {
-        foreignKey: "vigenciaId",
-        as: "vigencia",
-    });
-    Vigencia.hasMany(CoordinadorSedes, {
-        foreignKey: "vigenciaId",
-        as: "coordinadorSedes",
-    });
+        CoordinadorSedes.belongsTo(Vigencia, {
+            foreignKey: "vigenciaId",
+            as: "vigencia",
+        });
+        Vigencia.hasMany(CoordinadorSedes, {
+            foreignKey: "vigenciaId",
+            as: "coordinadorSedes",
+        });
 
-    /** 👨‍🏫 Sede ↔ Docente */
-    Sede.hasMany(Docente, { foreignKey: "sedeId", as: "docentes" });
-    Docente.belongsTo(Sede, { foreignKey: "sedeId", as: "sede" });
+        /** 👨‍🏫 Sede ↔ Docente */
+        Sede.hasMany(Docente, { foreignKey: "sedeId", as: "docentes" });
+        Docente.belongsTo(Sede, { foreignKey: "sedeId", as: "sede" });
 
-    /** 🧮 Área ↔ Asignatura */
-    Area.hasMany(Asignatura, { foreignKey: "areaId", as: "asignaturas" });
-    Asignatura.belongsTo(Area, { foreignKey: "areaId", as: "area" });
+        /** 🧮 Área ↔ Asignatura */
+        Area.hasMany(Asignatura, { foreignKey: "areaId", as: "asignaturas" });
+        Asignatura.belongsTo(Area, { foreignKey: "areaId", as: "area" });
 
-    /** 📘 Asignatura → Juicios */
-    Asignatura.hasMany(Juicio, { foreignKey: "asignaturaId", as: "juicios" });
-    Juicio.belongsTo(Asignatura, { foreignKey: "asignaturaId", as: "asignatura" });
+        /** 📘 Asignatura → Juicios */
+        Asignatura.hasMany(Juicio, { foreignKey: "asignaturaId", as: "juicios" });
+        Juicio.belongsTo(Asignatura, { foreignKey: "asignaturaId", as: "asignatura" });
 
-    /** 📘 Asociaciones del módulo Juicios (Grado, Dimensión, Desempeño) */
-    Grado.hasMany(Juicio, { foreignKey: "gradoId", as: "juicios" });
-    Juicio.belongsTo(Grado, { foreignKey: "gradoId", as: "grado" });
+        /** 📘 Asociaciones del módulo Juicios (Grado, Dimensión, Desempeño) */
+        Grado.hasMany(Juicio, { foreignKey: "gradoId", as: "juicios" });
+        Juicio.belongsTo(Grado, { foreignKey: "gradoId", as: "grado" });
 
-    Dimension.hasMany(Juicio, { foreignKey: "dimensionId", as: "juicios" });
-    Juicio.belongsTo(Dimension, { foreignKey: "dimensionId", as: "dimension" });
+        Dimension.hasMany(Juicio, { foreignKey: "dimensionId", as: "juicios" });
+        Juicio.belongsTo(Dimension, { foreignKey: "dimensionId", as: "dimension" });
 
-    Desempeno.hasMany(Juicio, { foreignKey: "desempenoId", as: "juicios" });
-    Juicio.belongsTo(Desempeno, { foreignKey: "desempenoId", as: "desempeno" });
+        Desempeno.hasMany(Juicio, { foreignKey: "desempenoId", as: "juicios" });
+        Juicio.belongsTo(Desempeno, { foreignKey: "desempenoId", as: "desempeno" });
 
-    Grado.hasOne(ConfigGrado, { foreignKey: "gradoId", as: "configuracion" });
-    ConfigGrado.belongsTo(Grado, { foreignKey: "gradoId", as: "grado" });
+        Grado.hasOne(ConfigGrado, { foreignKey: "gradoId", as: "configuracion" });
+        ConfigGrado.belongsTo(Grado, { foreignKey: "gradoId", as: "grado" });
 
-    Desempeno.hasMany(DesempenoRango, { foreignKey: "desempenoId", as: "rangos" });
-    DesempenoRango.belongsTo(Desempeno, { foreignKey: "desempenoId", as: "desempeno" });
+        Desempeno.hasMany(DesempenoRango, { foreignKey: "desempenoId", as: "rangos" });
+        DesempenoRango.belongsTo(Desempeno, { foreignKey: "desempenoId", as: "desempeno" });
 
-    Vigencia.hasMany(DesempenoRango, { foreignKey: "vigenciaId", as: "rangosDesempeno" });
-    DesempenoRango.belongsTo(Vigencia, { foreignKey: "vigenciaId", as: "vigencia" });
+        Vigencia.hasMany(DesempenoRango, { foreignKey: "vigenciaId", as: "rangosDesempeno" });
+        DesempenoRango.belongsTo(Vigencia, { foreignKey: "vigenciaId", as: "vigencia" });
 
-    /** 👤 Usuario ↔ Docente (1:1) - Identidad Unificada */
-    Usuario.hasOne(Docente, { foreignKey: "usuarioId", as: "perfilDocente" });
-    Docente.belongsTo(Usuario, { foreignKey: "usuarioId", as: "identidad" });
+        /** 👤 Usuario ↔ Docente (1:1) - Identidad Unificada */
+        Usuario.hasOne(Docente, { foreignKey: "usuarioId", as: "perfilDocente" });
+        Docente.belongsTo(Usuario, { foreignKey: "usuarioId", as: "identidad" });
 
-    /** 👤 Usuario ↔ Acudiente (1:1) - Identidad Unificada */
-    Usuario.hasOne(Acudiente, {
-        foreignKey: "usuarioId",
-        as: "perfilAcudiente",
-        onUpdate: 'CASCADE',
-        onDelete: 'CASCADE'
-    });
+        /** 👤 Usuario ↔ Nivelacion (Control de Auditoría) */
+        Usuario.hasMany(Nivelacion, { foreignKey: "usuarioId", as: "nivelacionesAuditadas" });
 
-    Acudiente.belongsTo(Usuario, {
-        foreignKey: "usuarioId",
-        as: "identidad"
-    });
+        Nivelacion.belongsTo(Usuario, { foreignKey: "usuarioId", as: "auditor" });
 
-    /** 👨‍🏫 Docente ↔ Carga / Grupo / Calificaciones */
-    Docente.hasMany(Carga, { foreignKey: "docenteId", as: "cargas" });
-    Carga.belongsTo(Docente, { foreignKey: "docenteId", as: "docente" });
+        /** 👤 Usuario ↔ Acudiente (1:1) - Identidad Unificada */
+        Usuario.hasOne(Acudiente, {
+            foreignKey: "usuarioId",
+            as: "perfilAcudiente",
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE'
+        });
 
-    Docente.hasMany(Grupo, { foreignKey: "directorId", as: "gruposDirigidos" });
-    Grupo.belongsTo(Docente, { foreignKey: "directorId", as: "director" });
+        Acudiente.belongsTo(Usuario, {
+            foreignKey: "usuarioId",
+            as: "identidad"
+        });
 
-    Docente.hasMany(Calificacion, { foreignKey: "docenteId", as: "calificacionesRegistradas" });
-    Calificacion.belongsTo(Docente, { foreignKey: "docenteId", as: "docenteResponsable" });
+        /** 👨‍🏫 Docente ↔ Carga / Grupo / Calificaciones */
+        Docente.hasMany(Carga, { foreignKey: "docenteId", as: "cargas" });
+        Carga.belongsTo(Docente, { foreignKey: "docenteId", as: "docente" });
 
-    /** Nivelación ↔ Matrículas / Asignaturas / Docentes */
-    Matricula.hasMany(Nivelacion, { foreignKey: "matriculaId", as: "nivelaciones" });
-    Nivelacion.belongsTo(Matricula, { foreignKey: "matriculaId", as: "matricula" });
+        Docente.hasMany(Grupo, { foreignKey: "directorId", as: "gruposDirigidos" });
+        Grupo.belongsTo(Docente, { foreignKey: "directorId", as: "director" });
 
-    /** 📄 CodigoBoletin ↔ Matricula / Vigencia */
-    Matricula.hasMany(CodigoBoletin, { foreignKey: 'matriculaId', as: 'codigosBoletines' });
-    CodigoBoletin.belongsTo(Matricula, { foreignKey: 'matriculaId', as: 'matricula' });
+        Docente.hasMany(Calificacion, { foreignKey: "docenteId", as: "calificacionesRegistradas" });
+        Calificacion.belongsTo(Docente, { foreignKey: "docenteId", as: "docenteResponsable" });
 
-    Vigencia.hasMany(CodigoBoletin, { foreignKey: 'vigenciaId', as: 'codigosBoletines' });
-    CodigoBoletin.belongsTo(Vigencia, { foreignKey: "vigenciaId", as: "vigencia" });
+        /** Nivelación ↔ Matrículas / Asignaturas / Docentes */
+        Matricula.hasMany(Nivelacion, { foreignKey: "matriculaId", as: "nivelaciones" });
+        Nivelacion.belongsTo(Matricula, { foreignKey: "matriculaId", as: "matricula" });
 
-    /** Nivelación ↔ Asignatura / Docente */
-    Asignatura.hasMany(Nivelacion, { foreignKey: "asignaturaId", as: "nivelaciones" });
-    Nivelacion.belongsTo(Asignatura, { foreignKey: "asignaturaId", as: "asignatura" });
+        /** 📄 CodigoBoletin ↔ Matricula / Vigencia */
+        Matricula.hasMany(CodigoBoletin, { foreignKey: 'matriculaId', as: 'codigosBoletines' });
+        CodigoBoletin.belongsTo(Matricula, { foreignKey: 'matriculaId', as: 'matricula' });
 
-    Docente.hasMany(Nivelacion, { foreignKey: "docenteId", as: "nivelaciones_realizadas" });
-    Nivelacion.belongsTo(Docente, { foreignKey: "docenteId", as: "docente" });
+        Vigencia.hasMany(CodigoBoletin, { foreignKey: 'vigenciaId', as: 'codigosBoletines' });
+        CodigoBoletin.belongsTo(Vigencia, { foreignKey: "vigenciaId", as: "vigencia" });
 
-    /** 🏢 Sede ↔ Grupo / Carga / Matrícula */
-    Sede.hasMany(Grupo, { foreignKey: "sedeId", as: "grupos" });
-    Grupo.belongsTo(Sede, { foreignKey: "sedeId", as: "sede" });
+        Docente.hasMany(Nivelacion, { foreignKey: "docenteId", as: "nivelaciones_realizadas" });
+        Nivelacion.belongsTo(Docente, { foreignKey: "docenteId", as: "docente" });
 
-    Sede.hasMany(Carga, { foreignKey: "sedeId", as: "cargas" });
-    Carga.belongsTo(Sede, { foreignKey: "sedeId", as: "sede" });
+        /** 🏢 Sede ↔ Grupo / Carga / Matrícula */
+        Sede.hasMany(Grupo, { foreignKey: "sedeId", as: "grupos" });
+        Grupo.belongsTo(Sede, { foreignKey: "sedeId", as: "sede" });
 
-    Sede.hasMany(Matricula, { foreignKey: "sedeId", as: "matriculas" });
-    Matricula.belongsTo(Sede, { foreignKey: "sedeId", as: "sede" });
+        Sede.hasMany(Carga, { foreignKey: "sedeId", as: "cargas" });
+        Carga.belongsTo(Sede, { foreignKey: "sedeId", as: "sede" });
 
-    /** 📚 Matrícula ↔ HistorialMatricula (1:N) */
-    Matricula.hasMany(HistorialMatriculas, {
-        foreignKey: "matriculaId",
-        as: "historiales",
-        onDelete: "RESTRICT",
-        onUpdate: "CASCADE"
-    });
+        Sede.hasMany(Matricula, { foreignKey: "sedeId", as: "matriculas" });
+        Matricula.belongsTo(Sede, { foreignKey: "sedeId", as: "sede" });
 
-    HistorialMatriculas.belongsTo(Matricula, {
-        foreignKey: "matriculaId",
-        as: "matricula",
-        onDelete: "RESTRICT",
-        onUpdate: "CASCADE"
-    });
+        /** 📚 Matrícula ↔ HistorialMatricula (1:N) */
+        Matricula.hasMany(HistorialMatriculas, {
+            foreignKey: "matriculaId",
+            as: "historiales",
+            onDelete: "RESTRICT",
+            onUpdate: "CASCADE"
+        });
 
-    /** 🎓 Grado ↔ Grupo (1:N) */
-    Grado.hasMany(Grupo, {
-        foreignKey: "gradoId",
-        as: "grupos"
-    });
+        HistorialMatriculas.belongsTo(Matricula, {
+            foreignKey: "matriculaId",
+            as: "matricula",
+            onDelete: "RESTRICT",
+            onUpdate: "CASCADE"
+        });
 
-    Grupo.belongsTo(Grado, {
-        foreignKey: "gradoId",
-        as: "grado"
-    });
+        /** 🎓 Grado ↔ Grupo (1:N) */
+        Grado.hasMany(Grupo, {
+            foreignKey: "gradoId",
+            as: "grupos"
+        });
 
-    /** 👥 Grupo ↔ Carga / Matrícula */
-    Grupo.hasMany(Carga, { foreignKey: "grupoId", as: "cargas" });
-    Carga.belongsTo(Grupo, { foreignKey: "grupoId", as: "grupo" });
+        Grupo.belongsTo(Grado, {
+            foreignKey: "gradoId",
+            as: "grado"
+        });
 
-    Grupo.hasMany(Matricula, { foreignKey: "grupoId", as: "matriculas" });
-    Matricula.belongsTo(Grupo, { foreignKey: "grupoId", as: "grupo" });
+        /** 👥 Grupo ↔ Carga / Matrícula */
+        Grupo.hasMany(Carga, { foreignKey: "grupoId", as: "cargas" });
+        Carga.belongsTo(Grupo, { foreignKey: "grupoId", as: "grupo" });
 
-    /** 📘 Asignatura ↔ Carga / Calificación */
-    Asignatura.hasMany(Carga, { foreignKey: "asignaturaId", as: "cargas" });
-    Carga.belongsTo(Asignatura, { foreignKey: "asignaturaId", as: "asignatura" });
+        Grupo.hasMany(Matricula, { foreignKey: "grupoId", as: "matriculas" });
+        Matricula.belongsTo(Grupo, { foreignKey: "grupoId", as: "grupo" });
 
-    Asignatura.hasMany(Calificacion, { foreignKey: "asignaturaId", as: "calificaciones" });
-    Calificacion.belongsTo(Asignatura, { foreignKey: "asignaturaId", as: "asignatura" });
+        /** 📘 Asignatura ↔ Carga / Calificación */
+        Asignatura.hasMany(Carga, { foreignKey: "asignaturaId", as: "cargas" });
+        Carga.belongsTo(Asignatura, { foreignKey: "asignaturaId", as: "asignatura" });
 
-    /** 👦 Estudiante ↔ Calificación / Matrícula */
-    Estudiante.hasMany(Calificacion, { foreignKey: "estudianteId", as: "calificaciones" });
-    Calificacion.belongsTo(Estudiante, { foreignKey: "estudianteId", as: "estudiante" });
+        Asignatura.hasMany(Calificacion, { foreignKey: "asignaturaId", as: "calificaciones" });
+        Calificacion.belongsTo(Asignatura, { foreignKey: "asignaturaId", as: "asignatura" });
 
-    Estudiante.hasMany(Matricula, { foreignKey: "estudianteId", as: "matriculas" });
-    Matricula.belongsTo(Estudiante, { foreignKey: "estudianteId", as: "estudiante" });
+        /** 👦 Estudiante ↔ Calificación / Matrícula */
+        Estudiante.hasMany(Calificacion, { foreignKey: "estudianteId", as: "calificaciones" });
+        Calificacion.belongsTo(Estudiante, { foreignKey: "estudianteId", as: "estudiante" });
 
-    /** 👨‍👩‍👧 Acudiente ↔ Estudiante (N:M) */
-    Acudiente.belongsToMany(Estudiante, {
-        through: AcudienteEstudiantes,
-        foreignKey: "acudienteId",
-        otherKey: "estudianteId",
-        as: "estudiantes",
-    });
+        Estudiante.hasMany(Matricula, { foreignKey: "estudianteId", as: "matriculas" });
+        Matricula.belongsTo(Estudiante, { foreignKey: "estudianteId", as: "estudiante" });
 
-    Estudiante.belongsToMany(Acudiente, {
-        through: AcudienteEstudiantes,
-        foreignKey: "estudianteId",
-        otherKey: "acudienteId",
-        as: "acudientes",
-    });
+        /** 📊 CalificacionArea ↔ Matricula / Area */
+        Matricula.hasMany(CalificacionArea, { foreignKey: "matriculaId", as: "calificacionesAreas" });
+        CalificacionArea.belongsTo(Matricula, { foreignKey: "matriculaId", as: "matricula" });
 
-    /** Relaciones directas del modelo intermedio acudiente_estudiantes */
+        Area.hasMany(CalificacionArea, { foreignKey: "areaId", as: "calificacionesAreas" });
+        CalificacionArea.belongsTo(Area, { foreignKey: "areaId", as: "area" });
 
-    AcudienteEstudiantes.belongsTo(Acudiente, {
-        foreignKey: "acudienteId",
-        as: "acudiente"
-    });
-    Acudiente.hasMany(AcudienteEstudiantes, {
-        foreignKey: "acudienteId",
-        as: "acudienteEstudiantes"
-    });
+        /** ⚖️ Nivelacion ↔ Area */
+        Area.hasMany(Nivelacion, { foreignKey: "areaId", as: "nivelaciones" });
+        Nivelacion.belongsTo(Area, { foreignKey: "areaId", as: "area" });
 
-    AcudienteEstudiantes.belongsTo(Estudiante, {
-        foreignKey: "estudianteId",
-        as: "estudiante"
-    });
-    Estudiante.hasMany(AcudienteEstudiantes, {
-        foreignKey: "estudianteId",
-        as: "acudienteEstudiantes"
-    });
+        /** 👨‍👩‍👧 Acudiente ↔ Estudiante (N:M) */
+        Acudiente.belongsToMany(Estudiante, {
+            through: AcudienteEstudiantes,
+            foreignKey: "acudienteId",
+            otherKey: "estudianteId",
+            as: "estudiantes",
+        });
 
-    /** 📅 Vigencia ↔ entidades dependientes */
-    [
-        [Grupo, "grupos"],
-        [Carga, "cargas"],
-        [Matricula, "matriculas"],
-        [Calificacion, "calificaciones"],
-        [Juicio, "juicios"],
-        [Area, "areas"],
-        [Asignatura, "asignaturas"],
-        [VentanaCalificacion, "ventanasCalificacion"]
-    ].forEach(([Modelo, alias]) => {
-        Vigencia.hasMany(Modelo, { foreignKey: "vigenciaId", as: alias });
-        Modelo.belongsTo(Vigencia, { foreignKey: "vigenciaId", as: "vigencia" });
-    });
+        Estudiante.belongsToMany(Acudiente, {
+            through: AcudienteEstudiantes,
+            foreignKey: "estudianteId",
+            otherKey: "acudienteId",
+            as: "acudientes",
+        });
 
-} catch (error) {
-    console.error("Error al definir asociaciones:", error);
-}
+        /** Relaciones directas del modelo intermedio acudiente_estudiantes */
+
+        AcudienteEstudiantes.belongsTo(Acudiente, {
+            foreignKey: "acudienteId",
+            as: "acudiente"
+        });
+        Acudiente.hasMany(AcudienteEstudiantes, {
+            foreignKey: "acudienteId",
+            as: "acudienteEstudiantes"
+        });
+
+        AcudienteEstudiantes.belongsTo(Estudiante, {
+            foreignKey: "estudianteId",
+            as: "estudiante"
+        });
+        Estudiante.hasMany(AcudienteEstudiantes, {
+            foreignKey: "estudianteId",
+            as: "acudienteEstudiantes"
+        });
+
+        /** 📅 Vigencia ↔ entidades dependientes */
+        [
+            [Grupo, "grupos"],
+            [Carga, "cargas"],
+            [Matricula, "matriculas"],
+            [Calificacion, "calificaciones"],
+            [Juicio, "juicios"],
+            [Area, "areas"],
+            [Asignatura, "asignaturas"],
+            [VentanaCalificacion, "ventanasCalificacion"],
+            [CalificacionArea, "calificacionesAreas"]
+        ].forEach(([Modelo, alias]) => {
+            Vigencia.hasMany(Modelo, { foreignKey: "vigenciaId", as: alias });
+            Modelo.belongsTo(Vigencia, { foreignKey: "vigenciaId", as: "vigencia" });
+        });
+
+    } catch (error) {
+        console.error("Error al definir asociaciones:", error);
+    }
 
 };

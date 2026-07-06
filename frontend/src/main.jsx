@@ -47,12 +47,13 @@ import {
 
   // Iconos de Estudiantes
   faFilePen,          // Matrículas
+  faUsersGear,         // Promoción Masiva
   faUsers,            // Estudiantes
   faHandsHoldingChild,// Acudientes
 
   // Iconos de Evaluación
   faStar,             // Calificaciones
-  faBalanceScale,     // Recuperaciones
+  faClipboardCheck,   // Recuperaciones
   faChartSimple,      // Indicadores
   faGavel,             // Juicios
   faFilePdf,             // Boletines
@@ -76,11 +77,11 @@ library.add(
 faBars, faSearch, faHome, faSignOutAlt, faChevronDown, faStar, faClipboardList,
 faChevronRight,faSave, faXmark, faEdit, faPenToSquare, faChartSimple,
 faTrash, faSpinner, faInfoCircle,faUserCircle, faCirclePlus, faGavel, faChartLine,
-faTimesCircle, faTimes, faAnglesLeft,faAngleLeft, faAngleRight, faBalanceScale,
+faTimesCircle, faTimes, faAnglesLeft,faAngleLeft, faAngleRight, faClipboardCheck,
 faAnglesRight, faSchool, faBuilding, faUserTie, faCalendarAlt, faUserShield,
 faLayerGroup, faBookOpen, faUsersRectangle, faChalkboardUser, faFilePdf, faKey,
 faEnvelope, faFilePen, faUsers, faHandsHoldingChild, faPersonChalkboard, faFileInvoice,
-faFileContract, faBook, faListUl
+faFileContract, faBook, faListUl, faUsersGear
 );
 // -----------------------------------------------------------------
 

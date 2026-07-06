@@ -66,6 +66,13 @@ export const certificadoService = {
         const matricula = await certificadoRepository.findMatriculaConDetalles(matriculaId);
         if (!matricula) throw new Error("No se encontró la matrícula solicitada.");
 
+        const estadoActual = matricula.estado ? matricula.estado.toUpperCase() : '';
+        if (estadoActual != 'ACTIVA' &&  estadoActual != 'PROMOVIDO' && estadoActual != 'REPROBADO' && estadoActual != 'MATRICULADO') {
+            const error = new Error(`No es posible emitir constancia de matrícula. El estado actual del estudiante en el grado seleccionado es: ${estadoActual}.`);
+            error.status = 400;
+            throw error;
+        }
+
         const est = matricula.estudiante;
         const grado = matricula.grupo.grado;
 
@@ -145,110 +152,249 @@ export const certificadoService = {
         const estudiante = matricula.estudiante;
         const vigenciaId = matricula.vigenciaId;
         const grupoId = matricula.grupoId;
+        const gradoOriginal = matricula.grupo?.grado?.nombre || '';
 
-        // 2. Fetch de Notas, Rangos y Cargas
-        const calificaciones = await certificadoRepository.findCalificacionesCertificado(estudiante.id, vigenciaId, periodo);
-        if (!calificaciones || calificaciones.length === 0) {
-            throw new Error(`El estudiante no tiene calificaciones registradas para el periodo seleccionado`);
+        // Determinar si es Informe Final (Definitivas)
+        const gradoMayus = gradoOriginal.toUpperCase();
+
+        // Identificación estricta e independiente de cada ciclo
+        const esCicloVI = gradoMayus.includes('CICLO_VI') || gradoMayus.includes('CICLO VI');
+        const esCicloV = !esCicloVI && (gradoMayus.includes('CICLO_V') || gradoMayus.includes('CICLO V'));
+
+        const esInformeFinal = (esCicloV && Number(periodo) === 3) || (Number(periodo) === 5);
+
+        // Validación: Si es informe final, la matrícula debe estar PROMOVIDO o REPROBADO
+        if (esInformeFinal) {
+            const estadoMat = matricula.estado ? matricula.estado.toUpperCase() : '';
+            if (estadoMat !== 'PROMOVIDO' && estadoMat !== 'REPROBADO') {
+                const error = new Error(`No es posible generar el certificado final, porque al estudiante aún no se le ha realizado promoción.`);
+                error.status = 400;
+                throw error;
+            }
         }
 
         const cargas = await certificadoRepository.findCargasParaCertificado(grupoId, vigenciaId);
         const rangosDb = await certificadoRepository.findRangosDesempeno(vigenciaId);
-
-        // 3. Diccionario de Rangos de Desempeño
         const rangosDesempeno = rangosDb.map(r => ({
             desde: Number(r.minNota),
             hasta: Number(r.maxNota),
             desempeno: r.desempeno?.nombre || ''
         }));
 
-        // 4. AGRUPACIÓN Y CÁLCULO MATEMÁTICO
-        const diccionarioAreas = {};
-        let textoComportamiento = "Bueno"; // Valor por defecto si no se encuentra el comportamiento
+        let areasFinales = [];
+        let nivelacionesFinales = [];
         let notaComportamiento = null;
         let desempeñoComportamiento = "";
 
-        calificaciones.forEach(cal => {
-            const areaNombre = (cal.asignatura?.area?.nombre || 'SIN ÁREA').toUpperCase().trim();
-            const asigNombre = (cal.asignatura?.nombre || 'SIN ASIGNATURA').toUpperCase().trim();
-            const porcentaje = cal.asignatura?.porcentual || 100;
-            const nota = cal.notaDefinitiva || 0;
+        // ====================================================
+        // BIFURCACIÓN DE LÓGICA (FINAL VS PERIODO)
+        // ====================================================
+        if (esInformeFinal) {
+            // ==========================================
+            // LÓGICA INFORME FINAL (Áreas + Asignaturas Promediadas)
+            // ==========================================
+            const califAreas = await certificadoRepository.findCalificacionesAreasCertificado(estudiante.id, vigenciaId, periodo);
+            const nivelaciones = await certificadoRepository.findNivelacionesCertificado(estudiante.id, vigenciaId);
 
-            // Buscar la carga para sacar la Intensidad Horaria
-            const cargaAsig = cargas.find(c => c.asignaturaId === cal.asignaturaId);
-            const ih = cargaAsig?.horas || 0;
-
-            const esComportamiento = areaNombre === 'COMPORTAMIENTO' || areaNombre === 'DISCIPLINA';
-
-            if (esComportamiento) {
-                notaComportamiento = nota;
-                textoComportamiento = cal.juicioAcademica || "Sin registro";
-                return; // Lo tratamos por separado
+            if (!califAreas || califAreas.length === 0) {
+                const error = new Error(`El estudiante no tiene consolidado final registrado en las áreas.`);
+                error.status = 404; throw error;
             }
 
-            if (!diccionarioAreas[areaNombre]) {
-                diccionarioAreas[areaNombre] = {
-                    nombreArea: areaNombre,
-                    notaAreaAcumulada: 0,
-                    ihArea: 0,
-                    asignaturas: []
-                };
+            // Determinar los periodos operativos según el tipo de ciclo/grado
+            let periodosAConsultar = [1, 2, 3, 4];
+            if (esCicloV) periodosAConsultar = [1, 2];
+            else if (esCicloVI) periodosAConsultar = [3, 4];
+
+            // Consultar las calificaciones de todos los periodos académicos históricos correspondientes
+            let todasCalificaciones = [];
+            for (const p of periodosAConsultar) {
+                const califs = await certificadoRepository.findCalificacionesCertificado(estudiante.id, vigenciaId, p);
+                if (califs && califs.length > 0) {
+                    todasCalificaciones = todasCalificaciones.concat(califs);
+                }
             }
 
-            // Cálculos para la asignatura
-            const notaRelativa = nota * (porcentaje / 100);
+            // Agrupar e implementar el cálculo de promedios por asignatura en memoria
+            const diccionarioAsignaturas = {};
+            todasCalificaciones.forEach(cal => {
+                const areaNombre = (cal.asignatura?.area?.nombre || 'SIN ÁREA').toUpperCase().trim();
+                const esComportamiento = areaNombre === 'COMPORTAMIENTO' || areaNombre === 'DISCIPLINA';
 
-            diccionarioAreas[areaNombre].asignaturas.push({
-                nombreAsignatura: asigNombre,
-                ih: ih > 0 ? ih : '',
-                nota: nota.toFixed(2).replace('.', ','),
-                porcentaje: porcentaje,
-                formulaCalculo: `(${nota.toFixed(2)} x ${porcentaje}% = ${notaRelativa.toFixed(4)})`
+                if (esComportamiento) return; // Se gestiona a nivel consolidado de área
+
+                const asigId = cal.asignaturaId;
+                if (!diccionarioAsignaturas[asigId]) {
+                    diccionarioAsignaturas[asigId] = {
+                        asignatura: cal.asignatura,
+                        notas: []
+                    };
+                }
+                if (cal.notaDefinitiva !== null && cal.notaDefinitiva !== undefined) {
+                    diccionarioAsignaturas[asigId].notas.push(parseFloat(cal.notaDefinitiva));
+                }
             });
 
-            // Acumulamos para el Área
-            diccionarioAreas[areaNombre].notaAreaAcumulada += notaRelativa;
-            diccionarioAreas[areaNombre].ihArea += ih;
-        });
+            const asignaturasPromedios = Object.values(diccionarioAsignaturas).map(item => {
+                const notas = item.notas;
+                let sumaNotas = 0;
+                notas.forEach(n => sumaNotas += n);
+                const promedioAsig = notas.length > 0 ? (sumaNotas / notas.length) : 0;
 
-        // 5. Procesar el resultado final de las Áreas (Calculando el Desempeño)
-        const areasFinales = Object.values(diccionarioAreas).map(area => {
-            // Evitar problemas de flotantes en JS
-            const notaLimpia = Math.round(area.notaAreaAcumulada * 100) / 100;
+                return {
+                    asignaturaId: item.asignatura?.id,
+                    areaId: item.asignatura?.areaId,
+                    nombreAsignatura: (item.asignatura?.nombre || '').toUpperCase(),
+                    promedio: promedioAsig
+                };
+            });
 
-            // Buscar desempeño del área
-            let desempenoText = "";
-            const rango = rangosDesempeno.find(r => notaLimpia >= r.desde && notaLimpia <= r.hasta);
-            if (rango) desempenoText = rango.desempeno.toUpperCase();
+            areasFinales = califAreas.map(calArea => {
+                const areaNombre = (calArea.area?.nombre || 'SIN ÁREA').toUpperCase().trim();
+                const esComportamiento = areaNombre === 'COMPORTAMIENTO' || areaNombre === 'DISCIPLINA';
 
-            return {
-                nombreArea: area.nombreArea,
-                ihArea: area.ihArea > 0 ? area.ihArea : '',
-                notaArea: notaLimpia.toFixed(2).replace('.', ','),
-                desempenoArea: desempenoText,
-                asignaturas: area.asignaturas,
-                mostrarAsignaturas: area.asignaturas.length > 1
-            };
-        }).sort((a, b) => a.nombreArea.localeCompare(b.nombreArea)); // Orden alfabético
+                let desempenoText = "";
+                const rango = rangosDesempeno.find(r => calArea.notaDefinitiva >= r.desde && calArea.notaDefinitiva <= r.hasta);
+                if (rango) desempenoText = rango.desempeno.toUpperCase();
 
-        // Desempeño de Comportamiento
-        if (notaComportamiento !== null) {
-            const rangoComp = rangosDesempeno.find(r => notaComportamiento >= r.desde && notaComportamiento <= r.hasta);
-            if (rangoComp) desempeñoComportamiento = rangoComp.desempeno.toUpperCase();
+                if (esComportamiento) {
+                    notaComportamiento = calArea.notaDefinitiva;
+                    desempeñoComportamiento = desempenoText;
+                    return null;
+                }
+
+                // Filtrar y estructurar las asignaturas pertenecientes a esta área específica
+                const asignaturasDelArea = asignaturasPromedios
+                    .filter(asig => asig.areaId === calArea.areaId)
+                    .map(asig => {
+                        const carga = cargas.find(car => car.asignaturaId === asig.asignaturaId);
+
+                        // Calculamos la matemática de la fórmula
+                        const porcentaje = carga?.asignatura?.porcentual || 100;
+                        const notaRelativa = asig.promedio * (porcentaje / 100);
+
+                        return {
+                            nombreAsignatura: asig.nombreAsignatura,
+                            ih: carga?.horas || '',
+                            nota: asig.promedio.toFixed(2).replace('.', ','),
+                            formulaCalculo: `(${asig.promedio.toFixed(2)} x ${porcentaje}% = ${notaRelativa.toFixed(4)})`
+                            //formulaCalculo: '' // El reporte definitivo final no requiere impresión de fórmulas
+                        };
+                    });
+
+                const ihArea = cargas
+                    .filter(c => c.asignatura?.areaId === calArea.areaId)
+                    .reduce((sum, c) => sum + (c.horas || 0), 0);
+
+                return {
+                    nombreArea: areaNombre,
+                    ihArea: ihArea > 0 ? ihArea : '',
+                    notaArea: calArea.notaDefinitiva.toFixed(2).replace('.', ','),
+                    desempenoArea: desempenoText,
+                    asignaturas: asignaturasDelArea,
+                    mostrarAsignaturas: asignaturasDelArea.length > 1,
+                    esComportamiento: false
+                };
+            }).filter(Boolean);
+
+            // Estructurar Nivelaciones
+            nivelacionesFinales = nivelaciones.map(niv => {
+                const rangoNiv = rangosDesempeno.find(r => niv.notaFinalLegal >= r.desde && niv.notaFinalLegal <= r.hasta);
+                return {
+                    nombreArea: (niv.area?.nombre || '').toUpperCase(),
+                    notaAnterior: niv.notaDefinitivaOriginal.toFixed(2).replace('.', ','),
+                    notaFinal: niv.notaFinalLegal.toFixed(2).replace('.', ','),
+                    desempeno: rangoNiv ? rangoNiv.desempeno.toUpperCase() : '',
+                    aprobado: niv.estadoFinal === 'APROBADO' || niv.estadoFinal === 'NIVELADO'
+                };
+            });
+
+        } else {
+            // ==========================================
+            // LÓGICA PERIODOS REGULARES (Funcionamiento Estándar)
+            // ==========================================
+            const califAsignaturasPeriodo = await certificadoRepository.findCalificacionesCertificado(estudiante.id, vigenciaId, periodo);
+
+            if (!califAsignaturasPeriodo || califAsignaturasPeriodo.length === 0) {
+                const error = new Error(`El estudiante no tiene calificaciones registradas para el periodo seleccionado`);
+                error.status = 404; throw error;
+            }
+
+            const diccionarioAreas = {};
+
+            califAsignaturasPeriodo.forEach(cal => {
+                const areaNombre = (cal.asignatura?.area?.nombre || 'SIN ÁREA').toUpperCase().trim();
+                const asigNombre = (cal.asignatura?.nombre || 'SIN ASIGNATURA').toUpperCase().trim();
+                const porcentaje = cal.asignatura?.porcentual || 100;
+                const nota = cal.notaDefinitiva || 0;
+
+                const cargaAsig = cargas.find(c => c.asignaturaId === cal.asignaturaId);
+                const ih = cargaAsig?.horas || 0;
+                const esComportamiento = areaNombre === 'COMPORTAMIENTO' || areaNombre === 'DISCIPLINA';
+
+                if (esComportamiento) {
+                    notaComportamiento = nota;
+                    desempeñoComportamiento = cal.juicioAcademica || "BUENO";
+                    return;
+                }
+
+                if (!diccionarioAreas[areaNombre]) {
+                    diccionarioAreas[areaNombre] = {
+                        nombreArea: areaNombre,
+                        notaAreaAcumulada: 0,
+                        ihArea: 0,
+                        asignaturas: []
+                    };
+                }
+
+                const notaRelativa = nota * (porcentaje / 100);
+
+                diccionarioAreas[areaNombre].asignaturas.push({
+                    nombreAsignatura: asigNombre,
+                    ih: ih > 0 ? ih : '',
+                    nota: nota.toFixed(2).replace('.', ','),
+                    formulaCalculo: `(${nota.toFixed(2)} x ${porcentaje}% = ${notaRelativa.toFixed(4)})`
+                });
+
+                diccionarioAreas[areaNombre].notaAreaAcumulada += notaRelativa;
+                diccionarioAreas[areaNombre].ihArea += ih;
+            });
+
+            areasFinales = Object.values(diccionarioAreas).map(area => {
+                const notaLimpia = Math.round(area.notaAreaAcumulada * 100) / 100;
+                let desempenoText = "";
+                const rango = rangosDesempeno.find(r => notaLimpia >= r.desde && notaLimpia <= r.hasta);
+                if (rango) desempenoText = rango.desempeno.toUpperCase();
+
+                return {
+                    nombreArea: area.nombreArea,
+                    ihArea: area.ihArea > 0 ? area.ihArea : '',
+                    notaArea: notaLimpia.toFixed(2).replace('.', ','),
+                    desempenoArea: desempenoText,
+                    asignaturas: area.asignaturas,
+                    mostrarAsignaturas: area.asignaturas.length > 1,
+                    esComportamiento: false
+                };
+            }).sort((a, b) => a.nombreArea.localeCompare(b.nombreArea));
+
+            if (notaComportamiento !== null) {
+                const rangoComp = rangosDesempeno.find(r => notaComportamiento >= r.desde && notaComportamiento <= r.hasta);
+                if (rangoComp) desempeñoComportamiento = rangoComp.desempeno.toUpperCase();
+            }
         }
 
-        // 6. GENERACIÓN DEL TEXTO LEGAL
-        const gradoOriginal = matricula.grupo.grado.nombre;
+        // ==========================================
+        // TEXTOS LEGALES Y RETORNO DE CONTEXTO HBS
+        // ==========================================
         const textoGrado = formatearGradoYCiclo(gradoOriginal);
-
-        const nivelAcademico = DICCIONARIO_NIVELES[matricula.grupo.grado.nivelAcademico] || 'Educación Básica/Media';
+        const nivelAcademico = DICCIONARIO_NIVELES[matricula.grupo?.grado?.nivelAcademico] || 'Educación Básica/Media';
+        const jornadaTexto = matricula.grupo?.jornada?.nombre || 'respectiva';
 
         const periodosLetras = { 1: "Primero", 2: "Segundo", 3: "Tercero", 4: "Cuarto" };
-        const textoPeriodo = Number(periodo) === 5 ? "el año lectivo" : `el periodo ${periodosLetras[periodo] || periodo}`;
+        const textoPeriodo = esInformeFinal ? "el año lectivo" : `el periodo ${periodosLetras[periodo] || periodo}`;
 
         const parrafoLegal = `En el año ${matricula.vigencia.anio}, fue matriculado(a) en el grado ${textoGrado} de ${nivelAcademico} y al finalizar ${textoPeriodo} obtuvo los siguientes niveles de desempeño en las distintas áreas de estudio establecidas por la Ley 115 de 1994 y el Plan de Estudio consignado en el PEI de la Institución:`;
 
-        // Textos automatizados (Fecha expedición)
         const fechaActual = new Date();
         const nombresMeses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
         const ciudadFormateada = colegio.ciudad.charAt(0).toUpperCase() + colegio.ciudad.slice(1).toLowerCase();
@@ -256,11 +402,13 @@ export const certificadoService = {
 
         const logoBase64 = await _obtenerLogoBase64();
 
-        // 7. ARMAR EL CONTEXTO FINAL PARA HANDLEBARS
         const contextoHbs = {
             urlEscudo: logoBase64,
             textoExpedicion,
             parrafoLegal,
+            esInformeFinal,
+            nivelaciones: nivelacionesFinales,
+            tieneNivelaciones: nivelacionesFinales.length > 0,
             colegio: {
                 nombre: colegio.nombre,
                 registroDane: colegio.registroDane,
@@ -282,6 +430,17 @@ export const certificadoService = {
                 documento: estudiante.documento,
                 lugarExpedicion: formatearLugar(estudiante.lugarExpedicion)
             },
+            matricula: {
+                estado: matricula.estado ? matricula.estado.toUpperCase() : 'PROMOVIDO',
+                jornada: jornadaTexto.toLowerCase()
+            },
+            grado: {
+                nombre: textoGrado,
+                nivelAcademicoTexto: nivelAcademico
+            },
+            vigencia: {
+                anio: matricula.vigencia.anio
+            },
             areas: areasFinales,
             comportamiento: notaComportamiento !== null ? {
                 nota: notaComportamiento.toFixed(2).replace('.', ','),
@@ -289,7 +448,6 @@ export const certificadoService = {
             } : null
         };
 
-        // 8. Generar PDF (Creamos el enlace en pdfService luego)
         return await pdfService.crearPdfCertificado(contextoHbs, 'certificado-notas.hbs');
     }
 };

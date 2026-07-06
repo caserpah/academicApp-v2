@@ -1,5 +1,7 @@
 import { Op } from "sequelize";
+import { Area } from "../models/area.js";
 import { Calificacion } from "../models/calificacion.js";
+import { CalificacionArea } from "../models/calificacionArea.js"
 import { Matricula } from "../models/matricula.js";
 import { Estudiante } from "../models/estudiante.js";
 import { Asignatura } from "../models/asignatura.js";
@@ -161,8 +163,7 @@ export const calificacionRepository = {
     },
 
     /**
-     * Trae TODAS las notas de un grupo de estudiantes para los periodos permitidos,
-     * excluyendo la asignatura 'COMPORTAMIENTO'. (Uso exclusivo para Cierre de Año)
+     * Trae TODAS las notas de un grupo de estudiantes para los periodos permitidos. (Uso exclusivo para Cierre de Año)
      */
     async findCalificacionesParaConsolidado(estudiantesIds, vigenciaId, periodosPermitidos) {
         return Calificacion.findAll({
@@ -175,10 +176,7 @@ export const calificacionRepository = {
                 {
                     model: Asignatura,
                     as: 'asignatura',
-                    where: {
-                        nombre: { [Op.ne]: 'COMPORTAMIENTO' } // Ignorar Comportamiento
-                    },
-                    attributes: ['id', 'nombre']
+                    attributes: ['id', 'nombre', 'areaId', 'porcentual']
                 }
             ],
             raw: true,
@@ -192,6 +190,55 @@ export const calificacionRepository = {
     async findVentana(periodo, vigenciaId) {
         return VentanaCalificacion.findOne({
             where: { periodo, vigenciaId }
+        });
+    },
+
+    /**
+     * INSERCIÓN/ACTUALIZACIÓN MASIVA DE CALIFICACIONES
+     * Rellena las notas faltantes detectadas en el cierre de año.
+     */
+    async guardarMasivo(registros, { transaction } = {}) {
+        return await Calificacion.bulkCreate(registros, {
+            transaction,
+            validate: true,
+            // Si el registro ya existe, actualizamos TODOS los campos calculados
+            updateOnDuplicate: [
+                "notaAcademica", "promedioAcademica", "juicioAcademica",
+                "notaAcumulativa", "promedioAcumulativa", "juicioAcumulativa",
+                "notaLaboral", "promedioLaboral", "juicioLaboral",
+                "notaSocial", "promedioSocial", "juicioSocial",
+                "notaDefinitiva",
+                "observacion_cambio",
+                "fecha_edicion",
+                "fechaActualizacion"
+            ]
+        });
+    },
+
+    async findCalificacionesParaMerge(vigenciaId, estudiantesIds, asignaturasIds, transaction) {
+        return await Calificacion.findAll({
+            where: {
+                vigenciaId,
+                estudianteId: { [Op.in]: estudiantesIds },
+                asignaturaId: { [Op.in]: asignaturasIds }
+            },
+            raw: true,
+            transaction
+        });
+    },
+
+    /**
+     * Obtiene los consolidados finales de un grupo de matrículas para un periodo específico (Cierre)
+     */
+    async findConsolidadosPorMatriculas(matriculasIds, periodoCierre) {
+        return await CalificacionArea.findAll({
+            where: {
+                matriculaId: { [Op.in]: matriculasIds },
+                periodo: periodoCierre
+            },
+            include: [{ model: Area, as: 'area', attributes: ['id', 'nombre'] }],
+            raw: true,
+            nest: true
         });
     }
 };

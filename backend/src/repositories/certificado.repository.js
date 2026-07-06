@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import { Matricula } from "../models/matricula.js";
 import { Estudiante } from "../models/estudiante.js";
 import { Grupo } from "../models/grupo.js";
@@ -11,7 +12,8 @@ import { Asignatura } from "../models/asignatura.js";
 import { Sede } from "../models/sede.js";
 import { Vigencia } from "../models/vigencia.js";
 import { Colegio } from "../models/colegio.js";
-import { Op } from "sequelize";
+import { CalificacionArea } from "../models/calificacionArea.js";
+import { Nivelacion } from "../models/nivelacion.js";
 
 export const certificadoRepository = {
     async findColegio() {
@@ -35,18 +37,29 @@ export const certificadoRepository = {
 
     // Método de búsqueda general para estudiantes
     async buscarEstudiantesGeneral(termino) {
-        // Limpiamos el término de búsqueda
-        const busquedaLimpia = termino.trim().toUpperCase();
+
+        // Limpiamos espacios múltiples y dividimos la cadena por palabras individuales
+        const palabras = termino.trim().toUpperCase().replace(/\s+/g, ' ').split(' ');
+
+        // Previene búsquedas vacías si el usuario solo envía espacios
+        if (palabras.length === 0 || palabras[0] === '') return [];
+
+        // Construimos una matriz de condiciones dinámicas
+        // Para CADA palabra, le decimos a Sequelize que verifique si está en ALGUNO de los campos
+        const condiciones = palabras.map(palabra => ({
+            [Op.or]: [
+                { documento: { [Op.substring]: palabra } },
+                { primerNombre: { [Op.substring]: palabra } },
+                { segundoNombre: { [Op.substring]: palabra } },
+                { primerApellido: { [Op.substring]: palabra } },
+                { segundoApellido: { [Op.substring]: palabra } }
+            ]
+        }));
 
         return Estudiante.findAll({
             where: {
-                [Op.or]: [
-                    { documento: { [Op.substring]: busquedaLimpia } },
-                    { primerNombre: { [Op.substring]: busquedaLimpia } },
-                    { primerApellido: { [Op.substring]: busquedaLimpia } },
-                    { segundoNombre: { [Op.substring]: busquedaLimpia } },
-                    { segundoApellido: { [Op.substring]: busquedaLimpia } }
-                ]
+                // 3. Aplicamos un Op.and global: TODAS las palabras ingresadas deben tener coincidencia
+                [Op.and]: condiciones
             },
             include: [
                 {
@@ -64,7 +77,7 @@ export const certificadoRepository = {
                 ['primerNombre', 'ASC'],
                 [{ model: Matricula, as: 'matriculas' }, { model: Vigencia, as: 'vigencia' }, 'anio', 'DESC']
             ],
-            limit: 20 // Límite de seguridad para no saturar la respuesta si buscan letras muy comunes
+            limit: 20 // Excelente práctica mantener este límite para escalar a millones de registros
         });
     },
 
@@ -135,6 +148,31 @@ export const certificadoRepository = {
                 { model: Desempeno, as: 'desempeno' }
             ],
             order: [['minNota', 'ASC']]
+        });
+    },
+
+    /**
+     * Obtiene las calificaciones definitivas por ÁREA para el certificado final.
+     */
+    async findCalificacionesAreasCertificado(matriculaId, vigenciaId, periodo) {
+        return CalificacionArea.findAll({
+            where: { matriculaId, vigenciaId, periodo },
+            include: [
+                { model: Area, as: 'area' }
+            ],
+            order: [[{ model: Area, as: 'area' }, 'nombre', 'ASC']]
+        });
+    },
+
+    /**
+     * Obtiene las nivelaciones del estudiante en una vigencia.
+     */
+    async findNivelacionesCertificado(matriculaId, vigenciaId) {
+        return Nivelacion.findAll({
+            where: { matriculaId, vigenciaId },
+            include: [
+                { model: Area, as: 'area' }
+            ]
         });
     }
 };

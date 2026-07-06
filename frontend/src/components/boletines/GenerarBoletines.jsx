@@ -76,6 +76,38 @@ const GenerarBoletines = () => {
         cargarEstudiantes();
     }, [formData.grupoId]);
 
+    // --- LÓGICA DE PERIODOS DINÁMICOS ---
+    const getOpcionesPeriodo = () => {
+        if (!grupoActual || !grupoActual.grado) return [];
+        const grado = grupoActual.grado.nombre.toUpperCase();
+
+        // Evaluamos PRIMERO el Ciclo VI
+        if (grado.includes('CICLO_VI') || grado.includes('CICLO VI')) {
+            return [
+                { value: "3", label: "Tercer Periodo" },
+                { value: "4", label: "Cuarto Periodo" },
+                { value: "5", label: "Boletín Final" }
+            ];
+        }
+        // Evaluamos el Ciclo V
+        else if (grado.includes('CICLO_V') || grado.includes('CICLO V')) {
+            return [
+                { value: "1", label: "Primer Periodo" },
+                { value: "2", label: "Segundo Periodo" },
+                { value: "3", label: "Boletín Final" }
+            ];
+        }
+        // Modalidad Tradicional
+        else {
+            return [
+                { value: "1", label: "Primer Periodo" },
+                { value: "2", label: "Segundo Periodo" },
+                { value: "3", label: "Tercer Periodo" },
+                { value: "4", label: "Cuarto Periodo" },
+                { value: "5", label: "Boletín Final" }
+            ];
+        }
+    };
 
     // --- HANDLERS ---
     const handleChange = (e) => {
@@ -105,7 +137,6 @@ const GenerarBoletines = () => {
         }
         try {
             setIsAuditing(true);
-            // Reemplaza esto con tu función real del api/boletinesService.js
             const reporte = await fetchAuditoriaBoletines(formData.grupoId, formData.periodoActual);
 
             if (reporte && reporte.length > 0) {
@@ -116,7 +147,15 @@ const GenerarBoletines = () => {
             }
         } catch (error) {
             console.error("Error en auditoría de notas faltantes", error);
-            showError("Error al auditar calificaciones.");
+
+            const mensaje = error.message || "";
+            const esAdvertencia = mensaje.includes("carga académica") || mensaje.includes("estudiantes matriculados");
+
+            if (esAdvertencia) {
+                showWarning(mensaje);
+            } else {
+                showError(mensaje || "Error inesperado al auditar calificaciones.");
+            }
         } finally {
             setIsAuditing(false);
         }
@@ -222,7 +261,16 @@ const GenerarBoletines = () => {
             });
 
         } catch (error) {
-            showError(error.message);
+            console.error("Error al generar boletines:", error);
+
+            const mensaje = error.message || "";
+
+            // Si es por falta de notas, se muestra como advertencia
+            if (mensaje.includes("No hay calificaciones registradas")) {
+                showWarning(mensaje);
+            } else {
+                showError(mensaje || "Ocurrió un error inesperado al generar los boletines.");
+            }
         } finally {
             setLoading(false);
         }
@@ -283,13 +331,11 @@ const GenerarBoletines = () => {
                             <div className="space-y-4">
                                 <div>
                                     <label className={labelClasses}>Periodo a Imprimir <span className="text-red-500">*</span></label>
-                                    <select name="periodoActual" value={formData.periodoActual} onChange={handleChange} className={inputClasses} required>
+                                    <select name="periodoActual" value={formData.periodoActual} onChange={handleChange} className={inputClasses} disabled={!formData.grupoId} required>
                                         <option value="">-- Seleccione --</option>
-                                        <option value="1">Primer Periodo</option>
-                                        <option value="2">Segundo Periodo</option>
-                                        <option value="3">Tercer Periodo</option>
-                                        <option value="4">Cuarto Periodo</option>
-                                        <option value="5">Informe Final</option>
+                                        {getOpcionesPeriodo().map(opcion => (
+                                            <option key={opcion.value} value={opcion.value}>{opcion.label}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div>

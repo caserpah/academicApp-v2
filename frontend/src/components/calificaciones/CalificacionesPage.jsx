@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faFileExcel, faClipboardCheck, faFilter, faDownload,
@@ -159,13 +159,48 @@ const CalificacionesPage = () => {
 
     }, [filters.grupoId, esAdmin, cargaCompleta, asignaturasGlobales, filters.asignaturaId]);
 
+    // --- LÓGICA INTELIGENTE DE PERIODOS ---
+    const periodosDisponibles = useMemo(() => {
+        if (!filters.grupoId) return [1, 2, 3, 4];
+
+        const grupoSelecto = gruposDisponibles.find(g => String(g.id) === String(filters.grupoId));
+        if (!grupoSelecto) return [1, 2, 3, 4];
+
+        // Normalizamos el nombre del grupo para evitar problemas de mayúsculas, minúsculas y espacios
+        const nombreNormalizado = (grupoSelecto.label || '').toUpperCase().replace(/\s+/g, ' ');
+
+        // Si el nombre del grupo contiene "CICLO V" pero no "VI", entonces es ciclo V
+        const esCicloV = nombreNormalizado.includes('CICLO V') && !nombreNormalizado.includes('VI');
+        const esCicloVI = nombreNormalizado.includes('CICLO VI');
+
+        if (esCicloV) {
+            return [1, 2];
+        }
+
+        if (esCicloVI) {
+            return [3, 4];
+        }
+
+        return [1, 2, 3, 4];
+    }, [filters.grupoId, gruposDisponibles]);
+
+    // Efecto para limpiar el periodo seleccionado si el usuario cambia de grupo
+    // y el periodo actual ya no es válido para el nuevo grupo
+    useEffect(() => {
+        if (filters.periodo && !periodosDisponibles.includes(Number(filters.periodo))) {
+            setFilters(prev => ({ ...prev, periodo: '' }));
+            setStudentsData([]); // Limpiamos la grilla por seguridad
+        }
+    }, [periodosDisponibles, filters.periodo]);
+
     // --- CARGA DE LA GRILLA (Al completar filtros) ---
     const loadGrilla = useCallback(async () => {
         const { grupoId, asignaturaId, periodo } = filters;
 
+        setAlertaPendientes({ show: false, count: 0, data: null });
+
         if (!grupoId || !asignaturaId || !periodo || !vigencia?.id) {
             setStudentsData([]);
-            setAlertaPendientes({ show: false, data: null });
             setIsReadOnly(false); // Limpiamos la alerta
             return;
         }
@@ -196,7 +231,7 @@ const CalificacionesPage = () => {
             // Si el periodo es mayor a 1 Y la ventana está abierta (o es admin), verificamos pendientes
             if (parseInt(periodo) > 1 && !isCurrentlyReadOnly) {
                 const auditoria = await checkPendientesDocente({ grupoId, asignaturaId, periodo });
-                if (auditoria.hayPendientes) {
+                if (auditoria && auditoria.hayPendientes) {
                     setAlertaPendientes({ show: true, data: auditoria });
                 } else {
                     setAlertaPendientes({ show: false, data: null });
@@ -413,7 +448,7 @@ const CalificacionesPage = () => {
                                 className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:border-gray-300 disabled:cursor-not-allowed transition-colors "
                             >
                                 <option value="">-- Seleccione --</option>
-                                {[1, 2, 3, 4].map(p => <option key={p} value={p}>Periodo {p}</option>)}
+                                {periodosDisponibles.map(p => <option key={p} value={p}>Periodo {p}</option>)}
                             </select>
                         </div>
 
@@ -559,7 +594,7 @@ const CalificacionesPage = () => {
             {/* ========================================================= */}
             {showModalPendientes && alertaPendientes.data && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden border-t-4 border-orange-500">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden border-t-4 border-orange-500">
                         <div className="p-4 border-b border-gray-100 bg-orange-50 flex justify-between items-center">
                             <h3 className="text-lg font-bold text-orange-800 flex items-center gap-2">
                                 <FontAwesomeIcon icon={faExclamationTriangle} className="text-orange-500" />

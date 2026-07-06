@@ -23,6 +23,15 @@ export const boletinService = {
         const esPreescolar = grupo.grado.nivelAcademico === 'PREESCOLAR';
         const tipoBoletin = esPreescolar ? 'DESCRIPTIVO' : tipoBoletinReq;
 
+        // Lógica de dinámica de cierre de año
+        const nombreGrado = (grupo.grado.nombre || '').toUpperCase();
+
+        const esCicloVI = nombreGrado.includes('CICLO_VI') || nombreGrado.includes('CICLO VI');
+        const esCicloV = !esCicloVI && (nombreGrado.includes('CICLO_V') || nombreGrado.includes('CICLO V'));
+
+        // Define dinámicamente si es Informe Final
+        const esPeriodoFinal = (esCicloV && Number(periodoActual) === 3) || (Number(periodoActual) === 5);
+
         const rangosDb = await boletinRepository.findRangosDesempeno(vigenciaId);
         const rangosDesempeno = rangosDb.map(r => ({
             desde: r.minNota.toFixed(2),
@@ -36,17 +45,41 @@ export const boletinService = {
         // Excluir a los estudiantes anulados
         matriculasTotales = matriculasTotales.filter(m => m.estado !== 'ANULADO');
 
+        // Si es Informe Final, solo pasan PROMOVIDOS o REPROBADOS
+        if (esPeriodoFinal) {
+            matriculasTotales = matriculasTotales.filter(m => m.estado === 'PROMOVIDO' || m.estado === 'REPROBADO');
+
+            if (matriculasTotales.length === 0) {
+                throw new Error("No se puede generar el Informe Final porque ningún estudiante del grupo tiene estado PROMOVIDO o REPROBADO. Debe ejecutar primero el proceso de promoción de fin de año.");
+            }
+        } else {
+            // Si es un periodo regular (1 al 4), filtramos los RETIRADOS para no sacarles boletín
+            matriculasTotales = matriculasTotales.filter(m => m.estado !== 'RETIRADO');
+        }
+
         if (!matriculasTotales || matriculasTotales.length === 0) {
-            throw new Error("No hay estudiantes matriculados y activos en este grupo.");
+            throw new Error("No hay estudiantes válidos para generar boletines en este periodo.");
         }
 
         // Extraemos las notas de TODO EL GRUPO para que los promedios y puestos sean
         const idsEstudiantesTotales = matriculasTotales.map(m => m.estudiante.id);
+        const idsMatriculasTotales = matriculasTotales.map(m => m.id);
+
         const cargas = await boletinRepository.findCargasPorGrupo(grupoId, vigenciaId);
         const calificacionesPlanas = await boletinRepository.findCalificacionesHistoricasLote(idsEstudiantesTotales, vigenciaId);
 
+        // Solo para el periodo final, traemos las calificaciones consolidadas de áreas y las nivelaciones
+        let consolidadosAreas = [];
+        let nivelaciones = [];
+        if (esPeriodoFinal) {
+            consolidadosAreas = await boletinRepository.findCalificacionesAreasLote(idsMatriculasTotales);
+            nivelaciones = await boletinRepository.findNivelacionesLote(idsMatriculasTotales);
+        }
+
         // Validar que al menos alguien tenga notas en el periodo solicitado
-        const tieneNotasPeriodo = calificacionesPlanas.some(cal => Number(cal.periodo) === Number(periodoActual));
+        const tieneNotasPeriodo = esPeriodoFinal
+            ? consolidadosAreas.length > 0
+            : calificacionesPlanas.some(cal => Number(cal.periodo) === Number(periodoActual));
 
         if (!tieneNotasPeriodo) {
             throw new Error(`No hay calificaciones registradas para el periodo y grupo seleccionado. No se puede generar el boletín.`);
@@ -55,7 +88,7 @@ export const boletinService = {
         // =========================================================
         // FASE 2: CÁLCULOS EN MEMORIA
         // =========================================================
-        const notasAgrupadas = _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipoBoletin, periodoActual, rangosDesempeno);
+        const notasAgrupadas = _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipoBoletin, periodoActual, rangosDesempeno, matriculasTotales, consolidadosAreas, nivelaciones, esPeriodoFinal);
         const { promediosGrupo, rankingEstudiantes } = _calcularEstadisticasYPuestos(notasAgrupadas, idsEstudiantesTotales);
 
         // =========================================================
@@ -119,7 +152,8 @@ export const boletinService = {
                 periodoActual: periodoActual,
                 anioLectivo: anioLectivo,
                 esPreescolar: esPreescolar,
-                esValorativo: tipoBoletin === 'VALORATIVO'
+                esValorativo: tipoBoletin === 'VALORATIVO',
+                esPeriodoFinal: esPeriodoFinal
             },
             grupo: {
                 grado: grupo.grado.nombre,
@@ -150,11 +184,20 @@ export const boletinService = {
             !['ANULADO'].includes(m.estado)
         );
 
-        if (matriculasTotales.length === 0) return [];
+        // Validación: Si no hay estudiantes, no tiene sentido auditar nada
+        if (matriculasTotales.length === 0) {
+            throw new Error("No se encontraron estudiantes matriculados y activos en este grupo.");
+        }
 
         // 2. Traer Cargas (para saber quién dicta qué) y Notas Planas
         const idsEstudiantes = matriculasTotales.map(m => m.estudiante.id);
         const cargas = await boletinRepository.findCargasPorGrupo(grupoId, vigenciaId);
+
+        // Validación: Si no hay cargas, no tiene sentido auditar nada
+        if (!cargas || cargas.length === 0) {
+            throw new Error("El grupo seleccionado aún no tiene carga académica (asignaturas) asignada en esta vigencia.");
+        }
+
         const calificacionesPlanas = await boletinRepository.findCalificacionesHistoricasLote(idsEstudiantes, vigenciaId);
 
         // 3. Crear diccionario de acceso ultra rápido
@@ -165,9 +208,27 @@ export const boletinService = {
             diccNotas[c.estudianteId][c.asignaturaId][c.periodo] = c;
         });
 
-        // 4. Cruzar información (Estudiantes x Materias x Periodos)
+        // 4. Cruzar información y determinar los periodos VÁLIDOS a auditar
+        const nombreGrado = (grupo.grado.nombre || '').toUpperCase();
+        const esCicloVI = nombreGrado.includes('CICLO_VI') || nombreGrado.includes('CICLO VI');
+        const esCicloV = !esCicloVI && (nombreGrado.includes('CICLO_V') || nombreGrado.includes('CICLO V'));
+
+        const perActual = Number(periodoActual);
+        let periodosAEvaluar = [];
+
+        if (esCicloVI) {
+            if (perActual >= 3) periodosAEvaluar.push(3);
+            if (perActual >= 4 && perActual !== 5) periodosAEvaluar.push(4); // Si es 5, igual solo audita hasta 4
+        } else if (esCicloV) {
+            if (perActual >= 1) periodosAEvaluar.push(1);
+            if (perActual >= 2 && perActual !== 3) periodosAEvaluar.push(2);
+        } else {
+            for (let i = 1; i <= perActual && i <= 4; i++) {
+                periodosAEvaluar.push(i);
+            }
+        }
+
         const reporteFaltantes = [];
-        const periodosAEvaluar = Array.from({ length: Number(periodoActual) }, (_, i) => i + 1); // Ej: si es periodo 3 -> [1, 2, 3]
 
         matriculasTotales.forEach(m => {
             cargas.forEach(carga => {
@@ -186,15 +247,6 @@ export const boletinService = {
                         if (notaObj.notaAcumulativa === null || notaObj.notaAcumulativa === undefined) notasFaltantesDetalle.push("Acumulativa");
                         if (notaObj.notaLaboral === null || notaObj.notaLaboral === undefined) notasFaltantesDetalle.push("Laboral");
                         if (notaObj.notaSocial === null || notaObj.notaSocial === undefined) notasFaltantesDetalle.push("Social");
-
-                        /*
-                        // Validación adicional para preescolar: Si falta el juicio descriptivo, también lo marcamos
-                        if (esPreescolar) {
-                            const juicio = notaObj.juicioAcademica ? notaObj.juicioAcademica.trim().toUpperCase() : '';
-                            if (!juicio || juicio === 'PENDIENTE') {
-                                notasFaltantesDetalle.push("Juicio Descriptivo (Pendiente)");
-                            }
-                        }*/
                     }
 
                     // Si le falta algo, va para el reporte
@@ -219,13 +271,13 @@ export const boletinService = {
 // FUNCIONES AUXILIARES PRIVADAS
 // =========================================================
 
-function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipoBoletin, periodoActual, rangosDesempeno) {
+function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipoBoletin, periodoActual, rangosDesempeno, matriculasTotales = [], consolidadosAreas = [], nivelaciones = [], esPeriodoFinal = false) {
     const diccionario = {};
 
     calificacionesPlanas.forEach(cal => {
         const estId = cal.estudianteId;
-        // Convertimos a mayúsculas por si acaso viene diferente en la BD
         const areaNombre = (cal.asignatura?.area?.nombre || 'SIN ÁREA').toUpperCase().trim();
+        const areaId = cal.asignatura?.area?.id;
         const asigNombre = (cal.asignatura?.nombre || 'SIN ASIGNATURA').toUpperCase().trim();
         const porcentaje = cal.asignatura?.porcentual || 100;
 
@@ -235,6 +287,7 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
         if (!diccionario[estId]) diccionario[estId] = {};
         if (!diccionario[estId][areaNombre]) {
             diccionario[estId][areaNombre] = {
+                areaId: areaId,
                 nombreArea: areaNombre,
                 esComportamiento: esComportamiento,
                 asignaturasObj: {}
@@ -269,16 +322,11 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
         }
 
         if (isPeriodoActual) {
-            if (cal.docenteResponsable) {
-                if (cal.docenteResponsable.identidad) {
-                    const n = cal.docenteResponsable.identidad.nombre;
-                    const a = cal.docenteResponsable.identidad.apellidos;
-
-                    const nombreCompleto = `${n} ${a}`.trim();
-                    if (nombreCompleto) {
-                        asigRef.docente = nombreCompleto;
-                    }
-                }
+            if (cal.docenteResponsable?.identidad) {
+                const n = cal.docenteResponsable.identidad.nombre;
+                const a = cal.docenteResponsable.identidad.apellidos;
+                const nombreCompleto = `${n} ${a}`.trim();
+                if (nombreCompleto) asigRef.docente = nombreCompleto;
             }
         }
 
@@ -331,12 +379,15 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
 
     const resultadoFinal = {};
     for (const estId in diccionario) {
+
+        // Buscar la matrícula del estudiante para el Periodo 5
+        const matricula = matriculasTotales.find(m => m.estudiante.id === Number(estId));
+        const matriculaId = matricula ? matricula.id : null;
+
         resultadoFinal[estId] = Object.values(diccionario[estId]).map(area => {
             const listaAsignaturas = Object.values(area.asignaturasObj);
             const esComportamiento = area.esComportamiento;
-
-            // Mostramos el nombre de la asignatura solo si hay más de 1
-            const mostrarNombreAsignatura = listaAsignaturas.length > 1;
+            const mostrarNombreAsignatura = listaAsignaturas.length > 1; // Mostramos el nombre de la asignatura solo si hay más de 1
 
             // Extraemos info de comportamiento para subirla al Área
             let docenteComportamiento = null;
@@ -375,20 +426,75 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
             const acumuladoLimpio = Math.round(acumuladoArea * 100) / 100;
 
             // Evaluamos si es MAYOR O IGUAL (>=) a la meta exacta
-            const estadoGanandoPerdiendo = acumuladoLimpio > 0 ? (acumuladoLimpio >= metaEsperada ? 'G' : 'PR') : '';
-
-            // --- Calcular Desempeño del Área ---
-            let notaPeriodoActual = 0;
-            if (Number(periodoActual) === 1 && tieneP1) notaPeriodoActual = areaP1;
-            else if (Number(periodoActual) === 2 && tieneP2) notaPeriodoActual = areaP2;
-            else if (Number(periodoActual) === 3 && tieneP3) notaPeriodoActual = areaP3;
-            else if (Number(periodoActual) === 4 && tieneP4) notaPeriodoActual = areaP4;
+            let estadoGanandoPerdiendo = acumuladoLimpio > 0 ? (acumuladoLimpio >= metaEsperada ? 'G' : 'PR') : '';
 
             let desempenoAreaText = "";
-            if (notaPeriodoActual > 0) {
-                const n = Number(notaPeriodoActual.toFixed(2));
-                const rango = rangosDesempeno.find(r => n >= Number(r.desde) && n <= Number(r.hasta));
-                if (rango) desempenoAreaText = rango.desempeno.toUpperCase();
+            let notaDefinitivaAreaFinal = acumuladoLimpio > 0 ? acumuladoLimpio.toFixed(2) : "";
+            let notaNivelacionAsignada = null;
+            let juicioAreaTexto = "";
+
+            if (esPeriodoFinal && matriculaId && area.areaId) {
+                const consolidado = consolidadosAreas.find(c => c.matriculaId === matriculaId && c.areaId === area.areaId);
+
+                if (consolidado) {
+                    // 1. HIGIENIZACIÓN DE LA NOTA DEL CONSOLIDADO
+                    const notaConsLimpia = String(consolidado.notaDefinitiva).replace(',', '.');
+                    const notaConsNum = Number(notaConsLimpia);
+                    notaDefinitivaAreaFinal = !isNaN(notaConsNum) ? notaConsNum.toFixed(2) : "";
+
+                    estadoGanandoPerdiendo = consolidado.estadoFinal === 'APROBADO' ? 'G' : 'PR';
+                    juicioAreaTexto = consolidado.juicioAcademico || "Sin registro descriptivo.";
+
+                    // 2. BLOQUE DE NIVELACIÓN
+                    const nivelacion = nivelaciones.find(n => Number(n.matriculaId) === Number(matriculaId) && Number(n.areaId) === Number(area.areaId));
+                    if (nivelacion) {
+                        const notaNivLimpia = String(nivelacion.notaNivelacion).replace(',', '.');
+                        const notaNivNum = Number(notaNivLimpia);
+
+                        if (!isNaN(notaNivNum) && notaNivNum > 0) {
+                            notaNivelacionAsignada = "3.00";
+                            notaDefinitivaAreaFinal = "3.00";
+                            estadoGanandoPerdiendo = 'G';
+                        }
+                    }
+
+                    // 3. BLOQUE DE DESEMPEÑO BLINDADO
+                    const notaFinalNum = Number(notaDefinitivaAreaFinal);
+                    if (!isNaN(notaFinalNum) && notaFinalNum > 0) {
+                        const rangoFinal = rangosDesempeno.find(r => {
+                            // Mapeo dinámico por si la BD usa distintos nombres de columna
+                            const desdeProp = r.desde || r.nota_minima || r.minimo || r.desdeNota;
+                            const hastaProp = r.hasta || r.nota_maxima || r.maximo || r.hastaNota;
+
+                            const desdeNum = Number(String(desdeProp).replace(',', '.'));
+                            const hastaNum = Number(String(hastaProp).replace(',', '.'));
+
+                            return notaFinalNum >= desdeNum && notaFinalNum <= hastaNum;
+                        });
+
+                        if (rangoFinal) {
+                            desempenoAreaText = (rangoFinal.desempeno || rangoFinal.nombre || rangoFinal.nombre_desempeno || "").toUpperCase();
+                        }
+                    }
+
+                } else {
+                    // Fallback de seguridad en memoria si el registro no existiera
+                    notaDefinitivaAreaFinal = acumuladoLimpio > 0 ? acumuladoLimpio.toFixed(2) : "";
+                    estadoGanandoPerdiendo = acumuladoLimpio >= metaEsperada ? 'G' : 'PR';
+                }
+            } else {
+                // ---> MODO NORMAL: Periodos 1 al 4
+                let notaPeriodoActual = 0;
+                if (Number(periodoActual) === 1 && tieneP1) notaPeriodoActual = areaP1;
+                else if (Number(periodoActual) === 2 && tieneP2) notaPeriodoActual = areaP2;
+                else if (Number(periodoActual) === 3 && tieneP3) notaPeriodoActual = areaP3;
+                else if (Number(periodoActual) === 4 && tieneP4) notaPeriodoActual = areaP4;
+
+                if (notaPeriodoActual > 0) {
+                    const n = Number(notaPeriodoActual.toFixed(2));
+                    const rango = rangosDesempeno.find(r => n >= Number(r.desde) && n <= Number(r.hasta));
+                    if (rango) desempenoAreaText = rango.desempeno.toUpperCase();
+                }
             }
 
             return {
@@ -402,7 +508,9 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
                 p2Area: tieneP2 ? areaP2.toFixed(2) : "",
                 p3Area: tieneP3 ? areaP3.toFixed(2) : "",
                 p4Area: tieneP4 ? areaP4.toFixed(2) : "",
-                acumuladoActualArea: acumuladoLimpio > 0 ? acumuladoLimpio.toFixed(2) : "",
+                acumuladoActualArea: notaDefinitivaAreaFinal,
+                notaNivelacion: notaNivelacionAsignada,
+                juicioAutomaticoArea: juicioAreaTexto,
                 estadoGanandoPerdiendo: esPreescolar ? null : estadoGanandoPerdiendo,
                 desempenoArea: desempenoAreaText,
                 ihArea: ihArea > 0 ? ihArea : "",

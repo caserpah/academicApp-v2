@@ -14,6 +14,8 @@ export const validarCrearVentana = [
     validarCampoRequerido("fechaFin", "La fecha de cierre es obligatoria.")
         .isISO8601().withMessage("Formato de fecha de cierre no válido (YYYY-MM-DD)."),
 
+    validarCampoRequerido("vigenciaId", "Seleccione el año lectivo."),
+
     body("vigenciaId").optional().isInt().custom(verificarExistenciaPorId(Vigencia, "id", "la vigencia")),
 
     body("habilitada").optional().isBoolean(),

@@ -73,12 +73,12 @@ async function startServer() {
         await connectToDatabase(); // Espera a que la conexión se establezca correctamente
         console.log('Servidor iniciado correctamente.');
 
-        definirAsociaciones();
+        //definirAsociaciones();
         console.log('✅ Asociaciones de Sequelize cargadas con éxito.');
 
         // Sincroniza los modelos con la base de datos (Solo en desarrollo)
         // if (process.env.NODE_ENV !== 'production') {
-        //     await syncModels();
+             await syncModels();
         // }
 
         // Montar el enrutador centralizado de las rutas bajo el prefijo /api

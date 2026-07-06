@@ -1,62 +1,139 @@
-import apiClient from './apiClient.js';
+import apiClient from "./apiClient.js";
 import { parseError } from "../utils/errorHandler.js";
+import { formatearJornada } from "../utils/formatters.js";
 
 const NIVELACIONES_ENDPOINT = '/api/nivelaciones';
+const MIS_CARGAS_ENDPOINT = '/api/cargas/mis-cargas';
+const GRUPOS_ENDPOINT = '/api/grupos';
+const AREAS_ENDPOINT = '/api/areas';
+const SEDES_ENDPOINT = '/api/sedes';
+const VIGENCIAS_ENDPOINT = '/api/vigencias';
 
-/**
- * Obtiene la lista de estudiantes reprobados (pendientes de nivelar)
- * @param {Object} params - { grupoId, asignaturaId }
- */
-export const fetchPendientesNivelacion = async (params) => {
-    try {
-        if (!params.grupoId || !params.asignaturaId) return [];
-        const response = await apiClient.get(`${NIVELACIONES_ENDPOINT}/pendientes`, { params });
-        return response.data.data || [];
-    } catch (error) {
-        throw parseError(error, "Error al obtener los estudiantes pendientes de nivelación.");
-    }
+const formatGrado = (nombre) => {
+    if (!nombre) return "";
+    return nombre.charAt(0).toUpperCase() + nombre.slice(1).toLowerCase().replace(/_/g, " ");
 };
 
 /**
- * Guarda la nota de nivelación y el acta/evidencia física (Upsert/Update)
- * @param {string|number} matriculaId
- * @param {string|number} asignaturaId
- * @param {Object} data - { notaNivelacion, observacion_nivelacion, evidencia (File) }
+ * Carga los catálogos INTELIGENTES para Nivelaciones según el ROL.
+ * - Docente: Trae solo su carga y extrae las Áreas de sus asignaturas.
+ * - Admin/Coordinador: Trae todo el catálogo global.
  */
-export const guardarNivelacion = async (matriculaId, asignaturaId, data) => {
+export const fetchNivelacionCatalogs = async (rol) => {
     try {
-        let payload = data;
-        let config = {};
+        // 1. Obtener la vigencia activa
+        const vigenciasResponse = await apiClient.get(VIGENCIAS_ENDPOINT);
+        const vigenciasItems = vigenciasResponse.data?.data?.items || [];
+        const vigenciaActiva = vigenciasItems.find(v => v.activa === true);
 
-        // Verificamos si hay un archivo adjunto
-        if (data.evidencia && data.evidencia instanceof File) {
-            const formData = new FormData();
-            Object.keys(data).forEach(key => {
-                if (data[key] !== null && data[key] !== undefined) {
-                    formData.append(key, data[key]);
+        if (!vigenciaActiva) throw new Error("No se encontró una vigencia activa.");
+
+        const esAdmin = ['admin', 'secretaria', 'coordinador'].includes(rol);
+
+        let sedes = [];
+        let grupos = [];
+        let areas = [];
+        let cargaCompleta = []; // Cascada exclusiva de docentes
+
+        if (esAdmin) {
+            // --- MODO ADMINISTRATIVO ---
+            const [sedesRes, gruposRes, areasRes] = await Promise.all([
+                apiClient.get(SEDES_ENDPOINT),
+                apiClient.get(`${GRUPOS_ENDPOINT}?vigenciaId=${vigenciaActiva.id}&limit=200`),
+                apiClient.get(`${AREAS_ENDPOINT}?limit=100&activo=true`)
+            ]);
+
+            sedes = sedesRes.data?.data?.items || sedesRes.data?.data || [];
+
+            const rawGrupos = gruposRes.data?.data?.items || gruposRes.data?.data || [];
+            grupos = rawGrupos.map(g => ({
+                id: g.id,
+                sedeId: g.sedeId,
+                label: `${formatGrado(g.grado?.nombre)} ${g.nombre} | ${formatearJornada(g.jornada)}`
+            }));
+
+            areas = areasRes.data?.data?.items || areasRes.data?.data || [];
+        } else {
+            // --- MODO DOCENTE ---
+            const cargaResponse = await apiClient.get(MIS_CARGAS_ENDPOINT);
+            const itemsCarga = cargaResponse.data?.data?.items || cargaResponse.data?.data || [];
+
+            // Extraer Sedes Únicas de la carga
+            const sedesMap = new Map();
+            itemsCarga.forEach(item => {
+                if (item.sede && !sedesMap.has(item.sede.id)) {
+                    sedesMap.set(item.sede.id, item.sede);
                 }
             });
-            payload = formData;
-            config = { headers: { 'Content-Type': 'multipart/form-data' } };
+            sedes = Array.from(sedesMap.values());
+
+            // Extraer Grupos Únicos vinculados a su sede con formato descriptivo
+            const gruposMap = new Map();
+            itemsCarga.forEach(item => {
+                const g = item.grupo;
+                if (g && !gruposMap.has(g.id)) {
+                    gruposMap.set(g.id, {
+                        id: g.id,
+                        sedeId: item.sedeId,
+                        label: `${formatGrado(g.grado?.nombre)} ${g.nombre} | ${formatearJornada(g.jornada)}`
+                    });
+                }
+            });
+            grupos = Array.from(gruposMap.values());
+
+            cargaCompleta = itemsCarga;
         }
 
-        const response = await apiClient.put(`${NIVELACIONES_ENDPOINT}/${matriculaId}/${asignaturaId}`, payload, config);
-        return response.data.data;
+        return {
+            vigencia: vigenciaActiva,
+            sedes,
+            grupos,
+            areas,          // Solo para Admins
+            cargaCompleta,  // Solo para Docentes
+            esAdmin
+        };
     } catch (error) {
-        throw parseError(error, "Error al guardar la nivelación.");
+        console.error('Error en fetchNivelacionCatalogs:', error);
+        throw parseError(error, "No se pudieron cargar los filtros de nivelación.");
     }
 };
 
-/**
- * PROCESO ADMINISTRATIVO: Cierre de Año
- * Calcula promedios y llena la tabla de nivelaciones.
- * @param {Object} payload - { sedeId, gradoId, grupoId }
- */
-export const generarConsolidadosMasivos = async (payload) => {
+export const fetchPendientesNivelacion = async (grupoId) => {
     try {
-        const response = await apiClient.post(`${NIVELACIONES_ENDPOINT}/generar-consolidados`, payload);
-        return response.data; // Retorna { exito, mensaje, data: { procesados... } }
+        if (!grupoId) return [];
+        const response = await apiClient.get(`${NIVELACIONES_ENDPOINT}/pendientes?grupoId=${grupoId}`);
+        return response.data.data || response.data;
     } catch (error) {
-        throw parseError(error, "Error al generar los consolidados de nivelación.");
+        throw parseError(error, "Error al cargar la lista de estudiantes para nivelación.");
+    }
+};
+
+export const registrarNivelacion = async (matriculaId, areaId, formData) => {
+    try {
+        const response = await apiClient.put(`${NIVELACIONES_ENDPOINT}/${matriculaId}/${areaId}`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data.data;
+    } catch (error) {
+        throw parseError(error, "Error al registrar la nivelación.");
+    }
+};
+
+export const fetchReprobadosDirectos = async (grupoId) => {
+    try {
+        if (!grupoId) return [];
+        const response = await apiClient.get(`${NIVELACIONES_ENDPOINT}/reprobados-directos?grupoId=${grupoId}`);
+        return response.data.data || response.data;
+    } catch (error) {
+        throw parseError(error, "Error al cargar la lista de reprobados directos.");
+    }
+};
+
+export const guardarCalificacionesMasivas = async (arregloNotas) => {
+    try {
+        const response = await apiClient.post(`${NIVELACIONES_ENDPOINT}/completar-notas-faltantes`, { notas: arregloNotas });
+        return response.data;
+    } catch (error) {
+        throw parseError(error, "Error al procesar el guardado masivo de calificaciones pendientes.");
     }
 };

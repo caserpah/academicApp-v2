@@ -38,8 +38,15 @@ export const Grado = sequelize.define("grado", {
     activo: {
         type: DataTypes.BOOLEAN,
         defaultValue: true
+    },
+    gradoSiguienteId: {
+        type: DataTypes.INTEGER,
+        allowNull: true, // Debe permitir NULL para ONCE y CICLO_VI
+        references: { model: "grados", key: "id" }
     }
 }, {
     tableName: "grados",
     timestamps: false
 });
+
+Grado.belongsTo(Grado, { as: 'GradoSiguiente', foreignKey: 'gradoSiguienteId' });

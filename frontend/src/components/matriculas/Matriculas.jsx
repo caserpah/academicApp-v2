@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom"; // Importamos Link para la navegación
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faFilePen, faEdit, faChevronLeft, faChevronRight,
+    faFilePen, faEdit, faChevronLeft, faChevronRight, faUserCheck,
     faUsers, faSearch, faLock, faFilter, faFilePdf, faPrint
 } from "@fortawesome/free-solid-svg-icons";
 
@@ -12,7 +12,7 @@ import { showSuccess, showWarning, showError, showConfirm } from "../../utils/no
 import { fetchInitialData as fetchSedesData } from "../../api/sedesService.js";
 import { fetchGruposPorSede } from "../../api/gruposService.js";
 import { listarEstudiantes } from "../../api/estudiantesService.js";
-import { eliminarMatricula, descargarActaMatricula, descargarActasLote, descargarFormatoBlanco } from "../../api/matriculasService.js";
+import { eliminarMatricula, descargarActaMatricula, descargarActasLote, descargarFormatoBlanco, activarMatriculasMasivo } from "../../api/matriculasService.js";
 import { fetchVigencias } from "../../api/vigenciasService.js";
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
 import MatriculasForm from "./MatriculasForm.jsx";
@@ -25,6 +25,7 @@ const Matriculas = () => {
         estudianteId: "",
         estudiante: null,
         sedeId: "",
+        gradoId: "",
         grupoId: "",
         metodologia: "TRADICIONAL",
         estado: "ACTIVA",
@@ -225,13 +226,22 @@ const Matriculas = () => {
                 return {
                     ...prev,
                     sedeId: valorFinal,
-                    grupoId: ""
+                    grupoId: "",
+                    gradoId: ""
                 };
             }
 
-            // Evitar actualizar si el valor es igual
-            if (prev[name] === valorFinal) return prev;
+            if (name === "grupoId") {
+                if (prev.grupoId === valorFinal) return prev;
+                const grupoSeleccionado = listasAuxiliares.grupos.find(g => g.id === Number(valorFinal)); // Encontrar el grupo seleccionado en la lista auxiliar cargada en memoria
+                return {
+                    ...prev,
+                    grupoId: valorFinal,
+                    gradoId: grupoSeleccionado?.gradoId || grupoSeleccionado?.grado?.id || "" // Extrae y setea el gradoId de forma transparente
+                };
+            }
 
+            if (prev[name] === valorFinal) return prev; // Evitar actualizar si el valor es igual
             return { ...prev, [name]: valorFinal };
         });
     };
@@ -263,6 +273,7 @@ const Matriculas = () => {
             ...mat,
             estudianteId: mat.estudianteId,
             sedeId: mat.sedeId,
+            gradoId: mat.gradoId || "",
             grupoId: mat.grupoId,
             vigenciaId: mat.vigenciaId,
             bloqueo_notas: !!mat.bloqueo_notas,
@@ -279,6 +290,30 @@ const Matriculas = () => {
                 formContainerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
             }
         }, 100); // 100ms es tiempo suficiente para que React termine de actualizar el DOM
+    };
+
+    const handleActivarMasivo = async () => {
+        if (await showConfirm(
+            `¿Está seguro de que desea pasar a estado ACTIVA (Matrícular) a todos los estudiantes prematriculados seleccionados?`,
+            "Confirmar Matrícula Masiva"
+        )) {
+            try {
+                setProcessing(true);
+                // Enviamos los filtros actuales (Sede y Grupo) al backend
+                const respuesta = await activarMatriculasMasivo({
+                    sedeId: filtros.sedeId,
+                    grupoId: filtros.grupoId
+                });
+
+                showSuccess(respuesta.mensaje || "Estudiantes matriculados exitosamente.");
+                // Recargar la tabla con los filtros actuales
+                cargarMatriculas({ page: 1, limit: 20, busqueda, ...filtros });
+            } catch (error) {
+                showError(error.message || "No se pudo completar la activación masiva.");
+            } finally {
+                setProcessing(false);
+            }
+        }
     };
 
     const handleDelete = async () => {
@@ -463,10 +498,35 @@ const Matriculas = () => {
                         <Link
                             to="/matriculas/masivo"
                             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition flex items-center shadow-sm text-sm font-medium"
+                            title="Ir a la sección de Promoción Académica"
                         >
                             <FontAwesomeIcon icon={faUsers} className="mr-2" />
-                            Promoción Masiva
+                            Promoción
                         </Link>
+
+                        {/* Renderizado condicional del botón masivo basado en el filtro seleccionado */}
+                        {filtros.estado === "PREMATRICULADO" && matriculas.length > 0 && (
+                            <button
+                                onClick={handleActivarMasivo}
+                                disabled={processing || !filtros.grupoId}
+                                className={`px-4 py-2 rounded-lg transition flex items-center shadow-sm text-sm font-medium
+                                    ${!filtros.grupoId
+                                        ? "bg-gray-300 text-gray-500 cursor-not-allowed" // Estilo bloqueado
+                                        : "bg-green-600 hover:bg-green-700 text-white disabled:opacity-50" // Estilo activo
+                                    }`}
+                                title={!filtros.grupoId ? "Debe seleccionar una Sede y un Grupo para habilitar esta acción" : "Asentar en firme todas las prematrículas filtradas"}
+                            >
+                                {processing ? (
+                                    <svg className="animate-spin mr-2 h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                ) : (
+                                    <FontAwesomeIcon icon={faUserCheck} className="mr-2" />
+                                )}
+                                Matricular Masivamente
+                            </button>
+                        )}
 
                         {mode === "editar" && (
                             <button onClick={resetForm} className="text-sm text-blue-600 underline">
@@ -577,6 +637,9 @@ const Matriculas = () => {
                                 <option value="PREMATRICULADO">Prematriculado</option>
                                 <option value="RETIRADO">Retirado</option>
                                 <option value="DESERTADO">Desertado</option>
+                                <option value="ANULADO">Anulado</option>
+                                <option value="REPROBADO">Reprobado</option>
+                                <option value="PROMOVIDO">Promovido</option>
                             </select>
                         </div>
 

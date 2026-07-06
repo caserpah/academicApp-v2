@@ -1,6 +1,5 @@
 import { sequelize } from "../database/db.connect.js";
 import { calificacionRepository } from "../repositories/calificacion.repository.js";
-import { VentanaCalificacion } from "../models/ventana_calificacion.js";
 import { Asignatura } from "../models/asignatura.js";
 import { BancoRecomendacion } from "../models/banco_recomendacion.js";
 import { Matricula } from "../models/matricula.js";
@@ -11,149 +10,35 @@ import { Grado } from "../models/grado.js";
 import { DesempenoRango } from "../models/desempeno_rango.js";
 import { Desempeno } from "../models/desempeno.js";
 import { handleSequelizeError } from "../middleware/handleSequelizeError.js";
-import { Juicio } from "../models/juicio.js";
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
-
-// Porcentajes Institucionales
-const PORCENTAJES = {
-    ACADEMICA: 0.50,
-    ACUMULATIVA: 0.20,
-    LABORAL: 0.15,
-    SOCIAL: 0.15
-};
-
-// Competencias
-const DIM = {
-    ACADEMICA: 1,
-    SOCIAL: 2,
-    LABORAL: 3,
-    ACUMULATIVA: 4,
-    COMPORTAMIENTO: 999
-};
-
-/**
- * Utilitario para limpiar nombres de hoja Excel.
- * Reemplaza caracteres prohibidos y recorta nombres a 30 caracteres
- */
-const _limpiarNombreHoja = (nombre) => {
-    return nombre.replace(/[\/\\\?\*\[\]\:]/g, '').substring(0, 30).toUpperCase();
-};
-
-// Helper para detectar si es comportamiento
-const _esComportamiento = (nombreAsignatura) => {
-    if (!nombreAsignatura) return false;
-    const nombre = nombreAsignatura.toUpperCase().trim();
-    return nombre.includes("COMPORTAMIENTO") || nombre.includes("DISCIPLINA") || nombre.includes("CONVIVENCIA");
-};
-
-/**
- * Helper: Validar Ventana de Calificaciones
- */
-async function _validarVentana(periodo, vigenciaId, data, esSoloCambioTexto = false) {
-    const ventana = await VentanaCalificacion.findOne({ where: { periodo, vigenciaId } });
-    if (!ventana) throw new Error("Para este periodo aún no se ha creado la ventana de calificaciones.");
-
-    const hoy = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const estaEnFecha = hoy >= ventana.fechaInicio && hoy <= ventana.fechaFin;
-
-    if (estaEnFecha) return true;
-
-    const ROLES_ADMINISTRATIVOS = ['admin', 'director', 'coordinador'];
-    const esAdministrativo = data.role ? ROLES_ADMINISTRATIVOS.includes(data.role) : false;
-
-    // Si NO es administrativo, le bloqueamos el paso de inmediato, sin importar si es solo cambio de texto o no.
-    // Solo los administrativos pueden editar fuera de la ventana, y aún así con restricciones.
-    if (!esAdministrativo) throw new Error(`El periodo de calificaciones está cerrado (Finalizó: ${ventana.fechaFin}).`);
-
-    // Si ES administrativo, le damos pase libre absoluto, ignorando justificaciones
-    if (esAdministrativo) {
-        return true;
-    }
-
-    if (esAdministrativo) {
-        if (data.notaDefinitivaInput !== undefined) return true;
-        if (esSoloCambioTexto) return true;
-        if (data.observacion_cambio && data.observacion_cambio.trim().length > 5) return true;
-    }
-
-    const error = new Error("El periodo académico está cerrado. Se requiere justificación administrativa.");
-    error.code = "REQ_JUSTIFICACION";
-    throw error;
-}
-
-/**
- * Helper: Determinar el Texto del Juicio
- */
-async function _obtenerJuicio(nota, rangos, context, dimensionId) {
-    if (nota === null || nota === undefined) return "PENDIENTE";
-    if (!dimensionId) return "SIN DIMENSIÓN";
-
-    const rango = rangos.find(r => nota >= r.minNota && nota <= r.maxNota);
-    if (!rango) return "SIN RANGO";
-
-    let idDesempenoBusqueda = rango.desempenoId;
-
-    try {
-        let whereClause = {
-            vigenciaId: context.vigenciaId,
-            dimensionId: dimensionId,
-            activo: true
-        };
-
-        if (dimensionId === DIM.COMPORTAMIENTO) {
-            whereClause.periodo = 0;
-            whereClause.gradoId = null;
-            whereClause.asignaturaId = context.asignaturaId;
-            whereClause.desempenoId = idDesempenoBusqueda;
-        }
-        else if (dimensionId === DIM.ACUMULATIVA) {
-            whereClause.periodo = 0;
-            whereClause.gradoId = null;
-            whereClause.asignaturaId = null;
-            whereClause.desempenoId = idDesempenoBusqueda;
-        }
-        else if (dimensionId === DIM.SOCIAL || dimensionId === DIM.LABORAL) {
-            let juicioPreescolar = await Juicio.findOne({
-                where: {
-                    ...whereClause,
-                    periodo: context.periodo,
-                    gradoId: context.gradoId,
-                    asignaturaId: context.asignaturaId,
-                    desempenoId: idDesempenoBusqueda
-                }
-            });
-            if (juicioPreescolar && juicioPreescolar.texto) return juicioPreescolar.texto;
-
-            whereClause.periodo = 0;
-            whereClause.gradoId = null;
-            whereClause.asignaturaId = null;
-            whereClause.desempenoId = idDesempenoBusqueda;
-        }
-        else if (dimensionId === DIM.ACADEMICA) {
-            whereClause.periodo = context.periodo;
-            whereClause.gradoId = context.gradoId;
-            whereClause.asignaturaId = context.asignaturaId;
-
-            if (context.nivelAcademico !== "PREESCOLAR") {
-                whereClause.desempenoId = 5;
-            } else {
-                whereClause.desempenoId = idDesempenoBusqueda;
-            }
-        }
-
-        const juicioEncontrado = await Juicio.findOne({ where: whereClause });
-        if (juicioEncontrado && juicioEncontrado.texto) return juicioEncontrado.texto;
-
-    } catch (error) {
-        console.error(`Error recuperando juicio Dimensión ${dimensionId}:`, error);
-    }
-    return rango.desempeno ? rango.desempeno.nombre : "PENDIENTE";
-}
+import {
+    PORCENTAJES,
+    DIM,
+    limpiarNombreHoja,
+    esComportamiento as verificarEsComportamiento,
+    validarVentana,
+    obtenerJuicio
+} from "../utils/calificacion.helpers.js";
 
 export const calificacionService = {
 
     async obtenerGrilla(grupoId, asignaturaId, periodo, vigenciaId) {
+        // Verificar si el grupo pertenece al ciclo correspondiente al periodo solicitado
+        const grupo = await Grupo.findByPk(grupoId);
+        if (!grupo) return [];
+
+        const nombreGrupo = (grupo.nombre || '').toUpperCase();
+        const periodoNum = Number(periodo);
+
+        const esCicloV = (nombreGrupo.includes('CICLO V') || nombreGrupo.includes('CICLO_V')) && !nombreGrupo.includes('VI');
+        const esCicloVI = nombreGrupo.includes('CICLO VI') || nombreGrupo.includes('CICLO_VI');
+
+        // Si intentan consultar un periodo que no pertenece al ciclo, devolvemos grilla vacía
+        if (esCicloV && ![1, 2].includes(periodoNum)) return [];
+        if (esCicloVI && ![3, 4].includes(periodoNum)) return [];
+
+        // Solo si pasa el blindaje, consultamos a la base de datos
         const matriculas = await calificacionRepository.findMatriculasPorGrupo(grupoId, vigenciaId);
         if (!matriculas.length) return [];
 
@@ -212,10 +97,9 @@ export const calificacionService = {
                 esSoloCambioTexto = false;
             }
 
-            await _validarVentana(periodo, vigenciaId, data, esSoloCambioTexto);
-
+            await validarVentana(periodo, vigenciaId, data, esSoloCambioTexto);
             const asignatura = await Asignatura.findByPk(asignaturaId);
-            const esComportamiento = asignatura && _esComportamiento(asignatura.nombre);
+            const esComportamiento = asignatura && verificarEsComportamiento(asignatura.nombre);
 
             const rangos = await DesempenoRango.findAll({
                 where: { vigenciaId },
@@ -254,7 +138,7 @@ export const calificacionService = {
 
             if (esComportamiento) {
                 const def = data.notaDefinitivaInput ? parseFloat(data.notaDefinitivaInput) : null;
-                const juicio = def ? await _obtenerJuicio(def, rangos, contextJuicio, DIM.COMPORTAMIENTO) : "PENDIENTE";
+                const juicio = def ? await obtenerJuicio(def, rangos, contextJuicio, DIM.COMPORTAMIENTO) : "PENDIENTE";
 
                 Object.assign(dataToSave, {
                     notaDefinitiva: def ? def.toFixed(2) : null,
@@ -281,16 +165,16 @@ export const calificacionService = {
 
                 let definitiva = null;
 
-                if (nAcad !== null || nAcum !== null || nLab !== null || nSoc !== null) {
-                    definitiva = (pAcad || 0) + (pAcum || 0) + (pLab || 0) + (pSoc || 0);
+                if (nAcad !== null && nAcum !== null && nLab !== null && nSoc !== null) {
+                    definitiva = pAcad + pAcum + pLab + pSoc;
                     definitiva = round2(definitiva);
                 }
 
                 const [jAcad, jAcum, jLab, jSoc] = await Promise.all([
-                    _obtenerJuicio(nAcad, rangos, contextJuicio, DIM.ACADEMICA),
-                    _obtenerJuicio(nAcum, rangos, contextJuicio, DIM.ACUMULATIVA),
-                    _obtenerJuicio(nLab, rangos, contextJuicio, DIM.LABORAL),
-                    _obtenerJuicio(nSoc, rangos, contextJuicio, DIM.SOCIAL)
+                    obtenerJuicio(nAcad, rangos, contextJuicio, DIM.ACADEMICA),
+                    obtenerJuicio(nAcum, rangos, contextJuicio, DIM.ACUMULATIVA),
+                    obtenerJuicio(nLab, rangos, contextJuicio, DIM.LABORAL),
+                    obtenerJuicio(nSoc, rangos, contextJuicio, DIM.SOCIAL)
                 ]);
 
                 Object.assign(dataToSave, {
@@ -388,7 +272,7 @@ export const calificacionService = {
             const codigoGrado = carga.grupo.grado.codigo ? carga.grupo.grado.codigo.trim() : "";
             const nombreAsignatura = carga.asignatura.nombreCorto || carga.asignatura.nombre;
             const nombreRaw = `${nombreAsignatura} ${codigoGrado}${carga.grupo.nombre}`;
-            let nombreHoja = _limpiarNombreHoja(nombreRaw);
+            let nombreHoja = limpiarNombreHoja(nombreRaw);
 
             let counter = 1;
             const originalName = nombreHoja;
@@ -400,7 +284,7 @@ export const calificacionService = {
             }
 
             const worksheet = workbook.addWorksheet(nombreHoja);
-            const esComportamiento = _esComportamiento(carga.asignatura.nombre);
+            const esComportamiento = verificarEsComportamiento(carga.asignatura.nombre);
 
             // Inmovilizar paneles (Fila 3 para notas y encabezados, Fila 2 para comportamiento)
             // También inmovilizamos la primera columna para evitar perder el nombre del estudiante al desplazarnos horizontalmente
@@ -570,7 +454,8 @@ export const calificacionService = {
                     row.getCell('X').value = { formula: `IFERROR(ROUND(AVERAGE(T${r}:W${r}), 1), "")` };
 
                     row.getCell('Y').value = {
-                        formula: `IF(COUNT(C${r}:W${r})=0, "", ROUND((IF(ISNUMBER(M${r}),M${r},0)*0.5) + (IF(ISNUMBER(N${r}),N${r},0)*0.2) + (IF(ISNUMBER(S${r}),S${r},0)*0.15) + (IF(ISNUMBER(X${r}),X${r},0)*0.15), 2))`
+                        //formula: `IF(COUNT(C${r}:W${r})=0, "", ROUND((IF(ISNUMBER(M${r}),M${r},0)*0.5) + (IF(ISNUMBER(N${r}),N${r},0)*0.2) + (IF(ISNUMBER(S${r}),S${r},0)*0.15) + (IF(ISNUMBER(X${r}),X${r},0)*0.15), 2))`
+                        formula: `IF(COUNT(M${r},N${r},S${r},X${r})<4, "", ROUND((M${r}*0.5) + (N${r}*0.2) + (S${r}*0.15) + (X${r}*0.15), 2))`
                     };
 
                     row.getCell('Z').value = {
@@ -727,7 +612,7 @@ export const calificacionService = {
 
                 if (!ventanaValidada) {
                     const dataPermisos = { role: userRole };
-                    await _validarVentana(meta.p, meta.v, dataPermisos);
+                    await validarVentana(meta.p, meta.v, dataPermisos);
                     ventanaValidada = true;
                     contextoVigencia = meta.v;
                     contextoPeriodo = meta.p;
@@ -814,7 +699,7 @@ export const calificacionService = {
 
                     if (meta.esComp) {
                         const notaVal = obtenerNotaFusionada(2, existingCal?.notaDefinitiva);
-                        const juicio = notaVal ? await _obtenerJuicio(notaVal, rangosCache, contextJuicio, DIM.COMPORTAMIENTO) : "PENDIENTE";
+                        const juicio = notaVal ? await obtenerJuicio(notaVal, rangosCache, contextJuicio, DIM.COMPORTAMIENTO) : "PENDIENTE";
 
                         dataToSave = {
                             ...dataToSave,
@@ -856,15 +741,15 @@ export const calificacionService = {
                         const pSoc = nSoc !== null ? (nSoc * 0.15) : null;
 
                         let def = null;
-                        if (nAcad !== null || nAcum !== null || nLab !== null || nSoc !== null) {
-                            def = (pAcad || 0) + (pAcum || 0) + (pLab || 0) + (pSoc || 0);
+                        if (nAcad !== null && nAcum !== null && nLab !== null && nSoc !== null) {
+                            def = pAcad + pAcum + pLab + pSoc;
                         }
 
                         const [jAcad, jAcum, jLab, jSoc] = await Promise.all([
-                            _obtenerJuicio(nAcad, rangosCache, contextJuicio, DIM.ACADEMICA),
-                            _obtenerJuicio(nAcum, rangosCache, contextJuicio, DIM.ACUMULATIVA),
-                            _obtenerJuicio(nLab, rangosCache, contextJuicio, DIM.LABORAL),
-                            _obtenerJuicio(nSoc, rangosCache, contextJuicio, DIM.SOCIAL)
+                            obtenerJuicio(nAcad, rangosCache, contextJuicio, DIM.ACADEMICA),
+                            obtenerJuicio(nAcum, rangosCache, contextJuicio, DIM.ACUMULATIVA),
+                            obtenerJuicio(nLab, rangosCache, contextJuicio, DIM.LABORAL),
+                            obtenerJuicio(nSoc, rangosCache, contextJuicio, DIM.SOCIAL)
                         ]);
 
                         const roundExcel = (num) => {
@@ -915,12 +800,32 @@ export const calificacionService = {
     },
 
     async auditarNotasPendientesAnteriores(grupoId, asignaturaId, periodoActual, vigenciaId) {
-        if (periodoActual <= 1) return { hayPendientes: false, detalles: [] };
+        const grupo = await Grupo.findByPk(grupoId);
+        if (!grupo) return { hayPendientes: false, detalles: [] };
 
-        const periodosAnteriores = Array.from({ length: periodoActual - 1 }, (_, i) => i + 1);
+        const nombreGrupo = (grupo.nombre || '').toUpperCase();
+        const esCicloV = (nombreGrupo.includes('CICLO V') || nombreGrupo.includes('CICLO_V')) && !nombreGrupo.includes('VI');
+        const esCicloVI = nombreGrupo.includes('CICLO VI') || nombreGrupo.includes('CICLO_VI');
+
+        // Definimos qué periodos son los "anteriores válidos" según el ciclo
+        let periodosAnteriores = [];
+        if (esCicloV) {
+            // En Ciclo V, solo auditamos periodos anteriores al actual dentro de [1, 2]
+            periodosAnteriores = [1, 2].filter(p => p < periodoActual);
+        } else if (esCicloVI) {
+            // En Ciclo VI, auditamos periodos dentro de [3, 4] que sean anteriores al actual
+            periodosAnteriores = [3, 4].filter(p => p < periodoActual);
+        } else {
+            // Comportamiento por defecto para otros grados
+            periodosAnteriores = Array.from({ length: periodoActual - 1 }, (_, i) => i + 1);
+        }
+
+        // Si no hay periodos anteriores que auditar, retornamos limpio
+        if (periodosAnteriores.length === 0) return { hayPendientes: false, detalles: [] };
+
         const asignatura = await Asignatura.findByPk(asignaturaId);
         const asignaturaNombre = asignatura ? asignatura.nombre : "Asignatura desconocida";
-        const esComportamiento = _esComportamiento(asignaturaNombre);
+        const esComportamiento = verificarEsComportamiento(asignaturaNombre);
 
         const todasLasMatriculas = await calificacionRepository.findMatriculasPorGrupo(grupoId, vigenciaId);
         const matriculas = todasLasMatriculas.filter(m => !m.bloqueo_notas);
@@ -967,10 +872,13 @@ export const calificacionService = {
             });
 
             if (periodosFaltantesDelEstudiante.length > 0) {
+                const est = m.estudiante;
+                const nombreCompleto = `${est.primerApellido} ${est.segundoApellido || ''} ${est.primerNombre} ${est.segundoNombre || ''}`.replace(/\s+/g, ' ').trim();
+
                 detalles.push({
-                    estudianteId: m.estudiante.id,
+                    estudianteId: est.id,
                     documento: m.estudiante.documento,
-                    nombreCompleto: `${m.estudiante.primerApellido} ${m.estudiante.primerNombre}`,
+                    nombreCompleto: nombreCompleto,
                     asignatura: asignaturaNombre,
                     periodosFaltantes: periodosFaltantesDelEstudiante.join(", ")
                 });

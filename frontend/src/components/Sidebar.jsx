@@ -33,6 +33,7 @@ const menuStructure = [
         key: "estudiantes",
         items: [
             { path: "/matriculas", label: "Matrículas", icon: "file-pen", requiredRole: 'admin' },
+            { path: "/matriculas/masivo", label: "Promoción Académica", icon: "users-gear", requiredRole: 'admin' },
             { path: "/estudiantes", label: "Estudiantes", icon: "users", requiredRole: 'admin' },
             { path: "/observador", label: "Observador del Alumno", icon: "clipboard-list", requiredRoles: ['admin', 'docente', 'coordinador'] },
             { path: "/acudientes", label: "Acudientes", icon: "hands-holding-child", requiredRole: 'admin' },
@@ -44,7 +45,7 @@ const menuStructure = [
         items: [
             { path: "/ventanas", label: "Ventanas de Calificaciones", icon: "calendar-alt", requiredRole: 'admin' },
             { path: "/calificaciones", label: "Calificaciones", icon: "star", requiredRoles: ['admin', 'docente'] },
-            { path: "/nivelaciones", label: "Recuperaciones", icon: "balance-scale", requiredRoles: ['admin', 'docente', 'coordinador'] },
+            { path: "/nivelaciones", label: "Nivelaciones", icon: "clipboard-check", requiredRoles: ['admin', 'docente', 'secretaria', 'coordinador'] },
             { path: "/planillas", label: "Imprimir Planillas", icon: "file-invoice", requiredRoles: ['admin', 'docente', 'secretaria', 'coordinador', 'director'] },
             { path: "/sabanas", label: "Sábanas / Reportes", icon: "chart-line", requiredRoles: ['admin', 'docente', 'secretaria', 'coordinador', 'director'] },
             { path: "/juicios", label: "Juicios Académicos", icon: "gavel", requiredRoles: ['admin', 'secretaria', 'coordinador', 'docente'] },

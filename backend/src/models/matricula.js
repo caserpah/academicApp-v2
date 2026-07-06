@@ -141,9 +141,17 @@ export const Matricula = sequelize.define("matricula", {
         onDelete: "RESTRICT"
     },
 
-    grupoId: {
+    gradoId: {
         type: DataTypes.INTEGER,
         allowNull: false,
+        references: { model: "grados", key: "id" },
+        onUpdate: "CASCADE",
+        onDelete: "RESTRICT"
+    },
+
+    grupoId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
         references: { model: "grupos", key: "id" },
         onUpdate: "CASCADE",
         onDelete: "RESTRICT"
@@ -173,6 +181,7 @@ export const Matricula = sequelize.define("matricula", {
 
     indexes: [
         { fields: ["estudianteId"], name: "idx_matricula_estudiante" },
+        { fields: ["gradoId"], name: "idx_matricula_grado" },
         { fields: ["grupoId"], name: "idx_matricula_grupo" },
         { fields: ["sedeId"], name: "idx_matricula_sede" },
         { fields: ["vigenciaId"], name: "idx_matricula_vigencia" },
@@ -182,8 +191,8 @@ export const Matricula = sequelize.define("matricula", {
         /** UN ESTUDIANTE SOLO PUEDE TENER UNA MATRÍCULA POR VIGENCIA */
         {
             unique: true,
-            name: "idx_unique_estudiante_vigencia",
-            fields: ["estudianteId", "vigenciaId"]
+            name: "idx_unique_estudiante_vigencia_grado",
+            fields: ["estudianteId", "vigenciaId", "gradoId"]
         },
         {
             unique: true,

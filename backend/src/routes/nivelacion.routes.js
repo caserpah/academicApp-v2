@@ -34,10 +34,10 @@ router.get(
 
 // Registrar nota de nivelación y evidencia (Upsert/Update)
 router.put(
-    "/:matriculaId/:asignaturaId",
+    "/:matriculaId/:areaId",
     protect,
     restrictTo(["docente", "admin", "secretaria"]),
-    uploadEvidence, // Multer procesa el FormData y el archivo luego lo deja en req.file
+    uploadEvidence,
     ValidarRegistrarNivelacion,
     validationErrorHandler,
     nivelacionController.registrar
@@ -45,7 +45,6 @@ router.put(
 
 /**
  * PROCESO ADMINISTRATIVO: Cierre de Año (Generar Consolidados)
- * POST /api/nivelaciones/generar-consolidados
  */
 router.post(
     "/generar-consolidados",
@@ -54,6 +53,27 @@ router.post(
     ValidarGenerarConsolidados,
     validationErrorHandler,
     nivelacionController.generarConsolidados
+);
+
+router.get(
+    "/verificar-consolidados",
+    protect,
+    restrictTo(["admin", "coordinador", "secretaria"]),
+    nivelacionController.verificarConsolidados
+);
+
+router.get(
+    "/reprobados-directos",
+    protect,
+    restrictTo(["docente", "admin", "secretaria", "coordinador"]),
+    nivelacionController.obtenerReprobadosDirectos
+);
+
+router.post(
+    "/completar-notas-faltantes",
+    protect,
+    restrictTo(["admin", "coordinador", "secretaria"]),
+    nivelacionController.completarNotasFaltantes
 );
 
 export default router;
