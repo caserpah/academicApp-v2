@@ -296,6 +296,61 @@ export const nivelacionRepository = {
         });
     },
 
+    /**
+     * OBTENER ESTUDIANTES PARA ACTA DE NIVELACIÓN POR ÁREA
+     * Trae los estudiantes que tienen una nivelación registrada para un área, grupo y vigencia específicos,
+     * aplicando el blindaje reglamentario: EXCLUYE de forma estricta a los estudiantes que acumulan 3 o más
+     * áreas reprobadas en total (quienes pierden el año directamente y no tienen derecho a nivelar).
+     */
+    async findEstudiantesParaActaNivelacion(grupoId, areaId, vigenciaId) {
+        return await Nivelacion.findAll({
+            where: {
+                areaId,
+                vigenciaId,
+                // Blindaje estricto: la matrícula no puede pertenecer al grupo de estudiantes con >= 3 áreas reprobadas
+                matriculaId: {
+                    [Op.notIn]: Nivelacion.sequelize.literal(`(
+                        SELECT ca.matriculaId
+                        FROM calificaciones_areas ca
+                        INNER JOIN areas a ON ca.areaId = a.id
+                        WHERE ca.vigenciaId = ${Nivelacion.sequelize.escape(vigenciaId)}
+                        AND ca.estadoFinal = 'REPROBADO'
+                        AND UPPER(a.nombre) NOT IN ('COMPORTAMIENTO', 'DISCIPLINA')
+                        GROUP BY ca.matriculaId
+                        HAVING COUNT(ca.id) >= 3
+                    )`)
+                }
+            },
+            include: [
+                {
+                    model: Matricula,
+                    as: "matricula",
+                    where: { grupoId, estado: "ACTIVA" },
+                    attributes: ["id", "folio"],
+                    include: [
+                        {
+                            model: Estudiante,
+                            as: "estudiante",
+                            attributes: [
+                                "id", "documento", "primerNombre", "segundoNombre",
+                                "primerApellido", "segundoApellido"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    model: Area,
+                    as: "area",
+                    attributes: ["id", "nombre"]
+                }
+            ],
+            // Ordenamiento alfabético estándar institucional
+            order: [
+                [{ model: Matricula, as: "matricula" }, { model: Estudiante, as: "estudiante" }, 'primerApellido', 'ASC']
+            ]
+        });
+    },
+
     async marcarCierreGrupo(grupoId, transaction) {
         await Grupo.update(
             { cierreGenerado: true },

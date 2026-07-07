@@ -44,6 +44,12 @@ export const validarVentana = async (periodo, vigenciaId, data, esSoloCambioText
     // Solo los administrativos pueden editar fuera de la ventana, y aún así con restricciones.
     if (!esAdministrativo) throw new Error(`El periodo de calificaciones está cerrado (Finalizó: ${ventana.fechaFin}).`);
 
+    // Roles que omiten la restricción de justificación
+    const ROLES_OMITEN_JUSTIFICACION = ['admin', 'secretaria'];
+    if (data.role && ROLES_OMITEN_JUSTIFICACION.includes(data.role)) {
+        return true;
+    }
+
     if (data.notaDefinitivaInput !== undefined || esSoloCambioTexto || (data.observacion_cambio && data.observacion_cambio.trim().length > 5)) {
         return true;
     }
