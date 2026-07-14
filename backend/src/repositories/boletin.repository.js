@@ -120,12 +120,19 @@ export const boletinRepository = {
     /**
      * 4. Calificaciones Históricas con Asignaturas y Áreas
      */
-    async findCalificacionesHistoricasLote(idsEstudiantes, vigenciaId) {
+    async findCalificacionesHistoricasLote(idsEstudiantes, vigenciaId, periodoMaximo = null) {
+        const whereClause = {
+            estudianteId: { [Op.in]: idsEstudiantes },
+            vigenciaId
+        };
+
+        // Filtro para traer notas únicamente hasta el periodo solicitado
+        if (periodoMaximo) {
+            whereClause.periodo = { [Op.lte]: periodoMaximo };
+        }
+
         return Calificacion.findAll({
-            where: {
-                estudianteId: { [Op.in]: idsEstudiantes },
-                vigenciaId
-            },
+            where: whereClause,
             include: [
                 {
                     model: Asignatura,
@@ -188,6 +195,17 @@ export const boletinRepository = {
     async findNivelacionesLote(idsMatriculas) {
         return Nivelacion.findAll({
             where: { matriculaId: { [Op.in]: idsMatriculas } }
+        });
+    },
+
+    /**
+     * Extrae la asignatura de Comportamiento o Disciplina
+     */
+    async findAsignaturaComportamiento() {
+        return Asignatura.findOne({
+            where: {
+                nombre: { [Op.in]: ['COMPORTAMIENTO', 'DISCIPLINA'] }
+            }
         });
     }
 

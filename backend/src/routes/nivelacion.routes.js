@@ -76,4 +76,11 @@ router.post(
     nivelacionController.completarNotasFaltantes
 );
 
+router.get(
+    "/acta-pdf",
+    protect,
+    restrictTo(["docente", "admin", "secretaria", "coordinador"]),
+    nivelacionController.descargarActaPdf
+);
+
 export default router;

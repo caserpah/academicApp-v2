@@ -1,8 +1,23 @@
 import { sequelize } from "../database/db.connect.js";
 import { nivelacionRepository } from "../repositories/nivelacion.repository.js";
 import { calificacionRepository } from "../repositories/calificacion.repository.js";
+import { pdfService } from "./pdf.service.js";
+import { Grupo } from "../models/grupo.js";
+import { Grado } from "../models/grado.js";
+import { Sede } from "../models/sede.js";
+import { Docente } from "../models/docente.js";
+import { Usuario } from "../models/usuario.js";
+import { Colegio } from "../models/colegio.js";
 import { handleSequelizeError } from "../middleware/handleSequelizeError.js";
 import { PORCENTAJES, DIM, obtenerJuicio, obtenerJuicioArea } from "../utils/calificacion.helpers.js";
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// Configuración de rutas absolutas
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 export const nivelacionService = {
     /**
      * Registra o actualiza la nota de nivelación de un estudiante en una asignatura.
@@ -79,7 +94,7 @@ export const nivelacionService = {
      */
     async obtenerEstudiantesParaNivelar(grupoId, docenteId = null, vigenciaId = null) {
         try {
-            const nivelaciones = await nivelacionRepository.findReprobadosPorGrupo(grupoId); // Traemos todos los reprobados del grupo
+            const nivelaciones = await nivelacionRepository.findReprobadosPorGrupo(grupoId, vigenciaId); // Traemos todos los reprobados del grupo
 
             // Obtener el Set de estudiantes que ya perdieron el año (3 o más)
             let setReprobadosIds = new Set();
@@ -483,7 +498,7 @@ export const nivelacionService = {
             await t.commit();
             return {
                 procesados: registrosConsolidados.length,
-                mensaje: "Consolidados generados, nivelaciones actualizadas y registros obsoletos depurados correctamente."
+                mensaje: "Consolidados generados y nivelaciones actualizadas correctamente."
             };
 
         } catch (error) {
@@ -567,7 +582,7 @@ export const nivelacionService = {
             const registrosCompletos = [];
 
             for (const nota of notas) {
-                const valorRelleno = parseFloat(nota.notaDefinitiva); // Ej: El 1.0 ingresado masivamente
+                const valorRelleno = parseFloat(nota.notaDefinitiva);
                 const keyBusqueda = `${nota.estudianteId}-${nota.asignaturaId}-${nota.periodo}`;
                 const registroParcial = diccExistentes[keyBusqueda];
 
@@ -636,5 +651,169 @@ export const nivelacionService = {
             console.error("Error crítico procesando notas masivas con juicios:", error);
             throw new Error("No se pudo completar el guardado masivo con integridad de datos.");
         }
+    },
+
+    /**
+     * Genera el payload de datos completo extrayendo la información institucional de la base de datos
+     * y llama al generador de PDF para el Acta de Nivelación (Soporta múltiples asignaturas por área).
+     */
+    async generarActaNivelacionPdf(grupoId, areaId, parametroVigencia) {
+        const vigenciaId = (typeof parametroVigencia === 'object' && parametroVigencia !== null)
+            ? parametroVigencia.id
+            : parametroVigencia;
+
+        const anioLectivo = (typeof parametroVigencia === 'object' && parametroVigencia !== null)
+            ? parametroVigencia.anio
+            : new Date().getFullYear();
+
+        // 1. Consultar de forma paralela, incluyendo AHORA las cargas del grupo para saber quién dicta qué
+        const [institucionInfo, registros, grupoInfo, cargasDelGrupo] = await Promise.all([
+            Colegio.findOne(),
+            nivelacionRepository.findEstudiantesParaActaNivelacion(grupoId, areaId, vigenciaId),
+            Grupo.findByPk(grupoId, {
+                include: [
+                    { model: Grado, as: 'grado' },
+                    { model: Sede, as: 'sede' }
+                ]
+            }),
+            nivelacionRepository.findCargasConDetalles(grupoId, vigenciaId) // Traemos todas las cargas
+        ]);
+
+        // Validaciones de consistencia de datos
+        if (!institucionInfo) {
+            const error = new Error("No se encontró ningún registro de configuración institucional en la tabla colegios.");
+            error.status = 404;
+            throw error;
+        }
+
+        if (!registros || registros.length === 0) {
+            const error = new Error("No hay estudiantes para nivelar en esta área, o no existen registros pendientes.");
+            error.status = 404;
+            throw error;
+        }
+
+        if (!grupoInfo) {
+            const error = new Error("No se pudo localizar la información del grupo seleccionado para armar el encabezado del acta.");
+            error.status = 404;
+            throw error;
+        }
+
+        // Lógica para saber si el área tiene más de 1 asignatura
+        const asignaturasDelArea = cargasDelGrupo.filter(c => c.asignatura.areaId === Number(areaId));
+        const mostrarAsignatura = asignaturasDelArea.length > 1;
+
+        // Extraer información base
+        const primerRegistro = registros[0];
+        const areaNombre = (primerRegistro.area?.nombre || "SIN NOMBRE").toUpperCase();
+        const logoBase64 = await _obtenerLogoBase64();
+
+        // Formatear visualmente el grado y la jornada
+        const gradoFormateado = (grupoInfo.grado?.nombre || "N/A").toUpperCase().replace(/_/g, ' ');
+        let jornadaFormateada = (grupoInfo.jornada || "N/A").toUpperCase();
+
+        if (jornadaFormateada === 'NOCHE') {
+            jornadaFormateada = 'NOCTURNA';
+        } else if (jornadaFormateada === 'MANANA') {
+            jornadaFormateada = 'MAÑANA';
+        }
+
+        // ==========================================
+        // LÓGICA MULTIPÁGINA (Por Asignatura)
+        // ==========================================
+        const paginasAsignaturas = {};
+
+        registros.forEach(reg => {
+            const detalles = typeof reg.detalleAsignaturas === 'string'
+                ? JSON.parse(reg.detalleAsignaturas)
+                : (reg.detalleAsignaturas || []);
+
+            // Filtramos TODAS las asignaturas que el estudiante reprobó en esta área
+            const asignaturasCulpables = detalles.filter(d => d.responsablePerdida);
+            // Fallback por si la data viene sin el flag, tomamos la primera
+            const asignaturasAProcesar = asignaturasCulpables.length > 0 ? asignaturasCulpables : [detalles[0]];
+
+            const nombreEstudiante = `${reg.matricula.estudiante.primerApellido} ${reg.matricula.estudiante.segundoApellido || ''} ${reg.matricula.estudiante.primerNombre} ${reg.matricula.estudiante.segundoNombre || ''}`.trim().toUpperCase();
+            const notaAnt = Number(reg.notaDefinitivaOriginal).toFixed(2).replace('.', ',');
+
+            // Iteramos sobre cada asignatura reprobada por el estudiante
+            asignaturasAProcesar.forEach(asig => {
+                if (!asig || !asig.asignaturaId) return;
+                const asigId = asig.asignaturaId;
+
+                // Si aún no hemos creado la hoja para esta asignatura, la inicializamos y le buscamos su docente
+                if (!paginasAsignaturas[asigId]) {
+                    const cargaInfo = cargasDelGrupo.find(c => c.asignatura.id === asigId);
+                    let nombreDocente = "DOCENTE SIN ASIGNAR";
+
+                    // Extraer el nombre del docente que dicta esta asignatura exacta
+                    if (cargaInfo && cargaInfo.docente && cargaInfo.docente.identidad) {
+                        nombreDocente = `${cargaInfo.docente.identidad.apellidos} ${cargaInfo.docente.identidad.nombre}`.toUpperCase();
+                    }
+
+                    paginasAsignaturas[asigId] = {
+                        asignaturaNombre: asig.nombre.toUpperCase(),
+                        docenteNombre: nombreDocente,
+                        estudiantes: []
+                    };
+                }
+
+                // Agregamos al estudiante a la hoja correspondiente
+                paginasAsignaturas[asigId].estudiantes.push({
+                    estudiante: nombreEstudiante,
+                    notaAnt: notaAnt,
+                    notaFin: ""
+                });
+            });
+        });
+
+        // Convertimos el diccionario a un arreglo y ordenamos alfabéticamente a los estudiantes por hoja
+        const paginasFormateadas = Object.values(paginasAsignaturas).map(pagina => {
+            pagina.estudiantes.sort((a, b) => a.estudiante.localeCompare(b.estudiante)); // Ordenar alfabéticamente
+
+            // Asignar números de lista secuenciales a esta hoja (01, 02, etc.)
+            pagina.estudiantes.forEach((est, index) => {
+                est.numero = String(index + 1).padStart(2, '0');
+            });
+
+            return {
+                colegio: {
+                    nombre: institucionInfo.nombre.toUpperCase(),
+                    registroDane: institucionInfo.registroDane,
+                    nit: institucionInfo.nit,
+                    email: institucionInfo.email,
+                    contacto: institucionInfo.contacto,
+                    logoBase64: logoBase64
+                },
+                acta: {
+                    area: areaNombre,
+                    asignatura: pagina.asignaturaNombre,
+                    mostrarAsignatura: mostrarAsignatura,
+                    grado: gradoFormateado,
+                    grupo: (grupoInfo.nombre || "N/A").toUpperCase(),
+                    jornada: jornadaFormateada,
+                    sede: (grupoInfo.sede?.nombre || "PRINCIPAL").toUpperCase(),
+                    vigencia: anioLectivo,
+                    docente: pagina.docenteNombre
+                },
+                estudiantes: pagina.estudiantes
+            };
+        });
+
+        // Retornar el buffer generado por Puppeteer (enviando el arreglo de páginas)
+        return await pdfService.crearPdfActaNivelacion({ paginas: paginasFormateadas });
     }
 };
+
+// Función auxiliar para obtener el logo en base64
+async function _obtenerLogoBase64() {
+    try {
+        const logoPath = path.join(__dirname, '../../public/uploads/institucional/escudo-instecau.png');
+        const imageBuffer = await fs.readFile(logoPath);
+        const ext = path.extname(logoPath).substring(1);
+        const mimeType = ext === 'jpg' ? 'jpeg' : ext;
+        return `data:image/${mimeType};base64,${imageBuffer.toString('base64')}`;
+    } catch (error) {
+        console.warn("⚠️ No se pudo cargar el logo para el PDF del acta de nivelación.");
+        return "";
+    }
+}

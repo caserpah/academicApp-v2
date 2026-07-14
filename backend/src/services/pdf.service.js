@@ -127,7 +127,6 @@ export const pdfService = {
     },
 
     async crearPdfCertificado(dataCertificado, nombrePlantilla) {
-        // Los certificados suelen ser tamaño Carta
         return await generarPdfBase(nombrePlantilla, dataCertificado, {
             format: "Letter"
         });
@@ -135,5 +134,12 @@ export const pdfService = {
 
     async crearPdfListado(dataListado, nombrePlantilla) {
         return await generarPdfBase(nombrePlantilla, dataListado);
+    },
+
+    async crearPdfActaNivelacion(dataActa) {
+        return await generarPdfBase("acta-nivelacion.hbs", dataActa, {
+            format: "Letter",
+            margin: { top: 0, bottom: 0, left: 0, right: 0 }
+        });
     }
 };

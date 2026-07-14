@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import { Grupo } from "../models/grupo.js";
 import { Grado } from "../models/grado.js";
 import { Sede } from "../models/sede.js";
@@ -34,7 +35,9 @@ export const reporteRepository = {
 
     async findMatriculasActivas(grupoId, vigenciaId) {
         return Matricula.findAll({
-            where: { grupoId, vigenciaId, estado: 'ACTIVA' },
+            where: { grupoId, vigenciaId, estado: {
+                [Op.in]: ['ACTIVA', 'PROMOVIDO', 'REPROBADO']
+            } },
             include: [{
                 model: Estudiante,
                 as: 'estudiante',

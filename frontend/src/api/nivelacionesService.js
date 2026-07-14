@@ -86,6 +86,7 @@ export const fetchNivelacionCatalogs = async (rol) => {
 
         return {
             vigencia: vigenciaActiva,
+            vigencias: vigenciasItems,
             sedes,
             grupos,
             areas,          // Solo para Admins
@@ -98,10 +99,16 @@ export const fetchNivelacionCatalogs = async (rol) => {
     }
 };
 
-export const fetchPendientesNivelacion = async (grupoId) => {
+export const fetchPendientesNivelacion = async (grupoId, vigenciaId) => {
     try {
         if (!grupoId) return [];
-        const response = await apiClient.get(`${NIVELACIONES_ENDPOINT}/pendientes?grupoId=${grupoId}`);
+
+        let url = `${NIVELACIONES_ENDPOINT}/pendientes?grupoId=${grupoId}`;
+        // Si el frontend envía un año lectivo diferente, lo sumamos a la petición
+        if (vigenciaId) {
+            url += `&vigenciaId=${vigenciaId}`;
+        }
+        const response = await apiClient.get(url);
         return response.data.data || response.data;
     } catch (error) {
         throw parseError(error, "Error al cargar la lista de estudiantes para nivelación.");
@@ -119,10 +126,17 @@ export const registrarNivelacion = async (matriculaId, areaId, formData) => {
     }
 };
 
-export const fetchReprobadosDirectos = async (grupoId) => {
+export const fetchReprobadosDirectos = async (grupoId, vigenciaId) => {
     try {
         if (!grupoId) return [];
-        const response = await apiClient.get(`${NIVELACIONES_ENDPOINT}/reprobados-directos?grupoId=${grupoId}`);
+
+        let url = `${NIVELACIONES_ENDPOINT}/reprobados-directos?grupoId=${grupoId}`;
+        // Hacemos lo mismo para el listado de reprobados directos
+        if (vigenciaId) {
+            url += `&vigenciaId=${vigenciaId}`;
+        }
+
+        const response = await apiClient.get(url);
         return response.data.data || response.data;
     } catch (error) {
         throw parseError(error, "Error al cargar la lista de reprobados directos.");
@@ -135,5 +149,20 @@ export const guardarCalificacionesMasivas = async (arregloNotas) => {
         return response.data;
     } catch (error) {
         throw parseError(error, "Error al procesar el guardado masivo de calificaciones pendientes.");
+    }
+};
+
+/**
+ * Consume el endpoint binario para compilar y descargar el Acta de Nivelación en PDF
+ */
+export const descargarActaNivelacionPdf = async (grupoId, areaId) => {
+    try {
+        const response = await apiClient.get(`${NIVELACIONES_ENDPOINT}/acta-pdf`, {
+            params: { grupoId, areaId },
+            responseType: 'blob' // Esencial para la lectura correcta del buffer binario
+        });
+        return response.data;
+    } catch (error) {
+        throw parseError(error, "No se pudo descargar el acta de nivelación oficial.");
     }
 };

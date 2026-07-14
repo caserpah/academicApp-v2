@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import { Grupo } from "../models/grupo.js";
 import { Grado } from "../models/grado.js";
 import { Sede } from "../models/sede.js";
@@ -34,7 +35,9 @@ export const planillaRepository = {
             where: {
                 grupoId,
                 vigenciaId,
-                estado: 'ACTIVA' // Solo estudiantes activos
+                estado: {
+                    [Op.in]: ['ACTIVA', 'PROMOVIDO', 'REPROBADO']
+                }
             },
             include: [{
                 model: Estudiante,

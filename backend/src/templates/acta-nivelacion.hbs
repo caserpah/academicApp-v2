@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Acta de Nivelación</title>
+    <style>
+        @page {
+            size: Letter portrait;
+            margin: 10mm 15mm 10mm 15mm;
+            /* Márgenes ligeramente reducidos para aprovechar la hoja */
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11px;
+            color: #000;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* --- ENCABEZADO --- */
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5px;
+            border: none;
+        }
+
+        .logo-container {
+            width: 15%;
+            text-align: center;
+        }
+
+        .logo-container img {
+            max-width: 70px;
+            height: auto;
+        }
+
+        .title-container {
+            width: 85%;
+            text-align: center;
+        }
+
+        .inst-name {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .inst-meta {
+            font-size: 9px;
+            margin-bottom: 4px;
+        }
+
+        .doc-title {
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* --- INFO BOX & ACTA NRO --- */
+        .info-header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 10px;
+        }
+
+        .acta-nro-box {
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .nro-cuadro {
+            display: inline-block;
+            width: 40px;
+            height: 14px;
+            border: 1px solid #000;
+            vertical-align: bottom;
+            margin-left: 5px;
+        }
+
+        .info-box {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        .info-box td {
+            border: 1px solid #000;
+            padding: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* --- SECCIONES PARA DILIGENCIAR --- */
+        .texto-constancia {
+            font-size: 11px;
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+
+        .seccion-escribir {
+            margin-bottom: 20px;
+        }
+
+        .seccion-escribir strong {
+            font-size: 11px;
+        }
+
+        /* Líneas estilo renglón para escribir a mano */
+        .linea-escribir {
+            border-bottom: 1px solid #555;
+            height: 16px;
+            width: 100%;
+            margin-top: 2px;
+        }
+
+        /* --- TABLA DE ESTUDIANTES (Optimizada en espacio) --- */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        .data-table th,
+        .data-table td {
+            border: 1px solid #000;
+            padding: 3px 4px;
+            /* Padding reducido para filas más angostas */
+            text-align: center;
+            vertical-align: middle;
+            font-size: 10px;
+        }
+
+        .data-table th {
+            font-weight: bold;
+            background-color: #f7f7f7;
+            font-size: 9px;
+        }
+
+        .text-left {
+            text-align: left !important;
+        }
+
+        .text-red {
+            color: red !important;
+        }
+
+        .text-sm-condensed {
+            font-size: 10px;
+        }
+
+        /* --- FIRMAS --- */
+        .firmas-container {
+            margin-top: 40px;
+            width: 100%;
+            page-break-inside: avoid;
+        }
+
+        .firmas-table {
+            width: 100%;
+            border: none;
+            text-align: center;
+        }
+
+        .firmas-table td {
+            width: 50%;
+            vertical-align: bottom;
+            border: none;
+        }
+
+        .linea-firma {
+            border-top: 1px solid #000;
+            width: 80%;
+            margin: 0 auto;
+            padding-top: 4px;
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        /* Salto de página para archivos con múltiples hojas */
+        .page {
+            page-break-after: always;
+        }
+
+        .page:last-child {
+            page-break-after: auto;
+        }
+    </style>
+</head>
+
+<body>
+
+    {{#each paginas}}
+    <div class="page">
+        <!-- 1. Encabezado Institucional -->
+        <table class="header-table">
+            <tr>
+                <td class="logo-container">
+                    {{#if colegio.logoBase64}}
+                    <img src="{{colegio.logoBase64}}" alt="Logo Institucional">
+                    {{/if}}
+                </td>
+                <td class="title-container">
+                    <div class="inst-name">{{colegio.nombre}}</div>
+                    <div class="inst-meta">Registro DANE: {{colegio.registroDane}} | Tel: {{colegio.contacto}} - Email:
+                        {{colegio.email}}</div>
+                    <div class="doc-title">ACTA DE NIVELACIÓN Y RECUPERACIÓN | AÑO LECTIVO {{acta.vigencia}}</div>
+                </td>
+            </tr>
+        </table>
+
+        <div class="info-header-container">
+            <div></div>
+            <div class="acta-nro-box">Acta No. <span class="nro-cuadro"></span></div>
+        </div>
+
+        <!-- 2. Información del Grupo y Área -->
+        <table class="info-box">
+            <!-- Condición para mostrar la asignatura solo si el área tiene más de una asignatura -->
+            <tr>
+                <td colspan="2">
+                    ÁREA: {{acta.area}}
+                    {{#if acta.mostrarAsignatura}}
+                    &nbsp;|&nbsp; ASIGNATURA POR RECUPERAR: {{acta.asignatura}}
+                    {{/if}}
+                </td>
+            </tr>
+            <tr>
+                <td style="width: 50%;">GRADO: {{acta.grado}} &nbsp;|&nbsp; GRUPO: {{acta.grupo}}</td>
+                <td style="width: 50%;">SEDE: {{acta.sede}} &nbsp;|&nbsp; JORNADA: {{acta.jornada}}</td>
+            </tr>
+            <tr>
+                <td colspan="2">DOCENTE: {{acta.docente}}</td>
+            </tr>
+        </table>
+
+        <!-- 3. Texto descriptivo general -->
+        <div class="texto-constancia">
+            Mediante la siguiente acta se deja constancia de que los estudiantes abajo relacionados realizaron las
+            siguientes actividades correspondientes al proceso de Nivelación:
+        </div>
+
+        <!-- 4. Secciones para diligenciar a mano -->
+        <div class="seccion-escribir">
+            <strong>A. TEMÁTICA DESARROLLADA:</strong>
+            <div class="linea-escribir"></div>
+            <div class="linea-escribir"></div>
+            <div class="linea-escribir"></div>
+        </div>
+
+        <div class="seccion-escribir">
+            <strong>B. ESTRATEGIA METODOLÓGICA:</strong>
+            <div class="linea-escribir"></div>
+            <div class="linea-escribir"></div>
+        </div>
+
+        <div class="seccion-escribir">
+            <strong>C. MEDIOS UTILIZADOS EN LA EVALUACIÓN:</strong>
+            <div class="linea-escribir"></div>
+            <div class="linea-escribir"></div>
+        </div>
+
+        <!-- 5. Tabla Dinámica de Estudiantes -->
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 3%;">No.</th>
+                    <th style="width: 46%;">ESTUDIANTES</th>
+                    <th style="width: 10%;">Nota Final Área</th>
+                    <th style="width: 10%;">Nota Recuperación</th>
+                    <th style="width: 30%;">FIRMA</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each estudiantes}}
+                <tr>
+                    <td>{{numero}}</td>
+                    <td class="text-left text-sm-condensed">{{estudiante}}</td>
+                    <td class="text-red">{{notaAnt}}</td>
+                    <td>{{notaFin}}</td>
+                    <td></td>
+                </tr>
+                {{/each}}
+            </tbody>
+        </table>
+
+        <!-- 6. Observaciones -->
+        <div class="seccion-escribir" style="margin-top: 15px;">
+            <strong>OBSERVACIONES:</strong>
+            <div class="linea-escribir"></div>
+            <div class="linea-escribir"></div>
+        </div>
+
+        <!-- 7. Espacios para Firmas -->
+        <div class="firmas-container">
+            <table class="firmas-table">
+                <tr>
+                    <td>
+                        <div class="linea-firma">
+                            Firma del Docente
+                        </div>
+                    </td>
+                    <td>
+                        <div class="linea-firma">
+                            Coordinador(a) Académico
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    {{/each}}
+
+</body>
+
+</html>

@@ -66,7 +66,12 @@ export const boletinService = {
         const idsMatriculasTotales = matriculasTotales.map(m => m.id);
 
         const cargas = await boletinRepository.findCargasPorGrupo(grupoId, vigenciaId);
-        const calificacionesPlanas = await boletinRepository.findCalificacionesHistoricasLote(idsEstudiantesTotales, vigenciaId);
+
+        // Definimos el límite de periodos a extraer. Si es final, evalúa máximo hasta el periodo 4.
+        const maxPeriodoFetch = esPeriodoFinal ? 4 : Number(periodoActual);
+
+        // Pasamos maxPeriodoFetch al repositorio para aligerar la carga de la consulta
+        const calificacionesPlanas = await boletinRepository.findCalificacionesHistoricasLote(idsEstudiantesTotales, vigenciaId, maxPeriodoFetch);
 
         // Solo para el periodo final, traemos las calificaciones consolidadas de áreas y las nivelaciones
         let consolidadosAreas = [];
@@ -139,6 +144,17 @@ export const boletinService = {
 
         const logoBase64 = await _obtenerLogoBase64();
 
+        // Reemplazar todos los guiones bajos por espacios en el grado
+        const gradoFormateado = (grupo.grado?.nombre || "N/A").toUpperCase().replace(/_/g, ' ');
+
+        // Formatear la jornada para reportes oficiales
+        let jornadaFormateada = (grupo.jornada || "N/A").toUpperCase();
+        if (jornadaFormateada === 'NOCHE') {
+            jornadaFormateada = 'NOCTURNA';
+        } else if (jornadaFormateada === 'MANANA') {
+            jornadaFormateada = 'MAÑANA';
+        }
+
         return {
             encabezadoInstitucional: {
                 nombre: colegio.nombre,
@@ -156,9 +172,9 @@ export const boletinService = {
                 esPeriodoFinal: esPeriodoFinal
             },
             grupo: {
-                grado: grupo.grado.nombre,
+                grado: gradoFormateado,
                 grupoNombre: grupo.nombre,
-                jornada: grupo.jornada === 'MANANA' ? 'MAÑANA' : grupo.jornada,
+                jornada: jornadaFormateada,
                 sede: grupo.sede?.nombre ? grupo.sede.nombre.toUpperCase() : 'Sede no asignada',
                 directorGrupo: grupo.director ? `${grupo.director.identidad?.nombre || grupo.director.nombre || ''} ${grupo.director.identidad?.apellidos || grupo.director.apellidos || ''}`.trim() : 'SIN ASIGNAR',
                 promedioGrupoHistorico: promediosGrupo
@@ -198,7 +214,10 @@ export const boletinService = {
             throw new Error("El grupo seleccionado aún no tiene carga académica (asignaturas) asignada en esta vigencia.");
         }
 
-        const calificacionesPlanas = await boletinRepository.findCalificacionesHistoricasLote(idsEstudiantes, vigenciaId);
+        const perActual = Number(periodoActual);
+
+        // Pasamos perActual para auditar solo hasta el periodo solicitado
+        const calificacionesPlanas = await boletinRepository.findCalificacionesHistoricasLote(idsEstudiantes, vigenciaId, perActual);
 
         // 3. Crear diccionario de acceso ultra rápido
         const diccNotas = {};
@@ -213,7 +232,6 @@ export const boletinService = {
         const esCicloVI = nombreGrado.includes('CICLO_VI') || nombreGrado.includes('CICLO VI');
         const esCicloV = !esCicloVI && (nombreGrado.includes('CICLO_V') || nombreGrado.includes('CICLO V'));
 
-        const perActual = Number(periodoActual);
         let periodosAEvaluar = [];
 
         if (esCicloVI) {
@@ -227,6 +245,9 @@ export const boletinService = {
                 periodosAEvaluar.push(i);
             }
         }
+
+        // Buscamos la asignatura de Comportamiento para auditarla independientemente de las cargas
+        const asignaturaComportamiento = await boletinRepository.findAsignaturaComportamiento();
 
         const reporteFaltantes = [];
 
@@ -242,7 +263,7 @@ export const boletinService = {
                     if (!notaObj) {
                         notasFaltantesDetalle.push("Ninguna nota registrada");
                     } else {
-                        // Validamos las 4 columnas internas
+                        // Para las demás asignaturas, validamos las 4 columnas internas
                         if (notaObj.notaAcademica === null || notaObj.notaAcademica === undefined) notasFaltantesDetalle.push("Académica");
                         if (notaObj.notaAcumulativa === null || notaObj.notaAcumulativa === undefined) notasFaltantesDetalle.push("Acumulativa");
                         if (notaObj.notaLaboral === null || notaObj.notaLaboral === undefined) notasFaltantesDetalle.push("Laboral");
@@ -256,11 +277,29 @@ export const boletinService = {
                             asignatura: carga.asignatura.nombre,
                             periodo: `Periodo ${periodo}`,
                             detalle: notasFaltantesDetalle.join(" / "),
-                            estudiante: `${m.estudiante.primerApellido} ${m.estudiante.segundoApellido} ${m.estudiante.primerNombre} ${m.estudiante.segundoNombre}`
+                            estudiante: `${m.estudiante.primerApellido} ${m.estudiante.segundoApellido || ''} ${m.estudiante.primerNombre} ${m.estudiante.segundoNombre || ''}`.replace(/\s+/g, ' ').trim()
                         });
                     }
                 });
             });
+
+            if (asignaturaComportamiento) {
+                periodosAEvaluar.forEach(periodo => {
+                    const notaCompObj = diccNotas[m.estudiante.id]?.[asignaturaComportamiento.id]?.[periodo];
+
+                    if (!notaCompObj || notaCompObj.notaAcademica === null || notaCompObj.notaAcademica === undefined) {
+                        const nombreDirector = grupo.director ? `${grupo.director.identidad?.nombre || grupo.director.nombre || ''} ${grupo.director.identidad?.apellidos || grupo.director.apellidos || ''}`.trim() : "";
+
+                        reporteFaltantes.push({
+                            docente: `${nombreDirector}`,
+                            asignatura: asignaturaComportamiento.nombre,
+                            periodo: `Periodo ${periodo}`,
+                            detalle: !notaCompObj ? "Ninguna nota registrada" : "Valoración de Comportamiento",
+                            estudiante: `${m.estudiante.primerApellido} ${m.estudiante.segundoApellido || ''} ${m.estudiante.primerNombre} ${m.estudiante.segundoNombre || ''}`.replace(/\s+/g, ' ').trim()
+                        });
+                    }
+                });
+            }
         });
 
         return reporteFaltantes;

@@ -1,16 +1,22 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faClipboardList, faSearch, faEraser, faEye, faUpload, faTimes,
-    faExclamationTriangle, faSchool, faFilter, faChevronUp, faChevronDown
+    faClipboardList, faSearch, faEraser, faEye, faUpload, faTimes, faFilePdf, faArchive,
+    faExclamationTriangle, faSchool, faFilter, faChevronUp, faChevronDown, faSpinner
 } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../../context/AuthContext.jsx";
 
 import NivelacionForm from "./NivelacionForm.jsx";
-import { fetchPendientesNivelacion, fetchNivelacionCatalogs, fetchReprobadosDirectos } from "../../api/nivelacionesService.js";
+import {
+    fetchPendientesNivelacion,
+    fetchNivelacionCatalogs,
+    fetchReprobadosDirectos,
+    descargarActaNivelacionPdf
+} from "../../api/nivelacionesService.js";
 import { showSuccess, showError, showWarning } from "../../utils/notifications.js";
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
 import { formatearNombreGrupo } from "../../utils/formatters.js";
+import swal from "sweetalert2";
 
 const Nivelaciones = () => {
     // --- AUTH CONTEXT ---
@@ -22,28 +28,29 @@ const Nivelaciones = () => {
     const esAdmin = ['admin', 'coordinador', 'secretaria'].includes(rolUsuario);
 
     // --- ESTADOS DE CONFIGURACIÓN Y CATÁLOGOS ---
-    const [vigencia, setVigencia] = useState(null);
+    const [vigenciaActual, setVigenciaActual] = useState(null); // Guardamos la actual para comparar
+    const [vigencias, setVigencias] = useState([]);
     const [sedes, setSedes] = useState([]);
     const [grupos, setGrupos] = useState([]);
-
-    // Listas dinámicas filtradas
     const [gruposDisponibles, setGruposDisponibles] = useState([]);
 
-    // Filtros Seleccionados (¡Adiós areaId!)
+    // Filtros Seleccionados
     const [filters, setFilters] = useState({
         sedeId: '',
-        grupoId: ''
+        grupoId: '',
+        vigenciaId: ''
     });
 
-    // Estados de Datos y UI (Ahora guardamos áreas agrupadas, no estudiantes sueltos)
+    // Estados de Datos y UI
     const [areasNivelacion, setAreasNivelacion] = useState([]);
     const [loadingCatalogs, setLoadingCatalogs] = useState(true);
     const [loadingTabla, setLoadingTabla] = useState(false);
+    const [descargandoActaId, setDescargandoActaId] = useState(null);
 
     // Control de Modales
     const [mode, setMode] = useState("lista");
     const [selectedEstudiante, setSelectedEstudiante] = useState(null);
-    const [selectedAreaId, setSelectedAreaId] = useState(null); // Nuevo: Guarda el ID del área para el modal
+    const [selectedAreaId, setSelectedAreaId] = useState(null);
     const [detalleAsignaturasView, setDetalleAsignaturasView] = useState(null);
 
     // Estado para almacenar los estudiantes reprobados directamente (si es necesario)
@@ -66,13 +73,16 @@ const Nivelaciones = () => {
                 setLoadingCatalogs(true);
                 const data = await fetchNivelacionCatalogs(rolUsuario);
 
-                setVigencia(data.vigencia);
+                setVigencias(data.vigencias || []);
+                setVigenciaActual(data.vigenciaActual || data.vigencia);
                 setSedes(data.sedes);
                 setGrupos(data.grupos);
 
-                if (data.sedes.length === 1) {
-                    setFilters(prev => ({ ...prev, sedeId: data.sedes[0].id }));
-                }
+                setFilters(prev => ({
+                    ...prev,
+                    sedeId: data.sedes.length === 1 ? data.sedes[0].id : '',
+                    vigenciaId: (data.vigenciaActual?.id || data.vigencia?.id) || ''
+                }));
             } catch (err) {
                 showError("No se pudieron cargar los filtros iniciales.");
                 console.error(err);
@@ -101,46 +111,87 @@ const Nivelaciones = () => {
 
     // --- ACCIÓN DE BÚSQUEDA ---
     const handleBuscar = useCallback(async () => {
-        const { grupoId } = filters;
+        const { grupoId, vigenciaId } = filters;
         if (!grupoId) return;
 
         try {
             setLoadingTabla(true);
-            const dataNivelaciones = await fetchPendientesNivelacion(grupoId);
+            const dataNivelaciones = await fetchPendientesNivelacion(grupoId, vigenciaId);
             setAreasNivelacion(dataNivelaciones);
 
             if (esAdmin) {
-                const dataReprobados = await fetchReprobadosDirectos(grupoId);
+                const dataReprobados = await fetchReprobadosDirectos(grupoId, vigenciaId);
                 setReprobadosDirectos(dataReprobados);
             }
 
             if (dataNivelaciones.length === 0) {
-                showWarning("No existen estudiantes pendientes de nivelación para este grupo.", "Aviso");
+                showWarning("No existen estudiantes pendientes de nivelación para este grupo en el año lectivo seleccionado.", "Aviso");
             }
         } catch (err) {
             showError(err.message);
         } finally {
             setLoadingTabla(false);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filters]);
+    }, [filters, esAdmin]);
 
     const handleFilterChange = (e) => {
         setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
-        {
-            setAreasNivelacion([]); // Limpia la tabla al cambiar de grupo
-            setReprobadosDirectos([]); // Limpia la sección de reprobados al cambiar de grupo
-        }
+        setAreasNivelacion([]);
+        setReprobadosDirectos([]);
     };
 
     const clearFilters = () => {
         setFilters({
             sedeId: sedes.length === 1 ? sedes[0].id : '',
-            grupoId: ''
+            grupoId: '',
+            vigenciaId: vigenciaActual?.id || ''
         });
         setAreasNivelacion([]);
         setReprobadosDirectos([]);
     };
+
+    // --- DESCARGA DE ACTA PDF ---
+    const handleDescargarActa = async (e, areaId, nombreArea) => {
+        e.stopPropagation(); // Evita que el contenedor del acordeón cambie su estado colapsado
+        const { grupoId, vigenciaId } = filters;
+        if (!grupoId || !areaId) return;
+
+        try {
+            setDescargandoActaId(areaId);
+            const blobData = await descargarActaNivelacionPdf(grupoId, areaId, vigenciaId);
+
+            // Creación del objectURL local para forzar el flujo de descarga en el cliente navegador
+            const blob = new Blob([blobData], { type: "application/pdf" });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+
+            link.href = url;
+            link.setAttribute("download", `Acta_Nivelacion_${nombreArea.replace(/\s+/g, "_")}.pdf`);
+            document.body.appendChild(link);
+
+            link.click();
+
+            // Limpieza y liberación de memoria activa
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            swal.fire({
+                title: "Descarga completada",
+                text: `El acta de nivelación para el área "${nombreArea}" ha sido descargada exitosamente.`,
+                icon: "success",
+                timer: 3000, // <-- Se cierra solo después de 3 segundos
+                showConfirmButton: false,
+                trueprogressBar: true,
+            });
+        } catch (err) {
+            showError(err.message || "No se pudo completar la exportación del documento PDF.");
+        } finally {
+            setDescargandoActaId(null);
+        }
+    };
+
+    // Variable auxiliar: Será true si el filtro seleccionado pertenece a un año diferente al actual
+    const esVigenciaHistorica = filters.vigenciaId && String(filters.vigenciaId) !== String(vigenciaActual?.id);
 
     if (loadingCatalogs) return <div className="p-12 flex justify-center"><LoadingSpinner /></div>;
 
@@ -154,9 +205,9 @@ const Nivelaciones = () => {
                         <FontAwesomeIcon icon={faClipboardList} className="text-blue-600 mr-3" />
                         Reporte de Nivelaciones
                     </h1>
-                    {vigencia && (
+                    {vigenciaActual && (
                         <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">
-                            Año Lectivo: {vigencia.anio} {esAdmin && '(Administrador)'}
+                            Año Lectivo: {vigenciaActual.anio} {esAdmin && '(Administrador)'}
                         </span>
                     )}
                 </div>
@@ -164,7 +215,27 @@ const Nivelaciones = () => {
                 {/* Filtros Limpios (Sin Área) */}
                 <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                        <div className="md:col-span-4">
+                        {esAdmin && (
+                            <div className="md:col-span-3">
+                                <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">Año Lectivo</label>
+                                <select
+                                    name="vigenciaId"
+                                    value={filters.vigenciaId}
+                                    onChange={handleFilterChange}
+                                    className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                >
+                                    <option value="">-- Seleccionar --</option>
+                                    {vigencias.map(v => (
+                                        <option key={v.id} value={v.id}>
+                                            {v.anio} {v.actual ? '(Actual)' : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        {/* SEDE: Ajusta su ancho si el admin está viendo el año lectivo */}
+                        <div className={esAdmin ? "md:col-span-3" : "md:col-span-4"}>
                             <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">Sede <span className="text-red-500">*</span></label>
                             <div className="relative">
                                 <select
@@ -180,7 +251,8 @@ const Nivelaciones = () => {
                             </div>
                         </div>
 
-                        <div className="md:col-span-5">
+                        {/* GRUPO: Ajusta su ancho si el admin está viendo el año lectivo */}
+                        <div className={esAdmin ? "md:col-span-3" : "md:col-span-5"}>
                             <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">Grupo <span className="text-red-500">*</span></label>
                             <select
                                 name="grupoId"
@@ -198,6 +270,7 @@ const Nivelaciones = () => {
                             </select>
                         </div>
 
+                        {/* BOTONES DE BÚSQUEDA */}
                         <div className="md:col-span-3 flex gap-2">
                             <button
                                 onClick={handleBuscar}
@@ -247,13 +320,29 @@ const Nivelaciones = () => {
                                             ÁREA: {area.nombreArea}
                                         </h3>
                                     </div>
-                                    <span className="bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-md">
-                                        {area.estudiantes.length} Pendientes
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        {/* Botón de Descarga de Acta PDF Oficial */}
+                                        <button
+                                            onClick={(e) => handleDescargarActa(e, area.areaId, area.nombreArea)}
+                                            disabled={descargandoActaId === area.areaId}
+                                            className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg flex items-center gap-2 transition shadow-sm disabled:opacity-60"
+                                            title="Descargar Acta de Nivelación Oficial en formato PDF"
+                                        >
+                                            <FontAwesomeIcon
+                                                icon={descargandoActaId === area.areaId ? faSpinner : faFilePdf}
+                                                spin={descargandoActaId === area.areaId}
+                                            />
+                                            {descargandoActaId === area.areaId ? "Generando..." : "Generar Acta en PDF"}
+                                        </button>
+
+                                        <span className="bg-blue-500 text-white text-xs font-bold px-2 py-1.5 rounded-md shadow-sm disabled:cursor-not-allowed">
+                                            {area.estudiantes.length} Pendientes
+                                        </span>
+                                    </div>
                                 </div>
 
                                 {/* Tabla Interna */}
-                                {!collapsedAreas[area.areaId] &&
+                                {!collapsedAreas[area.areaId] && (
                                     <div className="overflow-x-auto">
                                         <table className="min-w-full divide-y divide-gray-200">
                                             <thead className="bg-gray-50">
@@ -292,12 +381,11 @@ const Nivelaciones = () => {
                                                             {est.pierdeAnio ? (
                                                                 <span
                                                                     className="inline-flex items-center gap-1.5 bg-red-50 text-red-600 border border-red-200 font-bold text-xs px-3 py-2 rounded-lg shadow-sm cursor-help"
-                                                                    title="No es posible nivelar: El estudiante reprueba el año lectivo por perder 3 o más áreas."
+                                                                    title="No es posible nivelar: Reprueba el año lectivo por perder 3 o más áreas."
                                                                 >
                                                                     <FontAwesomeIcon icon={faTimes} /> Reprobó
                                                                 </span>
                                                             ) : est.estadoFinal !== "PENDIENTE" ? (
-                                                                // --- VISTA PARA ESTUDIANTES YA EVALUADOS ---
                                                                 <div className="flex flex-col items-end gap-1">
                                                                     <span className={`text-xs font-bold px-3 py-1.5 cursor-help rounded-md shadow-sm border ${est.estadoFinal === 'NIVELADO' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-orange-50 text-orange-700 border-orange-200'}`} title="Calificación alcanzada por el estudiante.">
                                                                         {est.estadoFinal === 'NIVELADO' ? 'Nivelado: ' : 'No Nivelado: '}
@@ -318,16 +406,25 @@ const Nivelaciones = () => {
                                                             ) : (
                                                                 // --- VISTA PARA ESTUDIANTES PENDIENTES ---
                                                                 esAdmin ? (
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            setSelectedEstudiante(est);
-                                                                            setSelectedAreaId(area.areaId);
-                                                                            setMode("registrar");
-                                                                        }}
-                                                                        className="text-sm font-bold text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition shadow-sm inline-flex items-center"
-                                                                    >
-                                                                        <FontAwesomeIcon icon={faUpload} className="mr-2" /> Evaluar
-                                                                    </button>
+                                                                    !esVigenciaHistorica ? (
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setSelectedEstudiante(est);
+                                                                                setSelectedAreaId(area.areaId);
+                                                                                setMode("registrar");
+                                                                            }}
+                                                                            className="text-sm font-bold text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition shadow-sm inline-flex items-center"
+                                                                        >
+                                                                            <FontAwesomeIcon icon={faUpload} className="mr-2" /> Evaluar
+                                                                        </button>
+                                                                    ) : (
+                                                                        <span
+                                                                            className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-500 border border-gray-200 font-bold text-[11px] px-3 py-1.5 rounded-md shadow-sm cursor-help"
+                                                                            title="Año lectivo cerrado. Solo lectura."
+                                                                        >
+                                                                            <FontAwesomeIcon icon={faArchive} /> Histórico
+                                                                        </span>
+                                                                    )
                                                                 ) : (
                                                                     <span
                                                                         className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-600 border border-slate-200 font-bold text-[11px] px-3 py-1.5 rounded-md shadow-sm cursor-help"
@@ -343,7 +440,7 @@ const Nivelaciones = () => {
                                             </tbody>
                                         </table>
                                     </div>
-                                }
+                                )}
                             </div>
                         ))
                     )}
@@ -384,7 +481,7 @@ const Nivelaciones = () => {
                 {mode === 'registrar' && selectedEstudiante && (
                     <NivelacionForm
                         registroOriginal={selectedEstudiante}
-                        areaId={selectedAreaId} // Pasamos el área seleccionada
+                        areaId={selectedAreaId}
                         soloLectura={!esAdmin}
                         onSuccess={async () => {
                             await showSuccess("Calificación de nivelación registrada de forma exitosa.");

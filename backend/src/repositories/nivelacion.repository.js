@@ -55,13 +55,24 @@ export const nivelacionRepository = {
     },
 
 
-    async findReprobadosPorGrupo(grupoId) {
+    async findReprobadosPorGrupo(grupoId, vigenciaId = null) {
+
+        // Condición dinámica para la tabla Nivelación
+        const nivelacionWhere = {};
+        if (vigenciaId) {
+            nivelacionWhere.vigenciaId = vigenciaId;
+        }
+
+        // Condición para la Matrícula
+        const matriculaWhere = { grupoId: grupoId };
+
         return await Nivelacion.findAll({
+            where: nivelacionWhere,
             include: [
                 {
                     model: Matricula,
                     as: "matricula",
-                    where: { grupoId: grupoId, estado: "ACTIVA" },
+                    where: matriculaWhere,
                     attributes: ["id", "folio"],
                     include: [
                         {
@@ -114,6 +125,11 @@ export const nivelacionRepository = {
                             ]
                         }
                     ]
+                },
+                {
+                    model: Area,
+                    as: "area",
+                    attributes: ["id", "nombre"]
                 }
             ],
             // Ordenamos alfabéticamente por el apellido del estudiante
@@ -325,15 +341,14 @@ export const nivelacionRepository = {
                 {
                     model: Matricula,
                     as: "matricula",
-                    where: { grupoId, estado: "ACTIVA" },
+                    where: { grupoId },
                     attributes: ["id", "folio"],
                     include: [
                         {
                             model: Estudiante,
                             as: "estudiante",
                             attributes: [
-                                "id", "documento", "primerNombre", "segundoNombre",
-                                "primerApellido", "segundoApellido"
+                                "id", "documento", "primerNombre", "segundoNombre", "primerApellido", "segundoApellido"
                             ]
                         }
                     ]

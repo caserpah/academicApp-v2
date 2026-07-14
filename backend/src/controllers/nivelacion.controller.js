@@ -1,6 +1,7 @@
 import { nivelacionService } from "../services/nivelacion.service.js";
 import { Docente } from "../models/docente.js";
 import { Usuario } from "../models/usuario.js";
+import { Vigencia } from "../models/vigencia.js";
 import { sendSuccess } from "../middleware/responseHandler.js";
 import { nivelacionRepository } from "../repositories/nivelacion.repository.js";
 
@@ -12,8 +13,10 @@ export const nivelacionController = {
      */
     async obtenerParaNivelar(req, res, next) {
         try {
-            const { grupoId } = req.query;
-            const vigenciaId = req.vigenciaActual?.id;
+            const { grupoId, vigenciaId: vigenciaQueryId } = req.query;
+
+            // Si el front envía un año histórico, lo usamos. Si no, usamos el año activo actual.
+            const vigenciaId = vigenciaQueryId ? Number(vigenciaQueryId) : req.vigenciaActual?.id;
 
             if (!grupoId) {
                 return res.status(400).json({ message: "Seleccione el grupo para cargar los estudiantes que necesitan nivelación." });
@@ -32,6 +35,7 @@ export const nivelacionController = {
                 }
             }
 
+            // El servicio usará el vigenciaId (histórico o actual) de forma transpa
             const areasAgrupadas = await nivelacionService.obtenerEstudiantesParaNivelar(grupoId, docenteId, vigenciaId);
 
             return sendSuccess(res, areasAgrupadas, "Lista de nivelaciones cargada exitosamente.");
@@ -146,8 +150,10 @@ export const nivelacionController = {
      */
     async obtenerReprobadosDirectos(req, res, next) {
         try {
-            const { grupoId } = req.query;
-            const vigenciaId = req.vigenciaActual?.id;
+            const { grupoId, vigenciaId: vigenciaQueryId } = req.query;
+
+            // Usamos la vigencia si viene en la URL, o la actual por defecto
+            const vigenciaId = vigenciaQueryId ? Number(vigenciaQueryId) : req.vigenciaActual?.id;
 
             if (!grupoId || !vigenciaId) {
                 return res.status(400).json({
@@ -196,4 +202,34 @@ export const nivelacionController = {
             next(error);
         }
     },
+
+    async descargarActaPdf(req, res, next) {
+        try {
+            const { grupoId, areaId, vigenciaId } = req.query;
+            let vigenciaTarget = req.vigenciaActual; // Por defecto, usamos el objeto del contexto
+
+            if (!grupoId || !areaId) {
+                return res.status(400).json({ message: "Seleccione un grupo y área." });
+            }
+
+            // Si el frontend envía una vigencia diferente a la actual, buscamos el objeto histórico
+            if (vigenciaId && Number(vigenciaId) !== req.vigenciaActual?.id) {
+                const vigenciaHistorica = await Vigencia.findByPk(vigenciaId);
+
+                if (!vigenciaHistorica) {
+                    return res.status(404).json({ message: "El año lectivo seleccionado no existe." });
+                }
+
+                vigenciaTarget = vigenciaHistorica;
+            }
+
+            const pdfBuffer = await nivelacionService.generarActaNivelacionPdf(grupoId, areaId, vigenciaTarget);
+
+            res.setHeader("Content-Type", "application/pdf");
+            res.setHeader("Content-Disposition", `attachment; filename=acta_nivelacion.pdf`);
+            return res.send(pdfBuffer);
+        } catch (error) {
+            next(error);
+        }
+    }
 };

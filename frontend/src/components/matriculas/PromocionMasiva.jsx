@@ -189,6 +189,9 @@ const PromocionMasiva = () => {
             setStep1Completado(false);
             setSimulacionData([]);
 
+            setExcluidos([]);             // Olvidamos cualquier pospuesto del grupo anterior
+            setDataFaltantes([]);         // Olvidamos cualquier nota faltante del grupo anterior
+
             // Limpiar vigencia destino si cambian el grado para forzar validación de filtro nuevo
             if (e.target.name === 'gradoId') {
                 setFilters(prev => ({ ...prev, vigenciaDestinoId: '' }));
@@ -390,6 +393,14 @@ const PromocionMasiva = () => {
         showSuccess(`Se aplicó la nota ${notaMasiva} a todos los registros del listado.`);
     };
 
+    // Cerrar el modal de faltantes y limpiar los estados relacionados
+    const handleCerrarModalFaltantes = () => {
+        setExcluidos([]);             // Limpia los checkboxes de "Pospuesto"
+        setNotasInputs({});           // Limpia las notas escritas
+        setNotaMasiva("");            // Limpia el input de llenado masivo
+        setShowModalFaltantes(false); // Oculta el modal
+    };
+
     // Enviar el paquete de notas consolidadas al Backend
     const handleGuardarNotasFaltantes = async () => {
         const payloadNotas = [];
@@ -432,6 +443,7 @@ const PromocionMasiva = () => {
             setShowModalFaltantes(false); // Cerramos el modal
             setNotasInputs({});           // Limpiamos los inputs
             setNotaMasiva("");            // Limpiamos el masivo
+            setDataFaltantes([]);         // Vaciamos la lista de faltantes
 
         } catch (error) {
             console.error("Error en handleGuardarNotasFaltantes:", error);
@@ -713,7 +725,7 @@ const PromocionMasiva = () => {
                                     No se puede cerrar el año. Los siguientes estudiantes no tienen calificación en los periodos indicados.
                                 </p>
                             </div>
-                            <button onClick={() => setShowModalFaltantes(false)} className="text-gray-400 hover:text-red-500 transition-colors">
+                            <button onClick={handleCerrarModalFaltantes} className="text-gray-400 hover:text-red-500 transition-colors">
                                 <FontAwesomeIcon icon={faTimes} size="lg" />
                             </button>
                         </div>
@@ -801,7 +813,7 @@ const PromocionMasiva = () => {
                             </div>
                             <div className="flex gap-3">
                                 <button
-                                    onClick={() => setShowModalFaltantes(false)}
+                                    onClick={handleCerrarModalFaltantes}
                                     disabled={isSavingNotas}
                                     className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg text-sm font-bold transition"
                                 >
