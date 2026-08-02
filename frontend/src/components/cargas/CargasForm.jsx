@@ -10,7 +10,10 @@ const CargasForm = ({
     onSuccess,         // Callback para recargar la tabla al terminar
     onCancel,          // Callback para volver a la lista
     crearCargaAPI,     // Función del servicio (inyeccion de dependencia o import directo)
-    actualizarCargaAPI // Función del servicio
+    actualizarCargaAPI, // Función del servicio
+    filtroVigenciaId,  // ID de la vigencia seleccionada para filtrar
+    vigencias,         // Lista de vigencias
+    vigenciaActiva     // Vigencia activa
 }) => {
     // --- ESTADOS ---
     const [formData, setFormData] = useState({
@@ -35,6 +38,9 @@ const CargasForm = ({
     const [loading, setLoading] = useState(false);
     const [esComportamiento, setEsComportamiento] = useState(false);
 
+    const vigenciaSeleccionada = vigencias?.find(v => v.id === Number(filtroVigenciaId));
+    const anioMostrado = vigenciaSeleccionada ? vigenciaSeleccionada.anio : (vigenciaActiva?.anio || "---");
+
     // Clases CSS reutilizables
     const inputClasses = "w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-100 disabled:text-gray-500";
     const labelClasses = "block text-sm font-medium text-gray-700 mb-1";
@@ -44,8 +50,11 @@ const CargasForm = ({
         const init = async () => {
             setLoading(true);
             try {
-                // Cargar catálogos base
-                const cats = await fetchCargasCatalogs();
+                // Identificamos el año en el que estamos trabajando
+                const idVigenciaAUsar = filtroVigenciaId || vigenciaActiva?.id;
+
+                // Pasamos la vigencia para obtener las asignaturas de ese año
+                const cats = await fetchCargasCatalogs(idVigenciaAUsar);
 
                 // Si estamos EDITANDO, pre-llenar form
                 if (selectedCarga) {
@@ -54,7 +63,8 @@ const CargasForm = ({
 
                     const gruposOriginales = await fetchGruposFiltrados(
                         selectedCarga.sedeId,
-                        gradoInicialId
+                        gradoInicialId,
+                        idVigenciaAUsar
                     );
 
                     setCatalogos({ ...cats, grupos: gruposOriginales });
@@ -85,7 +95,7 @@ const CargasForm = ({
             }
         };
         init();
-    }, [selectedCarga]);
+    }, [selectedCarga, filtroVigenciaId, vigenciaActiva]);
 
 
     // --- EFECTO: CARGA DINÁMICA DE GRUPOS ---
@@ -98,13 +108,15 @@ const CargasForm = ({
                 return;
             }
 
+            const idVigenciaAUsar = filtroVigenciaId || vigenciaActiva?.id;
+
             // Evitamos recargar si estamos en modo edición y son los mismos datos iniciales
-            const grupos = await fetchGruposFiltrados(formData.sedeId, formData.gradoId);
+            const grupos = await fetchGruposFiltrados(formData.sedeId, formData.gradoId, idVigenciaAUsar);
             setCatalogos(prev => ({ ...prev, grupos }));
         };
 
         cargarGrupos();
-    }, [formData.sedeId, formData.gradoId]);
+    }, [formData.sedeId, formData.gradoId, filtroVigenciaId, vigenciaActiva]);
 
 
     // --- EFECTO: REGLA DE COMPORTAMIENTO ---
@@ -151,7 +163,8 @@ const CargasForm = ({
                 grupoId: Number(formData.grupoId),
                 docenteId: Number(formData.docenteId),
                 asignaturaId: Number(formData.asignaturaId),
-                horas: Number(formData.horas)
+                horas: Number(formData.horas),
+                vigenciaId: Number(filtroVigenciaId) || vigenciaActiva?.id
             };
 
             if (selectedCarga) {
@@ -187,10 +200,16 @@ const CargasForm = ({
 
                 {/* Encabezado */}
                 <div className="flex justify-between items-center p-5 border-b border-gray-300 bg-gray-50 rounded-t-lg">
-                    <h2 className="text-xl font-bold flex items-center text-slate-800">
-                        <FontAwesomeIcon icon={selectedCarga ? faEdit : faSave} className="mr-2 text-blue-600" />
-                        {selectedCarga ? "Editar Carga Académica" : "Nueva Asignación de Carga"}
-                    </h2>
+                    <div className="flex items-center gap-4">
+                        <h2 className="text-xl font-bold flex items-center text-slate-800">
+                            <FontAwesomeIcon icon={selectedCarga ? faEdit : faSave} className="mr-2 text-blue-600" />
+                            {selectedCarga ? "Editar Carga Académica" : "Nueva Asignación de Carga"}
+                        </h2>
+
+                        <div className="text-sm font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-full border border-blue-200">
+                            Año Lectivo: <span className="text-blue-900">{anioMostrado}</span>
+                        </div>
+                    </div>
                     <button onClick={onCancel} className="text-gray-400 hover:text-red-500 transition">
                         <FontAwesomeIcon icon={faTimes} size="lg" />
                     </button>

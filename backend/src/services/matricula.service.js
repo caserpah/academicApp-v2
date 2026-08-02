@@ -8,7 +8,6 @@ import { HistorialMatriculas } from "../models/historial_matriculas.js";
 import { Grupo } from "../models/grupo.js";
 import { Calificacion } from "../models/calificacion.js";
 import { Colegio } from "../models/colegio.js";
-import { Matricula } from "../models/matricula.js";
 import { mapearDatosMatricula, formatearFecha } from "../utils/matriculaMapper.js";
 import { formatearErrorForaneo } from "../utils/dbUtils.js";
 import { handleSequelizeError } from "../middleware/handleSequelizeError.js";
@@ -252,7 +251,7 @@ export const matriculaService = {
             });
 
             if (notasExistentes > 0) {
-                const err = new Error("La matrícula no puede eliminarse porque el estudiante ya tiene calificaciones registradas. Como alternativa, puede cambiar el estado de la matrícula a “ANULADO” o “RETIRADO”.");
+                const err = new Error("La matrícula no puede eliminarse porque el estudiante ya tiene calificaciones registradas.");
                 err.status = 409;
                 throw err;
             }
@@ -270,116 +269,11 @@ export const matriculaService = {
     },
 
     /**
-     * PROCESO MASIVO (Para Prematrícula / Promoción)
-     * Recibe un array de estudiantes y los Prematricula en un grupo destino.
-     */
-    async prematricularMasivo({ estudiantesIds, grupoDestinoId, sedeId, vigenciaId, anioVigencia, usuarioId }) {
-        try {
-            return await sequelize.transaction(async (t) => {
-                // Validar Grupo Destino y Cupos
-                const grupo = await Grupo.findByPk(grupoDestinoId, { transaction: t });
-                if (!grupo) throw new Error("El grupo de destino no existe.");
-
-                // Validar cupo global para el bloque
-                if (!grupo.sobrecupoPermitido) {
-                    const actuales = await matriculaRepository.countByGrupo(grupoDestinoId, vigenciaId, { transaction: t });
-                    const disponibles = grupo.cupos - actuales;
-                    if (estudiantesIds.length > disponibles) {
-                        throw new Error(`No hay suficientes cupos en el grupo de destino. Disponibles: ${disponibles}, Requeridos: ${estudiantesIds.length}`);
-                    }
-                }
-
-                // Preparar el array de matrículas
-                const matriculasParaCrear = estudiantesIds.map(estId => ({
-                    folio: generarFolio(anioVigencia),
-                    estudianteId: estId,
-                    grupoId: grupoDestinoId,
-                    sedeId: sedeId,
-                    vigenciaId: vigenciaId,
-                    estado: "PREMATRICULADO", // o "ACTIVA" según lógica de fechas
-                    metodologia: "TRADICIONAL", // Valor por defecto
-                    usuarioCreacion: usuarioId,
-                    fechaHora: new Date()
-                }));
-
-                // Bulk Create (Matrículas)
-                // ignoreDuplicates: false -> Lanza error si alguno ya tiene matrícula
-                const nuevasMatriculas = await matriculaRepository.createBulk(matriculasParaCrear, { transaction: t });
-
-                // Bulk Create (Historial)
-                const historialParaCrear = nuevasMatriculas.map(mat => ({
-                    matriculaId: mat.id,
-                    estadoNuevo: "PREMATRICULADO",
-                    grupoNuevoId: grupoDestinoId,
-                    sedeNuevoId: sedeId,
-                    usuarioId: usuarioId,
-                    motivo: "Proceso masivo de matrícula/promoción"
-                }));
-
-                await HistorialMatriculas.bulkCreate(historialParaCrear, { transaction: t });
-
-                return { procesados: matriculasParaCrear.length, mensaje: "Proceso masivo exitoso." };
-            });
-        } catch (error) {
-            throw handleSequelizeError(error);
-        }
-    },
-
-    /**
      * Activar (Matricular) Prematriculas masivamente
-     * Recibe un array de estudiantes Prematriculados y los Matricula en un grupo destino.
      */
     async activarPrematriculasMasivo({ filtros, usuarioId }) {
         try {
-            return await sequelize.transaction(async (t) => {
-                const where = { estado: "PREMATRICULADO" };
-
-                if (filtros.sedeId) where.sedeId = filtros.sedeId;
-                if (filtros.grupoId) where.grupoId = filtros.grupoId;
-                if (filtros.vigenciaId) where.vigenciaId = filtros.vigenciaId;
-
-                // Recuperar únicamente los IDs y datos necesarios para el historial de auditoría
-                const prematriculas = await Matricula.findAll({
-                    where,
-                    attributes: ['id', 'grupoId', 'sedeId'],
-                    transaction: t
-                });
-
-                if (prematriculas.length === 0) {
-                    const error = new Error("No hay estudiantes prematriculados que coincidan con los filtros seleccionados.");
-                    error.status = 404;
-                    throw error;
-                }
-
-                const idsAfectados = prematriculas.map(m => m.id);
-
-                // Ejecutar la actualización masiva (Bulk Update optimizado en BD)
-                await Matricula.update(
-                    { estado: "ACTIVA", usuarioActualizacion: usuarioId },
-                    { where: { id: idsAfectados }, transaction: t }
-                );
-
-                // Estructurar el lote para el Historial Académico
-                const historialLote = prematriculas.map(m => ({
-                    matriculaId: m.id,
-                    estadoAnterior: "PREMATRICULADO",
-                    estadoNuevo: "ACTIVA",
-                    grupoAnteriorId: m.grupoId,
-                    grupoNuevoId: m.grupoId,
-                    sedeAnteriorId: m.sedeId,
-                    sedeNuevoId: m.sedeId,
-                    usuarioId: usuarioId,
-                    motivo: "Asentamiento masivo en firme (Matrícula Masiva)"
-                }));
-
-                // Inserción masiva de historial
-                await HistorialMatriculas.bulkCreate(historialLote, { transaction: t });
-
-                return {
-                    procesados: idsAfectados.length,
-                    mensaje: `Se procesaron y activaron exitosamente ${idsAfectados.length} matrículas.`
-                };
-            });
+            return await matriculaRepository.activarPrematriculasMasivo(filtros, usuarioId);
         } catch (error) {
             throw handleSequelizeError(error);
         }
@@ -401,7 +295,9 @@ export const matriculaService = {
             encabezadoInstitucional: {
                 nombre: colegio?.nombre || "INSTITUCIÓN EDUCATIVA CARLOS ADOLFO URUETA",
                 info_legal: `Registro DANE: ${colegio?.registroDane || ''} | Resolución de Aprobación No. ${colegio?.resolucion || ''} del ${fechaResStr || ''}`,
-                logoUrl: logoBase64
+                logoUrl: logoBase64,
+                director: colegio?.director || "_______________________",
+                secretaria: colegio?.secretaria || "_______________________"
             },
             matriculas: [mapearDatosMatricula(matriculaRaw)]
         };
@@ -427,7 +323,9 @@ export const matriculaService = {
             encabezadoInstitucional: {
                 nombre: colegio?.nombre || "INSTITUCIÓN EDUCATIVA CARLOS ADOLFO URUETA",
                 info_legal: `Registro DANE: ${colegio?.registroDane || ''} | Resolución de Aprobación No. ${colegio?.resolucion || ''} del ${fechaResStr || ''}`,
-                logoUrl: logoBase64
+                logoUrl: logoBase64,
+                director: colegio?.director || "_______________________",
+                secretaria: colegio?.secretaria || "_______________________"
             },
             matriculas: matriculasRaw.map(m => mapearDatosMatricula(m))
         };
@@ -448,7 +346,9 @@ export const matriculaService = {
             encabezadoInstitucional: {
                 nombre: colegio?.nombre || "INSTITUCIÓN EDUCATIVA CARLOS ADOLFO URUETA",
                 info_legal: `Registro DANE: ${colegio?.registroDane || ''} | Resolución de Aprobación No. ${colegio?.resolucion || ''} del ${fechaResStr || ''}`,
-                logoUrl: logoBase64
+                logoUrl: logoBase64,
+                director: colegio?.director || "_______________________",
+                secretaria: colegio?.secretaria || "_______________________"
             },
             matriculas: [mapearDatosMatricula({}, true)] // Flag en true para modo en blanco
         };

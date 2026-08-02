@@ -141,9 +141,9 @@ const PlanillasPage = () => {
                         Generación de Planillas PDF
                     </h1>
                     {vigencia && (
-                        <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">
-                            Año Lectivo: {vigencia.anio}
-                        </span>
+                        <div className="text-sm font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-full border border-blue-200">
+                            Año Lectivo: <span className="text-blue-900">{vigencia.anio}</span>
+                        </div>
                     )}
                 </div>
 

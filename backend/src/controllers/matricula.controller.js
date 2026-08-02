@@ -12,16 +12,18 @@ export const matriculaController = {
      * Lista matrículas con paginación y filtros.
      */
     async listar(req, res, next) {
-
         try {
             // Obtener contexto de vigencia
-            const vigencia = getVigenciaFromRequest(req);
+            const vigenciaContexto = getVigenciaFromRequest(req);
+
+            // Tomar la vigencia del query param, y si no viene, usar el contexto actual
+            const vigenciaIdFiltro = req.query.vigenciaId ? Number(req.query.vigenciaId) : vigenciaContexto.id;
 
             // Construir filtros desde query params
             const filtros = {
                 page: req.query.page,
                 limit: req.query.limit,
-                vigenciaId: vigencia.id, // Forzamos la vigencia del contexto
+                vigenciaId: vigenciaIdFiltro,
                 sedeId: req.query.sedeId,
                 grupoId: req.query.grupoId,
                 gradoId: req.query.gradoId,
@@ -119,23 +121,28 @@ export const matriculaController = {
                 // Obtener el ID del estudiante para verificar duplicados
                 // Si viene en el body lo usamos, si no, buscamos la matrícula actual
                 let idEstudiante = datosActualizar.estudianteId;
+                let idGradoDestino = datosActualizar.gradoId;
 
-                if (!idEstudiante) {
-                    const matriculaActual = await Matricula.findByPk(id, { attributes: ['estudianteId'] });
+                if (!idEstudiante || !idGradoDestino) {
+                    const matriculaActual = await Matricula.findByPk(id, { attributes: ['estudianteId', 'gradoId', 'vigenciaId'] });
                     if (!matriculaActual) return sendError(res, "La matrícula a editar no existe.", 404);
-                    idEstudiante = matriculaActual.estudianteId;
+                    if (!idEstudiante) idEstudiante = matriculaActual.estudianteId;
+                    if (!idGradoDestino) idGradoDestino = datosActualizar.gradoId || matriculaActual.gradoId;
                 }
 
-                // Verificar que el estudiante no tenga otra matrícula en el año destino (excepto la actual)
+                const vigenciaObjetivo = datosActualizar.vigenciaId || (await Matricula.findByPk(id, { attributes: ['vigenciaId'] }))?.vigenciaId;
+
+                // Verificar que el estudiante no tenga otra matrícula en el mismo grado y misma vigencia
                 const existe = await Matricula.findOne({
                     where: {
                         estudianteId: idEstudiante,
-                        vigenciaId: datosActualizar.vigenciaId,
+                        vigenciaId: vigenciaObjetivo,
+                        gradoId: idGradoDestino,
                         id: { [Op.ne]: id }
                     }
                 });
                 if (existe) {
-                    throw new Error("El estudiante ya tiene otra matrícula registrada en el año lectivo seleccionado.");
+                    throw new Error("El estudiante ya tiene una matrícula registrada en este mismo grado para el año lectivo seleccionado.");
                 }
             }
 
@@ -158,41 +165,6 @@ export const matriculaController = {
 
             const eliminada = await matriculaService.eliminar(id);
             return sendSuccess(res, eliminada, "La matrícula fue eliminada exitosamente");
-        } catch (error) {
-            next(error);
-        }
-    },
-
-    /**
-     * POST /api/matriculas/masivo
-     * Pre-matrícula o Promoción masiva.
-     */
-    async crearMasivo(req, res, next) {
-        try {
-            const vigencia = getVigenciaFromRequest(req);
-            const usuarioId = req.user?.id;
-
-            const { estudiantesIds, grupoDestinoId, sedeId } = req.body;
-
-            // Validaciones básicas de entrada
-            if (!Array.isArray(estudiantesIds) || estudiantesIds.length === 0) {
-                return sendError(res, "Debe enviar una lista de estudiantes válida.", 400);
-            }
-            if (!grupoDestinoId || !sedeId) {
-                return sendError(res, "El grupo de destino y la sede son obligatorios.", 400);
-            }
-
-            const resultado = await matriculaService.prematricularMasivo({
-                estudiantesIds,
-                grupoDestinoId,
-                sedeId,
-                vigenciaId: vigencia.id,
-                anioVigencia: vigencia.anio,
-                usuarioId
-            });
-
-            return sendSuccess(res, resultado, resultado.mensaje, 201);
-
         } catch (error) {
             next(error);
         }

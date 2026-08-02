@@ -95,13 +95,4 @@ router.patch(
     matriculaController.activarMasivo
 );
 
-// Crear Matrícula / Promoción Masiva
-router.post(
-    "/masivo",
-    protect,
-    restrictTo(["admin", "secretaria"]),
-    validarMasivo,
-    matriculaController.crearMasivo
-);
-
 export default router;

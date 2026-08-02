@@ -14,8 +14,8 @@ const NivelacionForm = ({
     // --- BANDERAS Y EXTRACCIÓN DE DATOS ---
     const nombreCompleto = registroOriginal.nombreEstudiante || "Estudiante";
     const notaOriginal = registroOriginal.notaOriginalArea || 0;
-    const yaEvaluado = registroOriginal.estadoFinal !== "PENDIENTE";
     const urlEvidenciaExistente = registroOriginal.urlEvidencia || null;
+    const estaCerrado = ['PROMOVIDO', 'REPROBADO'].includes(registroOriginal.estadoMatricula);
 
     // --- ESTADOS ---
     // Si notaNivelacion viene en null (estado PENDIENTE), el input arranca vacío ("").
@@ -100,6 +100,20 @@ const NivelacionForm = ({
                 </div>
 
                 <div className="p-6">
+                    {/* Mensaje de advertencia si el estudiante ya fue promovido o reprobado */}
+                    {estaCerrado && (
+                        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-5 rounded-r-md">
+                            <div className="flex">
+                                <FontAwesomeIcon icon={faInfoCircle} className="text-yellow-600 mt-0.5 mr-3" />
+                                <div>
+                                    <h3 className="text-sm font-bold text-yellow-800">Nivelación Cerrada</h3>
+                                    <p className="text-xs text-yellow-700 mt-1">
+                                        El estudiante ya fue <strong>{registroOriginal.estadoMatricula.toLowerCase()}</strong> por el motor de promoción. No es posible modificar calificaciones.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-r-md">
                         <div className="flex">
                             <FontAwesomeIcon icon={faInfoCircle} className="text-blue-500 mt-0.5 mr-3" />
@@ -146,7 +160,7 @@ const NivelacionForm = ({
                                 />
                             </div>
                             <div>
-                                <label className={labelClasses}>Evidencia (PDF) {yaEvaluado ? <span className="text-blue-500 font-bold">(Para Reemplazar)</span> : <span className="text-gray-400 font-normal">(Opcional)</span>}</label>
+                                <label className={labelClasses}>Evidencia (PDF) {estaCerrado ? <span className="text-blue-500 font-bold">(Para Reemplazar)</span> : <span className="text-gray-400 font-normal">(Opcional)</span>}</label>
                                 <div className="flex gap-2">
                                     <div className="relative flex-1">
                                         <input
@@ -200,7 +214,7 @@ const NivelacionForm = ({
                             className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md flex items-center gap-2 transition-transform active:scale-95 disabled:opacity-50"
                         >
                             <FontAwesomeIcon icon={faSave} className="mr-2" />
-                            {yaEvaluado ? "Actualizar Nivelación" : "Guardar Nivelación"}
+                            {estaCerrado ? "Actualizar Nivelación" : "Guardar Nivelación"}
                         </button>
                     )}
 

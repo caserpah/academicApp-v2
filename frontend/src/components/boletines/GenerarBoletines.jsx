@@ -10,10 +10,11 @@ import Swal from "sweetalert2";
 const GenerarBoletines = () => {
     // --- ESTADOS DE DATOS ---
     const [catalogos, setCatalogos] = useState({
-        sedes: [], grados: [], grupos: [], estudiantes: []
+        sedes: [], grados: [], grupos: [], estudiantes: [], vigencias: []
     });
 
     const [formData, setFormData] = useState({
+        vigenciaId: "",
         sedeId: "",
         gradoId: "",
         grupoId: "",
@@ -41,7 +42,17 @@ const GenerarBoletines = () => {
         const init = async () => {
             try {
                 const cats = await fetchBoletinesCatalogs();
-                setCatalogos(prev => ({ ...prev, sedes: cats.sedes, grados: cats.grados }));
+                setCatalogos(prev => ({
+                    ...prev,
+                    sedes: cats.sedes,
+                    grados: cats.grados,
+                    vigencias: cats.vigencias
+                }));
+
+                // Pre-seleccionar la vigencia activa
+                if (cats.vigenciaActiva) {
+                    setFormData(prev => ({ ...prev, vigenciaId: cats.vigenciaActiva.id }));
+                }
             } catch (err) {
                 console.error("Error en init de GenerarBoletines", err);
                 showError("Error al cargar sedes y grados.");
@@ -57,11 +68,11 @@ const GenerarBoletines = () => {
                 setCatalogos(prev => ({ ...prev, grupos: [], estudiantes: [] }));
                 return;
             }
-            const grupos = await fetchGruposFiltrados(formData.sedeId, formData.gradoId);
+            const grupos = await fetchGruposFiltrados(formData.sedeId, formData.gradoId, formData.vigenciaId);
             setCatalogos(prev => ({ ...prev, grupos }));
         };
         cargarGrupos();
-    }, [formData.sedeId, formData.gradoId]);
+    }, [formData.sedeId, formData.gradoId, formData.vigenciaId]);
 
     // --- EFECTO: CARGAR ESTUDIANTES (Depende del Grupo) ---
     useEffect(() => {
@@ -137,7 +148,7 @@ const GenerarBoletines = () => {
         }
         try {
             setIsAuditing(true);
-            const reporte = await fetchAuditoriaBoletines(formData.grupoId, formData.periodoActual);
+            const reporte = await fetchAuditoriaBoletines(formData.grupoId, formData.periodoActual, formData.vigenciaId);
 
             if (reporte && reporte.length > 0) {
                 setReporteFaltantes(reporte);
@@ -237,6 +248,7 @@ const GenerarBoletines = () => {
             const datosEst = estudianteSeleccionado?.estudiante || estudianteSeleccionado;
 
             const payload = {
+                vigenciaId: Number(formData.vigenciaId),
                 grupoId: Number(formData.grupoId),
                 periodoActual: Number(formData.periodoActual),
                 tipoBoletin: formData.tipoBoletin,
@@ -297,7 +309,18 @@ const GenerarBoletines = () => {
                                 <FontAwesomeIcon icon={faFilter} className="mr-2" />
                                 1. Seleccione el Grupo
                             </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                {/* SELECT VIGENCIA */}
+                                <div>
+                                    <label className={labelClasses}>Vigencia <span className="text-red-500">*</span></label>
+                                    <select name="vigenciaId" value={formData.vigenciaId} onChange={handleChange} className={`${inputClasses} bg-blue-50 font-semibold text-blue-900`} required>
+                                        {catalogos.vigencias.map(v => (
+                                            <option key={v.id} value={v.id}>
+                                                {v.anio} {v.activa ? "(Activa)" : ""}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                                 <div>
                                     <label className={labelClasses}>Sede <span className="text-red-500">*</span></label>
                                     <select name="sedeId" value={formData.sedeId} onChange={handleChange} className={inputClasses} required>

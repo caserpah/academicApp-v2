@@ -267,7 +267,7 @@
                 <td colspan="1"><span class="label">Fecha Nac.</span><span
                         class="value">{{this.estudiante.fechaNac}}</span></td>
                 <td colspan="1"><span class="label text-center">Edad</span><span
-                class="value text-center">{{this.estudiante.edad}}</span></td>
+                        class="value text-center">{{this.estudiante.edad}}</span></td>
                 <td colspan="1"><span class="label text-center">Lugar Nac.</span><span
                         class="value">{{this.estudiante.lugarNacimiento}}</span></td>
                 <td colspan="1"><span class="label">Género</span><span class="value">{{this.estudiante.genero}}</span>
@@ -386,12 +386,18 @@
             <tr>
                 <td style="width: 22%;">
                     <div class="linea-firma">Rector(a)</div>
+                    <div style="font-size: 9px; margin-top: 2px;">
+                        {{../encabezadoInstitucional.director}}
+                    </div>
                 </td>
 
                 <td style="width: 4%;"></td>
 
                 <td style="width: 22%;">
                     <div class="linea-firma">Secretaria(o)</div>
+                    <div style="font-size: 9px; margin-top: 2px;">
+                        {{../encabezadoInstitucional.secretaria}}
+                    </div>
                 </td>
 
                 <td style="width: 4%;"></td>
@@ -399,8 +405,8 @@
                 <td style="width: 22%;">
                     <div class="linea-firma">Estudiante</div>
                     {{#unless this.esFormatoBlanco}}
-                    <div style="font-size: 9px; margin-top: 2px;">({{this.estudiante.nombres}}
-                        {{this.estudiante.apellidos}})</div>
+                    <div style="font-size: 9px; margin-top: 2px;">{{this.estudiante.nombres}}
+                        {{this.estudiante.apellidos}}</div>
                     {{/unless}}
                 </td>
 
@@ -409,7 +415,7 @@
                 <td style="width: 22%;">
                     <div class="linea-firma">Acudiente</div>
                     {{#unless this.esFormatoBlanco}}
-                    <div style="font-size: 9px; margin-top: 2px;">({{this.acudiente.nombre}})</div>
+                    <div style="font-size: 9px; margin-top: 2px;">{{this.acudiente.nombre}}</div>
                     {{/unless}}
                 </td>
             </tr>

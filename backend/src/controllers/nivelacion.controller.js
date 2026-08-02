@@ -82,9 +82,8 @@ export const nivelacionController = {
      */
     async generarConsolidados(req, res, next) {
         try {
-            const { sedeId, gradoId, grupoId, forzarCierre = false, estudiantesExcluidos } = req.body;
-
-            const vigenciaId = req.vigenciaActual?.id;
+            const { sedeId, gradoId, grupoId, vigenciaId: bodyVigenciaId, forzarCierre = false, estudiantesExcluidos } = req.body;
+            const vigenciaId = bodyVigenciaId ? Number(bodyVigenciaId) : req.vigenciaActual?.id;
 
             if (!vigenciaId) {
                 return res.status(400).json({ message: "No se detectó un año lectivo activo en el contexto." });
@@ -112,6 +111,14 @@ export const nivelacionController = {
                 });
             }
 
+            // Si es info (ej: sin estudiantes o sin carga), devolvemos 200 con status info
+            if (resultado.status === 'info') {
+                return res.status(200).json({
+                    status: 'info',
+                    message: resultado.mensaje
+                });
+            }
+
             return res.status(201).json({
                 status: 'success',
                 message: resultado.mensaje,
@@ -128,8 +135,8 @@ export const nivelacionController = {
      */
     async verificarConsolidados(req, res, next) {
         try {
-            const { grupoId } = req.query;
-            const vigenciaId = req.vigenciaActual?.id;
+            const { grupoId, vigenciaId: queryVigenciaId } = req.query;
+            const vigenciaId = queryVigenciaId ? Number(queryVigenciaId) : req.vigenciaActual?.id;
 
             if (!grupoId || !vigenciaId) {
                 return res.json({ consolidadosGenerados: false });

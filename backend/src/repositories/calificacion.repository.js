@@ -22,7 +22,7 @@ export const calificacionRepository = {
             where: {
                 grupoId,
                 vigenciaId,
-                estado: { [Op.notIn]: ['RETIRADO', 'DESERTADO', 'ANULADO'] } // Solo estudiantes activos (no retirados ni desertados)
+                estado: { [Op.notIn]: ['RETIRADO', 'DESERTADO', 'ANULADO', 'PREMATRICULADO'] }
             },
             include: [
                 {

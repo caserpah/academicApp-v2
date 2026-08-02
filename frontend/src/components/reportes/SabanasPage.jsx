@@ -208,9 +208,9 @@ const SabanasPage = () => {
                         Reportes y Sábanas Académicas
                     </h1>
                     {vigencia && (
-                        <span className="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">
-                            Año Lectivo: {vigencia.anio}
-                        </span>
+                        <div className="text-sm font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-full border border-blue-200">
+                            Año Lectivo: <span className="text-blue-900">{vigencia.anio}</span>
+                        </div>
                     )}
                 </div>
 

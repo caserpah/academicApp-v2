@@ -3,7 +3,6 @@ import {
     listarMatriculas,
     crearMatricula,
     actualizarMatricula,
-    crearMatriculaMasiva,
     obtenerMatricula
 } from "../api/matriculasService";
 
@@ -105,22 +104,6 @@ export const useMatriculas = () => {
         }
     }, []);
 
-    /**
-     * Procesar Matrícula Masiva
-     */
-    const procesarMasivo = useCallback(async (payload) => {
-        setLoading(true);
-        try {
-            const resultado = await crearMatriculaMasiva(payload);
-            return resultado;
-        } catch (err) {
-            setError(err.message);
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
     return {
         // Estado
         matriculas,
@@ -133,7 +116,6 @@ export const useMatriculas = () => {
         getMatriculaById,
         registrarMatricula,
         editarMatricula,
-        procesarMasivo,
 
         // Helper para limpiar errores manualmente si es necesario
         limpiarError: () => setError(null)

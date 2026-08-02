@@ -155,14 +155,53 @@ export const guardarCalificacionesMasivas = async (arregloNotas) => {
 /**
  * Consume el endpoint binario para compilar y descargar el Acta de Nivelación en PDF
  */
-export const descargarActaNivelacionPdf = async (grupoId, areaId) => {
+export const descargarActaNivelacionPdf = async (grupoId, areaId, vigenciaId) => {
     try {
         const response = await apiClient.get(`${NIVELACIONES_ENDPOINT}/acta-pdf`, {
-            params: { grupoId, areaId },
+            params: { grupoId, areaId, vigenciaId },
             responseType: 'blob' // Esencial para la lectura correcta del buffer binario
         });
         return response.data;
     } catch (error) {
         throw parseError(error, "No se pudo descargar el acta de nivelación oficial.");
+    }
+};
+
+/**
+ * Obtiene dinámicamente los grupos permitidos cuando el usuario cambia de año lectivo
+ */
+export const fetchGruposPorVigencia = async (rol, vigenciaId) => {
+    try {
+        const esAdmin = ['admin', 'secretaria', 'coordinador'].includes(rol);
+        let grupos = [];
+
+        if (esAdmin) {
+            const gruposRes = await apiClient.get(`${GRUPOS_ENDPOINT}?vigenciaId=${vigenciaId}&limit=200`);
+            const rawGrupos = gruposRes.data?.data?.items || gruposRes.data?.data || [];
+            grupos = rawGrupos.map(g => ({
+                id: g.id,
+                sedeId: g.sedeId,
+                label: `${formatGrado(g.grado?.nombre)} ${g.nombre} | ${formatearJornada(g.jornada)}`
+            }));
+        } else {
+            const cargaResponse = await apiClient.get(`${MIS_CARGAS_ENDPOINT}?vigenciaId=${vigenciaId}`);
+            const itemsCarga = cargaResponse.data?.data?.items || cargaResponse.data?.data || [];
+            const gruposMap = new Map();
+
+            itemsCarga.forEach(item => {
+                const g = item.grupo;
+                if (g && !gruposMap.has(g.id)) {
+                    gruposMap.set(g.id, {
+                        id: g.id,
+                        sedeId: item.sedeId,
+                        label: `${formatGrado(g.grado?.nombre)} ${g.nombre} | ${formatearJornada(g.jornada)}`
+                    });
+                }
+            });
+            grupos = Array.from(gruposMap.values());
+        }
+        return grupos;
+    } catch (error) {
+        throw parseError(error, "Error al recargar los grupos de la vigencia seleccionada.");
     }
 };

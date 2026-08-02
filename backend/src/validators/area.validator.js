@@ -18,9 +18,9 @@ export const validarCrearArea = [
 
     validarCampoRequerido("nombre", "Ingrese el nombre del área.")
         .isLength({ min: 3, max: 60 })
-        .withMessage("El nombre del área debe tener entre 3 y 60 caracteres.")
-        .bail()
-        .custom(validarCampoUnico(Area, "nombre", "un área", false, null, "el nombre")),
+        .withMessage("El nombre del área debe tener entre 3 y 60 caracteres."),
+        /*.bail()
+        .custom(validarCampoUnico(Area, "nombre", "un área", false, null, "el nombre")),*/
 
     validarCampoRequerido("abreviatura", "Ingrese la abreviatura del área.")
         .isLength({ min:3, max: 6 }).withMessage("La abreviatura del área debe tener entre 3 y 6 caracteres.")
@@ -50,9 +50,9 @@ export const validarActualizarArea = [
 
     validarCampoOpcionalRequerido("nombre", "Ingrese el nombre del área si desea actualizarlo.")
         .isLength({ min: 3, max: 60 })
-        .withMessage("El nombre del área debe tener entre 3 y 60 caracteres.")
-        .bail()
-        .custom(validarCampoUnico(Area, "nombre", "un área", true, null, "el nombre")),
+        .withMessage("El nombre del área debe tener entre 3 y 60 caracteres."),
+        /*.bail()
+        .custom(validarCampoUnico(Area, "nombre", "un área", true, null, "el nombre")),*/
 
     validarCampoOpcionalRequerido("abreviatura", "Ingrese la abreviatura del área si desea actualizarla.")
         .isLength({ min:3, max: 6 }).withMessage("La abreviatura del área debe tener entre 3 y 6 caracteres.")

@@ -22,7 +22,8 @@ const Cargas = () => {
     const [cargas, setCargas] = useState([]);
 
     // Catálogos para los selects de filtro
-    const [catalogos, setCatalogos] = useState({ sedes: [], grados: [], asignaturas: [] });
+    const [catalogos, setCatalogos] = useState({ sedes: [], grados: [], asignaturas: [], vigencias: [] });
+    const [vigenciaActiva, setVigenciaActiva] = useState(null);
 
     // Estado de Paginación
     const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
@@ -33,7 +34,8 @@ const Cargas = () => {
         gradoId: "",
         jornada: "",
         asignaturaId: "",
-        busqueda: "" // El valor confirmado del debounce
+        busqueda: "", // El valor confirmado del debounce
+        vigenciaId: ""
     });
 
     // Estado local del input buscador (para efecto debounce)
@@ -51,8 +53,15 @@ const Cargas = () => {
                 setCatalogos({
                     sedes: data.sedes,
                     grados: data.grados,
-                    asignaturas: data.asignaturas
+                    asignaturas: data.asignaturas,
+                    vigencias: data.vigencias
                 });
+                setVigenciaActiva(data.vigenciaActiva);
+
+                // Inicializamos el filtro con el año activo
+                if (data.vigenciaActiva) {
+                    setFiltros(prev => ({ ...prev, vigenciaId: data.vigenciaActiva.id }));
+                }
             } catch {
                 showError("Error cargando listas de filtros.");
             }
@@ -112,7 +121,8 @@ const Cargas = () => {
             gradoId: "",
             jornada: "",
             asignaturaId: "",
-            busqueda: ""
+            busqueda: "",
+            vigenciaId: vigenciaActiva?.id || ""
         });
         setSearchTerm("");
         setPagination(prev => ({ ...prev, page: 1 }));
@@ -178,8 +188,18 @@ const Cargas = () => {
 
                     {/* Barra de Filtros */}
                     <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
-                            {/* ... Selects de Sede, Grado, Asignatura, Jornada (IGUALES A ANTES) ... */}
+                        <div className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+                            {/* ... Selects de Sede, Grado, Asignatura, Jornada, Vigencia ... */}
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Vigencia</label>
+                                <select name="vigenciaId" value={filtros.vigenciaId} onChange={handleFiltroChange} className="w-full border border-gray-300 rounded-md p-2 text-sm bg-blue-50 font-semibold text-blue-900 focus:ring-2 focus:ring-blue-100 outline-none">
+                                    {catalogos.vigencias?.map(v => (
+                                        <option key={v.id} value={v.id}>
+                                            {v.anio} {v.activa ? "(Activa)" : ""}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                             <div>
                                 <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Sede</label>
                                 <select name="sedeId" value={filtros.sedeId} onChange={handleFiltroChange} className="w-full border border-gray-300 rounded-md p-2 text-sm bg-white">
@@ -291,6 +311,9 @@ const Cargas = () => {
                 {(mode === 'agregar' || mode === 'editar') && (
                     <CargasForm
                         selectedCarga={selectedCarga}
+                        filtroVigenciaId={filtros.vigenciaId}
+                        vigencias={catalogos.vigencias}
+                        vigenciaActiva={vigenciaActiva}
                         onSuccess={(closeModal = true) => {
                             showSuccess(selectedCarga ? "Carga actualizada exitosamente." : "Carga registrada exitosamente.");
                             loadData(); // Siempre recargamos la tabla para ver el nuevo registro de fondo

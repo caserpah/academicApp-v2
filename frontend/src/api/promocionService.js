@@ -34,12 +34,13 @@ export const fetchPromocionCatalogs = async () => {
 /**
  * Ejecutar la generación de consolidados (Cierre de Año / Período 5)
  */
-export const generarConsolidadoAnual = async (sedeId, gradoId, grupoId, excluidos = []) => {
+export const generarConsolidadoAnual = async (sedeId, gradoId, grupoId, vigenciaId, excluidos = []) => {
     try {
         const response = await apiClient.post(`${NIVELACIONES_ENDPOINT}/generar-consolidados`, {
             sedeId: Number(sedeId),
             grupoId: Number(grupoId),
             gradoId: Number(gradoId),
+            vigenciaId: Number(vigenciaId),
             estudiantesExcluidos: excluidos
         });
         return response.data;
@@ -77,5 +78,21 @@ export const simularPromocion = async (payload) => {
         return response.data;
     } catch (error) {
         console.error("Error al simular la promoción:", error);
+    }
+};
+
+/**
+ * Carga los grupos filtrados por Sede, Vigencia y opcionalmente Grado
+ */
+export const fetchGruposPorVigencia = async (vigenciaId, sedeId, gradoId = null) => {
+    try {
+        const params = { limit: 200, vigenciaId, sedeId };
+        if (gradoId) params.gradoId = gradoId;
+
+        const response = await apiClient.get(GRUPOS_ENDPOINT, { params });
+        return response.data?.data?.items || response.data?.data || [];
+    } catch (error) {
+        console.error("Error al cargar grupos dinámicos:", error);
+        return [];
     }
 };

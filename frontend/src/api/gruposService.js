@@ -10,11 +10,12 @@ const VIGENCIAS_ENDPOINT = '/api/vigencias';
 /**
  * Obtener grupos por sede y vigencia activa
  */
-export const fetchGruposPorSede = async (sedeId) => {
+export const fetchGruposPorSede = async (sedeId, vigenciaId) => {
     try {
         const response = await apiClient.get(GRUPOS_ENDPOINT, {
             params: {
                 sedeId,
+                vigenciaId,
                 includeGrado: true,
                 soloActivos: true,
                 limit: 100 // Para obtener todos los grupos sin paginación
@@ -42,7 +43,7 @@ export const fetchInitialData = async (filtros = {}) => {
     try {
         // Limpiamos filtros vacíos
         const params = Object.fromEntries(
-            Object.entries(filtros).filter(([_, v]) => v != null && v !== "")
+            Object.entries(filtros).filter(([, v]) => v != null && v !== "")
         );
 
         const [gruposRes, gradosRes, sedesRes, docentesRes, vigenciaRes] = await Promise.all([
@@ -60,8 +61,9 @@ export const fetchInitialData = async (filtros = {}) => {
                 grados: gradosRes.data.data || [],
                 sedes: sedesRes.data.data?.items || [],
                 docentes: docentesRes.data.data?.items || [],
+                vigencias: vigenciaRes.data.data?.items || []
             },
-            vigencia: vigenciaRes.data.data?.items.find(v => v.activa) || null
+            vigenciaActiva: vigenciaRes.data.data?.items.find(v => v.activa) || null
         };
     } catch (error) {
         console.error("Error en fetchInitialData (Grupos):", error);
@@ -87,9 +89,11 @@ export const actualizarGrupo = async (id, data) => {
     }
 };
 
-export const eliminarGrupo = async (id) => {
+export const eliminarGrupo = async (id, vigenciaId) => {
     try {
-        const response = await apiClient.delete(`${GRUPOS_ENDPOINT}/${id}`);
+        const response = await apiClient.delete(`${GRUPOS_ENDPOINT}/${id}`, {
+            params: { vigenciaId }
+        });
         return response.data.message;
     } catch (error) {
         throw parseError(error, "Error al eliminar el grupo");

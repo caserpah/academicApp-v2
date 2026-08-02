@@ -62,8 +62,8 @@ const AsignaturasForm = ({
                     </h3>
 
                     {/* Texto Informativo de Vigencia a la derecha */}
-                    <div className="text-sm font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-                        Año Lectivo: <span className="text-blue-900">{vigencia ? vigencia.anio : "---"}</span>
+                    <div className="text-sm font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-full border border-blue-200">
+                            Año Lectivo: <span className="text-blue-900">{vigencia ? vigencia.anio : "---"}</span>
                     </div>
                 </div>
 

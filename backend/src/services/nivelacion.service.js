@@ -2,6 +2,7 @@ import { sequelize } from "../database/db.connect.js";
 import { nivelacionRepository } from "../repositories/nivelacion.repository.js";
 import { calificacionRepository } from "../repositories/calificacion.repository.js";
 import { pdfService } from "./pdf.service.js";
+import { Matricula } from "../models/matricula.js";
 import { Grupo } from "../models/grupo.js";
 import { Grado } from "../models/grado.js";
 import { Sede } from "../models/sede.js";
@@ -36,6 +37,13 @@ export const nivelacionService = {
             // Validación lógica: No se puede nivelar algo ya aprobado
             if (consolidado.estadoOriginal === "APROBADO") {
                 const error = new Error("El estudiante ya tiene esta área aprobada. No requiere nivelación.");
+                error.status = 400;
+                throw error;
+            }
+
+            // Validación: Si el estudiante ya fue promovido o reprobado, no se puede modificar la calificación de nivelación
+            if (consolidado.matricula && ['PROMOVIDO', 'REPROBADO'].includes(consolidado.matricula.estado)) {
+                const error = new Error("El año lectivo del estudiante ya fue cerrado (Promovido/Reprobado). No es posible modificar la calificación de nivelación.");
                 error.status = 400;
                 throw error;
             }
@@ -141,7 +149,8 @@ export const nivelacionService = {
                     notaOriginalArea: niv.notaDefinitivaOriginal,
                     detalleAsignaturas: detalles,
                     pierdeAnio: setReprobadosIds.has(niv.matriculaId),
-                    estadoFinal: niv.estadoFinal, // 'PENDIENTE', 'APROBADO' o 'REPROBADO'
+                    estadoFinal: niv.estadoFinal,
+                    estadoMatricula: niv.matricula.estado,
                     notaNivelacion: niv.notaNivelacion,
                     observacion: niv.observacion_nivelacion,
                     urlEvidencia: niv.url_evidencia_nivelacion
@@ -202,12 +211,13 @@ export const nivelacionService = {
 
             // Filtramos a los que tienen bloqueo_notas por sistema Y a los excluidos manualmente desde el frontend
             const matriculas = todasLasMatriculas.filter(m =>
+                m.estado === 'ACTIVA' &&
                 !m.bloqueo_notas &&
                 !estudiantesExcluidos.includes(m.estudiante.id)
             );
 
             if (matriculas.length === 0) {
-                return { procesados: 0, mensaje: "No hay estudiantes activos en este grupo." };
+                return { status: 'info', procesados: 0, mensaje: "No hay estudiantes con matrícula activa en este grupo." };
             }
 
             // Mapeamos para tener diccionarios rápidos
@@ -222,7 +232,7 @@ export const nivelacionService = {
                 await t.rollback();
                 return {
                     status: 'warning',
-                    mensaje: "Operación cancelada: Este grupo no tiene carga académica (asignaturas y docentes) configurada. Asígnale la carga académica antes de intentar cerrar el año.",
+                    mensaje: "Este grupo no tiene carga académica asignada. Asígnale la carga académica antes de intentar cerrar el año.",
                     faltantes: []
                 };
             }

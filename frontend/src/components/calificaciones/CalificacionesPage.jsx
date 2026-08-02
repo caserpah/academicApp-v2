@@ -374,9 +374,9 @@ const CalificacionesPage = () => {
                         Registro de Calificaciones
                     </h1>
                     {vigencia && (
-                        <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">
-                            Año Lectivo: {vigencia.anio} {esAdmin && '(Administrador)'}
-                        </span>
+                        <div className="text-sm font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-full border border-blue-200">
+                            Año Lectivo: <span className="text-blue-900">{vigencia.anio}</span>
+                        </div>
                     )}
                 </div>
 
@@ -467,48 +467,50 @@ const CalificacionesPage = () => {
                 </div>
 
                 {/* --- 6. ACCIONES GLOBALES (DESCARGAR / IMPORTAR) --- */}
-                {rolUsuario === 'docente' && (
+                {rolUsuario === 'docente' && !isReadOnly && (
                     <div className="flex flex-wrap justify-end gap-3 p-2 bg-blue-50/50 rounded-lg border border-blue-100">
                         <div className="flex items-center gap-2 mr-auto text-sm text-blue-800 px-2">
                             <FontAwesomeIcon icon={faFileExcel} />
                             <span className="font-semibold">Gestión Masiva de Notas (Excel)</span>
                         </div>
 
-                        {/* Botón Descargar (SIEMPRE DISPONIBLE si hay periodo, sin importar isReadOnly) */}
-                        <button
-                            onClick={handleDescargarPlantilla}
-                            disabled={!filters.periodo || isDownloading}
-                            className={`px-4 py-2 rounded-lg shadow-sm text-sm font-bold flex items-center gap-2 transition-all
-                            ${!filters.periodo
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    : 'bg-white text-blue-700 border border-blue-200 hover:bg-blue-50 hover:shadow-md'
-                                }`}
-                            title={!filters.periodo ? "Selecciona un periodo primero" : "Descargar planilla completa con todas tus asignaturas"}
-                        >
-                            {/* Alternamos el ícono y el texto del botón */}
-                            {isDownloading ? (
-                                <>
-                                    <FontAwesomeIcon icon={faSpinner} spin />
-                                    Generando Excel...
-                                </>
-                            ) : (
-                                <>
-                                    <FontAwesomeIcon icon={faDownload} />
-                                    Descargar Mi Planilla
-                                </>
-                            )}
-                        </button>
-
-                        {/* Botón Importar (SOLO SE MUESTRA SI LA VENTANA ESTÁ ABIERTA) */}
+                        {/* Botón descargar */}
                         {!isReadOnly && (
-                            <button
-                                onClick={() => setShowImportModal(true)}
-                                className="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-5 rounded-lg shadow-sm flex items-center gap-2 transition-all hover:shadow-md"
-                                title="Subir archivo con múltiples hojas"
-                            >
-                                <FontAwesomeIcon icon={faUpload} />
-                                Subir Planilla
-                            </button>
+                            <>
+                                <button
+                                    onClick={handleDescargarPlantilla}
+                                    disabled={!filters.periodo || isDownloading}
+                                    className={`px-4 py-2 rounded-lg shadow-sm text-sm font-bold flex items-center gap-2 transition-all
+                            ${!filters.periodo
+                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            : 'bg-white text-blue-700 border border-blue-200 hover:bg-blue-50 hover:shadow-md'
+                                        }`}
+                                    title={!filters.periodo ? "Selecciona un periodo primero" : "Descargar planilla completa con todas tus asignaturas"}
+                                >
+                                    {/* Alternamos el ícono y el texto del botón */}
+                                    {isDownloading ? (
+                                        <>
+                                            <FontAwesomeIcon icon={faSpinner} spin />
+                                            Generando Excel...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FontAwesomeIcon icon={faDownload} />
+                                            Descargar Mi Planilla
+                                        </>
+                                    )}
+                                </button>
+
+                                {/* Botón Importar */}
+                                <button
+                                    onClick={() => setShowImportModal(true)}
+                                    className="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-5 rounded-lg shadow-sm flex items-center gap-2 transition-all hover:shadow-md"
+                                    title="Subir archivo con múltiples hojas"
+                                >
+                                    <FontAwesomeIcon icon={faUpload} />
+                                    Subir Planilla
+                                </button>
+                            </>
                         )}
                     </div>
                 )}

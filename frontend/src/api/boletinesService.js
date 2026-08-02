@@ -8,17 +8,20 @@ const BOLETINES_ENDPOINT = '/api/boletines';
  */
 export const fetchBoletinesCatalogs = async () => {
     try {
-        const [sedesRes, gradosRes] = await Promise.all([
+        const [sedesRes, gradosRes, vigenciasRes] = await Promise.all([
             apiClient.get('/api/sedes'),
-            apiClient.get('/api/grados?limit=100')
+            apiClient.get('/api/grados?limit=100'),
+            apiClient.get('/api/vigencias')
         ]);
         return {
-            sedes: sedesRes.data.data.items || sedesRes.data.data || [],
-            grados: gradosRes.data.data || []
+            sedes: sedesRes.data.data?.items || sedesRes.data.data || [],
+            grados: gradosRes.data.data?.items || gradosRes.data.data || [],
+            vigencias: vigenciasRes.data.data?.items || vigenciasRes.data.data || [],
+            vigenciaActiva: (vigenciasRes.data.data?.items || []).find(v => v.activa) || null
         };
     } catch (error) {
         console.error("Error cargando catálogos de boletines", error);
-        throw parseError(error, "No se pudieron cargar los datos de sedes y grados.");
+        throw parseError(error, "No se pudieron cargar los datos base.");
     }
 };
 
@@ -90,14 +93,13 @@ export const generarBoletinesPDF = async (payload) => {
 /**
  * Audita las notas faltantes de un grupo antes de generar el boletín
  */
-export const fetchAuditoriaBoletines = async (grupoId, periodoActual) => {
+export const fetchAuditoriaBoletines = async (grupoId, periodoActual, vigenciaId) => {
     try {
         const response = await apiClient.get(`${BOLETINES_ENDPOINT}/auditoria`, {
-            params: { grupoId, periodoActual }
+            params: { grupoId, periodoActual, vigenciaId }
         });
 
-        // Retornamos directamente el arreglo con los datos del reporte
-        return response.data.data;
+        return response.data.data; // Retornamos directamente el arreglo con los datos del reporte
     } catch (error) {
         console.error("Error al auditar boletines:", error);
         throw parseError(error, "Ocurrió un error al auditar las calificaciones.");

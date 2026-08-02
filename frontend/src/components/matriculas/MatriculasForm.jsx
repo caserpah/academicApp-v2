@@ -39,6 +39,16 @@ const MatriculasForm = ({
             .replace("MANANA", "MAÑANA"); // Corrige la ñ
     };
 
+    // Buscar la vigencia seleccionada para mostrarla en el Badge superior
+    const vigenciaSeleccionada = listas.vigencias?.find(
+        v => Number(v.id) === Number(formData.vigenciaId)
+    );
+
+    // Control de Opciones de Estado según el modo
+    const estadosCreacion = ["PREMATRICULADO", "ACTIVA"];
+    const estadosEdicion = ["PREMATRICULADO", "ACTIVA", "RETIRADO", "DESERTADO", "ANULADO"];
+    const opcionesEstado = mode === "agregar" ? estadosCreacion : estadosEdicion;
+
     // ==========================
     // Renderizado del formulario
     // ==========================
@@ -49,9 +59,18 @@ const MatriculasForm = ({
 
                     {/* --- ENCABEZADO CON ALERTA DE BLOQUEO --- */}
                     <div className="border-b pb-2 mb-4 border-[#d8d5d5] flex justify-between items-center">
-                        <h3 className="text-lg font-semibold text-gray-700">
-                            {mode === "agregar" ? "Registrar Nueva Matrícula" : "Editar Matrícula"}
-                        </h3>
+                        <div className="flex items-center gap-3">
+                            <h3 className="text-lg font-semibold text-gray-700">
+                                {mode === "agregar" ? "Registrar Nueva Matrícula" : "Editar Matrícula"}
+                            </h3>
+
+                            {/* NUEVO: Badge de Año Lectivo estilo "imagen.png" */}
+                            {vigenciaSeleccionada && (
+                                <div className="text-sm font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-full border border-blue-200">
+                                    Año Lectivo: <span className="text-blue-900">{vigenciaSeleccionada.anio}</span>
+                                </div>
+                            )}
+                        </div>
 
                         {/* Indicador visual si está bloqueado */}
                         {formData.bloqueo_notas && (
@@ -78,11 +97,11 @@ const MatriculasForm = ({
                                 name="vigenciaId"
                                 value={formData.vigenciaId || ""}
                                 onChange={handleChange}
-                                className={getInputClasses()}
+                                disabled={mode === "editar"}
+                                className={getInputClasses(mode === "editar")}
                                 title="Seleccione el año lectivo para esta matrícula"
                             >
                                 <option value="">Seleccione...</option>
-
                                 {/* Iteramos las vigencias pasadas desde el padre */}
                                 {listas.vigencias && listas.vigencias.length > 0 ? (
                                     listas.vigencias.map(v => (
@@ -312,17 +331,12 @@ const MatriculasForm = ({
                                 name="estado"
                                 value={formData.estado || "ACTIVA"}
                                 onChange={handleChange}
-                                className={getInputClasses(mode === "agregar")}
-                            // disabled={mode === "agregar"}
+                                className={getInputClasses()}
                             >
-                                <option value="">Todos</option>
-                                <option value="ACTIVA">Activa</option>
-                                <option value="PREMATRICULADO">Prematriculado</option>
-                                <option value="RETIRADO">Retirado</option>
-                                <option value="DESERTADO">Desertado</option>
-                                <option value="ANULADO">Anulado</option>
-                                <option value="REPROBADO">Reprobado</option>
-                                <option value="PROMOVIDO">Promovido</option>
+                                <option value="">Seleccione...</option>
+                                {opcionesEstado.map(est => (
+                                    <option key={est} value={est}>{est}</option>
+                                ))}
                             </select>
                         </div>
 
@@ -414,83 +428,85 @@ const MatriculasForm = ({
                         </div>
                     </div>
                 </div>
-            </form>
+            </form >
 
             {/* --- MODAL DE DETALLE DEL ESTUDIANTE --- */}
-            {mostrarDetalle && est && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in-up">
-                        {/* Header del Modal */}
-                        <div className="bg-gray-50 px-6 py-4 flex border-b border-gray-400 justify-between items-center">
-                            <h3 className="text-gray-800 text-lg font-bold flex items-center gap-2">
-                                <FontAwesomeIcon icon={faUser} className="w-6 h-6 mr-3 text-blue-600" /> Información del Estudiante
-                            </h3>
-                            <button onClick={() => setMostrarDetalle(false)} className="text-gray-400 hover:text-red-500 transition">
-                                <FontAwesomeIcon icon={faTimes} size="lg" />
-                            </button>
-                        </div>
-
-                        {/* Body del Modal */}
-                        <div className="p-6 space-y-4 text-sm text-gray-700">
-                            <div className="flex flex-col items-center pb-4 border-b border-gray-300">
-                                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-2xl font-bold mb-2">
-                                    {est.primerNombre?.charAt(0)}{est.primerApellido?.charAt(0)}
-                                </div>
-                                <h4 className="text-xl font-bold text-gray-800">
-                                    {est.primerNombre} {est.segundoNombre} {est.primerApellido} {est.segundoApellido}
-                                </h4>
-                                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold mt-1">
-                                    {est.estado || "ACTIVO"}
-                                </span>
+            {
+                mostrarDetalle && est && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in-up">
+                            {/* Header del Modal */}
+                            <div className="bg-gray-50 px-6 py-4 flex border-b border-gray-400 justify-between items-center">
+                                <h3 className="text-gray-800 text-lg font-bold flex items-center gap-2">
+                                    <FontAwesomeIcon icon={faUser} className="w-6 h-6 mr-3 text-blue-600" /> Información del Estudiante
+                                </h3>
+                                <button onClick={() => setMostrarDetalle(false)} className="text-gray-400 hover:text-red-500 transition">
+                                    <FontAwesomeIcon icon={faTimes} size="lg" />
+                                </button>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-xs text-gray-400 uppercase font-bold">Documento</p>
-                                    <p className="font-medium">{est.tipoDocumento} - {est.documento}</p>
+                            {/* Body del Modal */}
+                            <div className="p-6 space-y-4 text-sm text-gray-700">
+                                <div className="flex flex-col items-center pb-4 border-b border-gray-300">
+                                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-2xl font-bold mb-2">
+                                        {est.primerNombre?.charAt(0)}{est.primerApellido?.charAt(0)}
+                                    </div>
+                                    <h4 className="text-xl font-bold text-gray-800">
+                                        {est.primerNombre} {est.segundoNombre} {est.primerApellido} {est.segundoApellido}
+                                    </h4>
+                                    <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold mt-1">
+                                        {est.estado || "ACTIVO"}
+                                    </span>
                                 </div>
-                                <div>
-                                    <p className="text-xs text-gray-400 uppercase font-bold">Fecha Nacimiento</p>
-                                    <p className="font-medium">{est.fechaNacimiento || "No registrada"}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-gray-400 uppercase font-bold">Sexo</p>
-                                    <p className="font-medium">{est.sexo || "No registrado"}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-gray-400 uppercase font-bold">RH</p>
-                                    <p className="font-medium">{est.rh || "N/A"}</p>
-                                </div>
-                                <div className="col-span-2">
-                                    <p className="text-xs text-gray-400 uppercase font-bold flex items-center gap-1">
-                                        <FontAwesomeIcon icon={faMapMarkerAlt} /> Dirección
-                                    </p>
-                                    <p className="font-medium">{est.direccion || "Sin dirección"}</p>
-                                </div>
-                                <div className="col-span-2">
-                                    <p className="text-xs text-gray-400 uppercase font-bold flex items-center gap-1">
-                                        <FontAwesomeIcon icon={faPhone} /> Contacto
-                                    </p>
-                                    <p className="font-medium">
-                                        {est.telefono || est.contacto || "Sin contacto"}
-                                        {est.email && <span className="block text-blue-500">{est.email}</span>}
-                                    </p>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-xs text-gray-400 uppercase font-bold">Documento</p>
+                                        <p className="font-medium">{est.tipoDocumento} - {est.documento}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-gray-400 uppercase font-bold">Fecha Nacimiento</p>
+                                        <p className="font-medium">{est.fechaNacimiento || "No registrada"}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-gray-400 uppercase font-bold">Sexo</p>
+                                        <p className="font-medium">{est.sexo || "No registrado"}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-gray-400 uppercase font-bold">RH</p>
+                                        <p className="font-medium">{est.rh || "N/A"}</p>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <p className="text-xs text-gray-400 uppercase font-bold flex items-center gap-1">
+                                            <FontAwesomeIcon icon={faMapMarkerAlt} /> Dirección
+                                        </p>
+                                        <p className="font-medium">{est.direccion || "Sin dirección"}</p>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <p className="text-xs text-gray-400 uppercase font-bold flex items-center gap-1">
+                                            <FontAwesomeIcon icon={faPhone} /> Contacto
+                                        </p>
+                                        <p className="font-medium">
+                                            {est.telefono || est.contacto || "Sin contacto"}
+                                            {est.email && <span className="block text-blue-500">{est.email}</span>}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Footer del Modal */}
-                        <div className="bg-gray-50 px-6 py-3 flex justify-end border-t border-gray-300">
-                            <button
-                                onClick={() => setMostrarDetalle(false)}
-                                className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-red-600 hover:text-white text-sm font-medium"
-                            >
-                                <FontAwesomeIcon icon={faTimes} className="mr-2" /> Cerrar
-                            </button>
+                            {/* Footer del Modal */}
+                            <div className="bg-gray-50 px-6 py-3 flex justify-end border-t border-gray-300">
+                                <button
+                                    onClick={() => setMostrarDetalle(false)}
+                                    className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-red-600 hover:text-white text-sm font-medium"
+                                >
+                                    <FontAwesomeIcon icon={faTimes} className="mr-2" /> Cerrar
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
         </>
     );
 };

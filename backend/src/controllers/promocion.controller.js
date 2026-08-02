@@ -5,8 +5,8 @@ export const promocionController = {
 
     async simularMasiva(req, res, next) {
         try {
-            const { sedeId, gradoId, grupoId } = req.body;
-            const vigenciaId = req.vigenciaActual.id;
+            const { sedeId, gradoId, grupoId, vigenciaId: bodyVigenciaId } = req.body;
+            const vigenciaId = bodyVigenciaId ? Number(bodyVigenciaId) : req.vigenciaActual.id;
 
             const resultado = await promocionService.simularPromocion({
                 sedeId, gradoId, grupoId, vigenciaId

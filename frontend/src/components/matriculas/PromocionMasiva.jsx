@@ -5,7 +5,8 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 import {
-    fetchPromocionCatalogs, generarConsolidadoAnual, simularPromocion, ejecutarPromocionMasiva, verificarConsolidados
+    fetchPromocionCatalogs, generarConsolidadoAnual, simularPromocion,
+    ejecutarPromocionMasiva, verificarConsolidados, fetchGruposPorVigencia
 } from "../../api/promocionService.js";
 import { guardarCalificacionesMasivas } from "../../api/nivelacionesService.js";
 import { showSuccess, showError, showWarning, showConfirm } from "../../utils/notifications.js";
@@ -16,7 +17,7 @@ const PromocionMasiva = () => {
     // --- ESTADOS DE CATÁLOGOS ---
     const [sedes, setSedes] = useState([]);
     const [grados, setGrados] = useState([]);
-    const [grupos, setGrupos] = useState([]);
+    const [gruposDestino, setGruposDestino] = useState([]);
     const [vigencias, setVigencias] = useState([]);
     const [vigenciaActiva, setVigenciaActiva] = useState(null);
 
@@ -25,6 +26,7 @@ const PromocionMasiva = () => {
 
     // Filtros
     const [filters, setFilters] = useState({
+        vigenciaId: '',
         sedeId: '',
         gradoId: '',
         grupoId: '',
@@ -75,18 +77,22 @@ const PromocionMasiva = () => {
 
     // Filtra las vigencias dependiendo de si el grado es Semestral (Ciclos) o Anual
     const getVigenciasFiltradas = () => {
-        if (!vigenciaActiva || !filters.gradoId) return [];
+        if (!filters.vigenciaId || !filters.gradoId) return [];
 
         const gradoSeleccionado = grados.find(g => String(g.id) === String(filters.gradoId));
         const esCiclo = gradoSeleccionado && gradoSeleccionado.nombre.toUpperCase().includes('CICLO');
 
+        // Encontrar los datos de la vigencia de origen seleccionada
+        const vigenciaOrigen = vigencias.find(v => String(v.id) === String(filters.vigenciaId));
+        if (!vigenciaOrigen) return [];
+
         return vigencias.filter(v => {
             if (esCiclo) {
                 // Ciclos promueven en la misma vigencia
-                return String(v.id) === String(vigenciaActiva.id);
+                return String(v.id) === String(vigenciaOrigen.id);
             } else {
                 // Grados regulares promueven al año siguiente
-                return parseInt(v.anio) === parseInt(vigenciaActiva.anio) + 1;
+                return parseInt(v.anio) === parseInt(vigenciaOrigen.anio) + 1;
             }
         });
     };
@@ -109,11 +115,14 @@ const PromocionMasiva = () => {
 
                 setSedes(data.sedes);
                 setGrados(data.grados);
-                setGrupos(data.grupos);
                 setVigencias(data.vigencias);
 
                 const activa = data.vigencias.find(v => v.activa);
                 setVigenciaActiva(activa);
+
+                if (activa) {
+                    setFilters(prev => ({ ...prev, vigenciaId: activa.id }));
+                }
 
                 if (data.sedes.length === 1) {
                     setFilters(prev => ({ ...prev, sedeId: data.sedes[0].id }));
@@ -128,31 +137,44 @@ const PromocionMasiva = () => {
         init();
     }, []);
 
-    // --- CASCADA: SEDE + GRADO -> GRUPO ---
+    // --- CASCADA: SEDE + GRADO + VIGENCIA -> GRUPOS DE ORIGEN ---
     useEffect(() => {
-        if (!filters.sedeId) {
-            setGruposDisponibles([]);
-            return;
-        }
+        const cargarGruposOrigen = async () => {
+            if (!filters.sedeId || !filters.gradoId || !filters.vigenciaId) {
+                setGruposDisponibles([]);
+                return;
+            }
 
-        // 1. Filtramos los grupos según la sede seleccionada
-        let filtrados = grupos.filter(g => String(g.sedeId) === String(filters.sedeId));
+            // Llamamos a la API con la vigencia histórica seleccionada
+            const gruposFiltrados = await fetchGruposPorVigencia(filters.vigenciaId, filters.sedeId, filters.gradoId);
+            setGruposDisponibles(gruposFiltrados);
 
-        // 2. Si hay grado seleccionado, aplicamos el segundo filtro
-        if (filters.gradoId) {
-            filtrados = filtrados.filter(g => String(g.gradoId) === String(filters.gradoId));
-        }
+            // Validamos que el grupo seleccionado siga siendo válido
+            setFilters(prev => {
+                const valido = gruposFiltrados.find(g => String(g.id) === String(prev.grupoId));
+                return !valido ? { ...prev, grupoId: '' } : prev;
+            });
+        };
 
-        setGruposDisponibles(filtrados);
+        cargarGruposOrigen();
+    }, [filters.sedeId, filters.gradoId, filters.vigenciaId]);
 
-        // 3. Validamos que el grupo seleccionado siga siendo válido con los nuevos filtros. Si no es válido, lo reseteamos.
-        setFilters(prev => {
-            const valido = filtrados.find(g => String(g.id) === String(prev.grupoId));
-            // Si el grupo actual no es válido con los nuevos filtros, lo reseteamos a vacío. De lo contrario, mantenemos el valor actual.
-            return !valido ? { ...prev, grupoId: '' } : prev;
-        });
+    // --- CARGAR GRUPOS DE DESTINO PARA LA MESA DE CONTROL ---
+    useEffect(() => {
+        const cargarGruposDestino = async () => {
+            // Solo cargamos si ya se eligió el año destino
+            if (!filters.vigenciaDestinoId || !filters.sedeId) {
+                setGruposDestino([]);
+                return;
+            }
 
-    }, [filters.sedeId, filters.gradoId, grupos]);
+            // Traemos todos los grupos de la sede para el año al que van a ser promovidos
+            const gruposDest = await fetchGruposPorVigencia(filters.vigenciaDestinoId, filters.sedeId);
+            setGruposDestino(gruposDest);
+        };
+
+        cargarGruposDestino();
+    }, [filters.vigenciaDestinoId, filters.sedeId]);
 
     // Verificar si el grupo seleccionado ya tiene consolidados generados
     useEffect(() => {
@@ -229,21 +251,36 @@ const PromocionMasiva = () => {
 
         try {
             setIsProcessingStep1(true);
-            const resultado = await generarConsolidadoAnual(filters.sedeId, filters.gradoId, filters.grupoId, excluidos);
+            const resultado = await generarConsolidadoAnual(filters.sedeId, filters.gradoId, filters.grupoId, filters.vigenciaId, excluidos);
 
-            // Si el backend advierte que faltan notas, detenemos todo y abrimos el modal
-            if (resultado.status === 'warning') {
+            const mensajeStr = resultado.message ? resultado.message.toLowerCase() : "";
+
+            // Evaluamos si el grupo tiene carga académica asignada o si tiene estudiantes matrículados
+            if (resultado.status === 'info' || mensajeStr.includes('carga académica') || mensajeStr.includes('estudiantes')) {
                 showWarning(resultado.message);
-                setDataFaltantes(resultado.data); // Guardamos el JSON de faltantes
-                setShowModalFaltantes(true);      // Abrimos el modal
                 setIsProcessingStep1(false);
-                return; // Frenamos la ejecución aquí
+                return; // Se detiene el proceso aquí, bloqueando la apertura del modal de calificaciones faltantes
             }
 
-            // Si pasa limpio, entonces sí mostramos éxito
+            // El grupo tiene calificaciones faltantes
+            if (resultado.status === 'warning') {
+                showWarning(resultado.message);
+
+                // Solo abrimos el modal si realmente viene un array de datos
+                if (resultado.data && resultado.data.length > 0) {
+                    setDataFaltantes(resultado.data);
+                    setShowModalFaltantes(true);
+                }
+
+                setIsProcessingStep1(false);
+                return;
+            }
+
+            // Se generaron los consolidados correctamente
             showSuccess(resultado.message || "Consolidados procesados exitosamente.");
             setStep1Completado(true);
-            setExcluidos([]); // Limpiamos la lista de excluidos porque el cierre fue un éxito
+            setExcluidos([]);
+
         } catch (error) {
             showError(error.message);
         } finally {
@@ -264,7 +301,7 @@ const PromocionMasiva = () => {
                 sedeId: filters.sedeId,
                 gradoId: filters.gradoId,
                 grupoId: filters.grupoId,
-                vigenciaId: vigenciaActiva.id
+                vigenciaId: filters.vigenciaId
             });
 
             // Guardamos el JSON devuelto en el estado para renderizar la tabla
@@ -458,7 +495,7 @@ const PromocionMasiva = () => {
 
     // Buscar el grado destino del primer estudiante PROMOVIDO para llenar el selector masivo
     const gradoDestinoPromovidos = simulacionData.find(est => est.dictamenSugerido === 'PROMOVIDO' && !est.esGraduando)?.gradoDestinoSugeridoId;
-    const opcionesGrupoMasivo = gradoDestinoPromovidos ? grupos.filter(g => String(g.gradoId) === String(gradoDestinoPromovidos)) : [];
+    const opcionesGrupoMasivo = gradoDestinoPromovidos ? gruposDestino.filter(g => String(g.gradoId) === String(gradoDestinoPromovidos)) : [];
 
     // --- RENDER ---
     if (loadingCatalogs) return <div className="p-12 flex justify-center"><LoadingSpinner /></div>;
@@ -474,8 +511,8 @@ const PromocionMasiva = () => {
                         Motor de Promoción Académica
                     </h1>
                     {vigenciaActiva && (
-                        <div className="mt-2 md:mt-0 bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-md border border-blue-200">
-                            Contexto Actual: Año {vigenciaActiva.anio}
+                        <div className="text-sm font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-full border border-blue-200">
+                            Año Lectivo: <span className="text-blue-900">{vigenciaActiva.anio}</span>
                         </div>
                     )}
                 </div>
@@ -495,7 +532,16 @@ const PromocionMasiva = () => {
                 {/* Filtros Contextuales */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                     <h3 className="text-sm font-bold text-gray-700 uppercase mb-4 tracking-wider">1. Selección del Grupo a Evaluar</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 mb-1">Vigencia Origen <span className="text-red-500">*</span></label>
+                            <select name="vigenciaId" value={filters.vigenciaId} onChange={handleFilterChange} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-blue-50 text-blue-900 font-semibold">
+                                {vigencias.map(v => (
+                                    <option key={v.id} value={v.id}>{v.anio} {v.activa ? "(Activa)" : ""}</option>
+                                ))}
+                            </select>
+                        </div>
+
                         <div>
                             <label className="block text-xs font-bold text-gray-500 mb-1">Sede <span className="text-red-500">*</span></label>
                             <div className="relative">
@@ -640,7 +686,7 @@ const PromocionMasiva = () => {
                                         const esReprobado = est.dictamenSugerido === 'REPROBADO';
                                         const esGraduando = est.esGraduando;
 
-                                        const opcionesGrupo = grupos.filter(g => String(g.gradoId) === String(est.gradoDestinoSugeridoId));
+                                        const opcionesGrupo = gruposDestino.filter(g => String(g.gradoId) === String(est.gradoDestinoSugeridoId));
 
                                         return (
                                             <tr key={est.matriculaId} className={esPendiente ? "bg-gray-50 opacity-60" : "hover:bg-blue-50/40 transition-colors"}>

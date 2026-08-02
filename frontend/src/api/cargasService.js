@@ -28,21 +28,27 @@ export const fetchCargas = async (params = {}) => {
  * (Sedes, Grados, Asignaturas, Docentes)
  * Nota: Para los filtros de la tabla solo necesitamos Sedes y Grados.
  */
-export const fetchCargasCatalogs = async () => {
+export const fetchCargasCatalogs = async (vigenciaId) => {
     try {
+        // Si hay una vigencia, la inyectamos en la consulta de asignaturas
+        const queryVigencia = vigenciaId ? `&vigenciaId=${vigenciaId}` : '';
+
         // Hacemos peticiones en paralelo
-        const [sedesRes, gradosRes, asignaturasRes, docentesRes] = await Promise.all([
+        const [sedesRes, gradosRes, asignaturasRes, docentesRes, vigenciasRes] = await Promise.all([
             apiClient.get('/api/sedes'),
             apiClient.get('/api/grados?limit=100'),
-            apiClient.get('/api/asignaturas?limit=200'),
-            apiClient.get('/api/docentes?activo=true&limit=200') // Solo docentes activos
+            apiClient.get(`/api/asignaturas?limit=200${queryVigencia}`),
+            apiClient.get('/api/docentes?activo=true&limit=200'), // Solo docentes activos
+            apiClient.get('/api/vigencias')
         ]);
 
         return {
-            sedes: sedesRes.data.data.items || sedesRes.data.data || [],
-            grados: gradosRes.data.data || [],
-            asignaturas: asignaturasRes.data.data.items || sedesRes.data.data || [],
-            docentes: docentesRes.data.data.items || []
+            sedes: sedesRes.data?.data?.items || sedesRes.data?.data || [],
+            grados: gradosRes.data?.data?.items || gradosRes.data?.data || [],
+            asignaturas: asignaturasRes.data?.data?.items || asignaturasRes.data?.data || [],
+            docentes: docentesRes.data?.data?.items || docentesRes.data?.data || [],
+            vigencias: vigenciasRes.data?.data?.items || [],
+            vigenciaActiva: vigenciasRes.data?.data?.items?.find(v => v.activa) || null
         };
     } catch (error) {
         console.error("Error cargando catálogos", error);
@@ -80,15 +86,16 @@ export const eliminarCarga = async (id) => {
 /**
  * Función auxiliar para Buscar grupos filtrados por sede y grado
  */
-export const fetchGruposFiltrados = async (sedeId, gradoId) => {
+export const fetchGruposFiltrados = async (sedeId, gradoId, vigenciaId) => {
     try {
         if (!sedeId) return [];
         // Construimos query param
-        let url = `/api/grupos?sedeId=${sedeId}`;
+        let url = `/api/grupos?limit=100&sedeId=${sedeId}`;
         if (gradoId) url += `&gradoId=${gradoId}`;
+        if (vigenciaId) url += `&vigenciaId=${vigenciaId}`;
 
         const response = await apiClient.get(url);
-        return response.data.data.items || response.data.data || [];
+        return response.data?.data?.items || response.data?.data || [];
     } catch (error) {
         console.error("Error buscando grupos", error);
         return [];

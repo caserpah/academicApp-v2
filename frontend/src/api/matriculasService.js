@@ -88,23 +88,6 @@ export const eliminarMatricula = async (id) => {
 };
 
 /**
- * Prematricula Masiva (Promoción / Prematrícula)
- * Procesa un lote de estudiantes hacia un grupo destino.
- * @param {Object} payload
- * @param {number[]} payload.estudiantesIds - Array de IDs
- * @param {number} payload.grupoDestinoId
- * @param {number} payload.sedeId
- */
-export const crearMatriculaMasiva = async (payload) => {
-    try {
-        const response = await apiClient.post(`${MATRICULAS_ENDPOINT}/masivo`, payload);
-        return response.data;
-    } catch (error) {
-        throw parseError(error, "Error al procesar matrículas masivamente.");
-    }
-};
-
-/**
  * Matrícula Masiva
  * Activa (Matricula) un lote de estudiantes Prematriculados hacia un grupo destino.
  */

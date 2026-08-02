@@ -36,6 +36,11 @@ export const nivelacionRepository = {
     async findByMatriculaYArea(matriculaId, areaId, { transaction } = {}) {
         return await Nivelacion.findOne({
             where: { matriculaId, areaId },
+            include: [{
+                model: Matricula,
+                as: 'matricula',
+                attributes: ['estado']
+            }],
             transaction
         });
     },
@@ -73,7 +78,7 @@ export const nivelacionRepository = {
                     model: Matricula,
                     as: "matricula",
                     where: matriculaWhere,
-                    attributes: ["id", "folio"],
+                    attributes: ["id", "folio", "estado"],
                     include: [
                         {
                             model: Estudiante,
@@ -114,7 +119,7 @@ export const nivelacionRepository = {
                     model: Matricula,
                     as: "matricula",
                     where: { grupoId: grupoId, estado: "ACTIVA" },
-                    attributes: ["id", "folio"],
+                    attributes: ["id", "folio", "estado"],
                     include: [
                         {
                             model: Estudiante,

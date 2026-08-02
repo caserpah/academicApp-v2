@@ -6,10 +6,8 @@ export const grupoController = {
     /** Listar grupos */
     async list(req, res, next) {
         try {
-            const vigenciaId = req.vigenciaActual.id;
-
+            const vigenciaId = req.query.vigenciaId ? Number(req.query.vigenciaId) : req.vigenciaActual.id;
             const data = await grupoService.list(req.query, vigenciaId);
-
             return sendSuccess(res, data, "Listado de grupos obtenido exitosamente." );
         } catch (error) {
             next(error);
@@ -19,11 +17,9 @@ export const grupoController = {
     /** Obtener un grupo por ID */
     async get(req, res, next) {
         try {
-            const vigenciaId = req.vigenciaActual.id;
+            const vigenciaId = req.query.vigenciaId ? Number(req.query.vigenciaId) : req.vigenciaActual.id;
             const id = Number(req.params.id);
-
             const data = await grupoService.get(id, vigenciaId);
-
             return sendSuccess(res, data, "Información del grupo obtenida exitosamente.");
         } catch (error) {
             next(error);
@@ -33,16 +29,9 @@ export const grupoController = {
     /** Crear grupo */
     async create(req, res, next) {
         try {
-            const vigenciaId = req.vigenciaActual.id;
-
+            const vigenciaId = req.body.vigenciaId ? Number(req.body.vigenciaId) : req.vigenciaActual.id;
             const data = await grupoService.create(req.body, vigenciaId);
-
-            return sendSuccess(
-                res,
-                data,
-                "El grupo fue registrado exitosamente.",
-                201
-            );
+            return sendSuccess(res, data, "El grupo fue registrado exitosamente.", 201);
         } catch (error) {
             next(error);
         }
@@ -51,11 +40,9 @@ export const grupoController = {
     /** Actualizar grupo */
     async update(req, res, next) {
         try {
-            const vigenciaId = req.vigenciaActual.id;
+            const vigenciaId = req.body.vigenciaId ? Number(req.body.vigenciaId) : req.vigenciaActual.id;
             const id = Number(req.params.id);
-
             const data = await grupoService.update(id, req.body, vigenciaId);
-
             return sendSuccess(res, data, "El grupo fue actualizado exitosamente.");
         } catch (error) {
             next(error);
@@ -65,11 +52,9 @@ export const grupoController = {
     /** Eliminar grupo */
     async remove(req, res, next) {
         try {
-            const vigenciaId = req.vigenciaActual.id;
+            const vigenciaId = req.query.vigenciaId ? Number(req.query.vigenciaId) : req.vigenciaActual.id;
             const id = Number(req.params.id);
-
             await grupoService.remove(id, vigenciaId);
-
             return sendSuccess(res, null, "El grupo fue eliminado exitosamente.");
         } catch (error) {
             next(error);

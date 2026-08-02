@@ -3,13 +3,14 @@ import { validationErrorHandler } from "./validationErrorHandler.js";
 import { Estudiante } from "../models/estudiante.js";
 import { Grupo } from "../models/grupo.js";
 import { Sede } from "../models/sede.js";
+import { Matricula } from "../models/matricula.js";
 import {
     validarCampoRequerido,
     validarFechaNoFutura,
-    verificarExistenciaPorId
+    verificarExistenciaPorId,
+    verificarReglasEdicionMatricula,
 } from "../utils/dbUtils.js";
 
-const ESTADOS_VALIDOS = ["PREMATRICULADO", "ACTIVA", "RETIRADO", "DESERTADO", "REPROBADO", "PROMOVIDO", "ANULADO"];
 const METODOLOGIAS_VALIDAS = ["TRADICIONAL", "ETNOEDUCACION", "ESCUELA_NUEVA", "ACELERACION_APRENDIZAJE"];
 
 export const validarCrearMatricula = [
@@ -33,11 +34,11 @@ export const validarCrearMatricula = [
 
     body("estado")
         .optional()
-        .isIn(ESTADOS_VALIDOS)
-        .withMessage("El estado seleccionado no es válido"),
+        .isIn(["PREMATRICULADO", "ACTIVA"])
+        .withMessage("Al crear una matrícula, el estado solo puede ser PREMATRICULADO o ACTIVA."),
 
     validarCampoRequerido("metodologia", "Seleccione una metodología.")
-        .isIn(["TRADICIONAL", "ETNOEDUCACION", "ESCUELA_NUEVA", "ACELERACION_APRENDIZAJE"])
+        .isIn(METODOLOGIAS_VALIDAS)
         .withMessage("La metodología seleccionada no es válida."),
 
     body("observaciones")
@@ -49,11 +50,29 @@ export const validarCrearMatricula = [
 
 export const validarActualizarMatricula = [
     param("id")
-        .isInt().withMessage("La matrícula seleccionada no es válida."),
+        .isInt().withMessage("La matrícula seleccionada no es válida.")
+        .bail()
+        .custom(verificarReglasEdicionMatricula(Matricula)),
+
+    body("vigenciaId")
+        .optional()
+        .isInt()
+        .custom((value, { req }) => {
+            if (value && Number(value) !== Number(req.matriculaActual.vigenciaId)) {
+                throw new Error("No está permitido cambiar el año lectivo de una matrícula existente. Debe anularla y crear una nueva.");
+            }
+            return true;
+        }),
 
     body("gradoId")
         .optional()
-        .isInt(),
+        .isInt()
+        .custom((value, { req }) => {
+            if (value && Number(value) !== Number(req.matriculaActual.gradoId)) {
+                throw new Error("No está permitido cambiar el grado de una matrícula existente. Debe anularla y crear una nueva.");
+            }
+            return true;
+        }),
 
     body("grupoId")
         .optional()
@@ -67,8 +86,8 @@ export const validarActualizarMatricula = [
 
     body("estado")
         .optional()
-        .isIn(ESTADOS_VALIDOS)
-        .withMessage("El estado seleccionado no es válido"),
+        .isIn(["PREMATRICULADO", "ACTIVA", "RETIRADO", "DESERTADO", "ANULADO"])
+        .withMessage("El estado seleccionado no es válido para la edición. Son exclusivos de la promoción y no pueden ser asignados manualmente."),
 
     body("metodologia")
         .optional()
@@ -79,8 +98,6 @@ export const validarActualizarMatricula = [
         .optional()
         .trim()
         .isLength({ max: 500 }).withMessage("Las observaciones no pueden exceder 500 caracteres"),
-
-    //validarFechaNoFutura("fechaRetiro", "de retiro"),
 
     body("motivoRetiro")
         .optional({ nullable: true })
@@ -117,5 +134,6 @@ export const validarListar = [
     query("sedeId").optional().isInt(),
     query("grupoId").optional().isInt(),
     query("gradoId").optional().isInt(),
+    query("vigenciaId").optional().isInt(),
     validationErrorHandler
 ];

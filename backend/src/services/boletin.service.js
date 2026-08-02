@@ -13,7 +13,11 @@ export const boletinService = {
     /**
      * Función principal orquestadora.
      */
-    async generarDatosBoletinLote(grupoId, vigenciaId, anioLectivo, periodoActual, tipoBoletinReq, estudianteId, usuarioId) {
+    async generarDatosBoletinLote(grupoId, vigenciaId, periodoActual, tipoBoletinReq, estudianteId, usuarioId) {
+
+        // El servicio se encarga de buscar el año lectivo a través del repositorio
+        const vigenciaDb = await boletinRepository.findVigenciaById(vigenciaId);
+        const anioLectivo = vigenciaDb ? vigenciaDb.anio : "N/A";
 
         // =========================================================
         // FASE 1: EXTRACCIÓN MASIVA DE DATOS DESDE LA BASE DE DATOS

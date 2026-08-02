@@ -9,20 +9,17 @@ export const boletinController = {
      */
     async generarLote(req, res, next) {
         try {
-            // 1. Extraemos el vigenciaId y el nombre del año lectivo (ej: "2026") del middleware de autenticación
-            const vigenciaId = req.vigenciaActual.id;
-            const anioLectivo = req.vigenciaActual.anio
+            // 1. Extraemos el vigenciaId (del body o del middleware como fallback)
+            const vigenciaId = req.body.vigenciaId ? Number(req.body.vigenciaId) : req.vigenciaActual.id;
 
-            // 2. Extraemos los parámetros del body ya validados
+            // 2. Extraemos el resto de parámetros validados
             const { grupoId, periodoActual, tipoBoletin, estudianteId } = req.body;
-
             const usuarioId = req.user.id; // Extraes el ID de quien hizo la petición
 
             // 3. Llamamos al servicio para que arme el Mega-Objeto JSON
             const dataBoletines = await boletinService.generarDatosBoletinLote(
                 grupoId,
                 vigenciaId,
-                anioLectivo,
                 periodoActual,
                 tipoBoletin,
                 estudianteId,
@@ -63,13 +60,13 @@ export const boletinController = {
     // Función para auditar notas faltantes antes de imprimir boletines
     async auditarNotasPendientes(req, res, next) {
         try {
-            const { grupoId, periodoActual } = req.query;
+            const { grupoId, periodoActual, vigenciaId: queryVigencia } = req.query;
 
             if (!grupoId || !periodoActual) {
                 return res.status(400).json({ status: 'error', message: "Selecciones el grupo y periodo académico." });
             }
 
-            const vigenciaId = req.vigenciaActual.id;
+            const vigenciaId = queryVigencia ? Number(queryVigencia) : req.vigenciaActual.id;
             const reporte = await boletinService.auditarNotasPendientes(grupoId, vigenciaId, periodoActual);
 
             return res.status(200).json({

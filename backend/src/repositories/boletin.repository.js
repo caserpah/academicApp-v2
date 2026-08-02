@@ -16,6 +16,7 @@ import { Juicio } from "../models/juicio.js";
 import { Carga } from "../models/carga.js";
 import { Docente } from "../models/docente.js";
 import { Usuario } from "../models/usuario.js";
+import { Vigencia } from "../models/vigencia.js";
 
 export const boletinRepository = {
 
@@ -206,6 +207,15 @@ export const boletinRepository = {
             where: {
                 nombre: { [Op.in]: ['COMPORTAMIENTO', 'DISCIPLINA'] }
             }
+        });
+    },
+
+    /**
+     * Extrae la vigencia actual
+     */
+    async findVigenciaById(vigenciaId) {
+        return Vigencia.findByPk(vigenciaId, {
+            attributes: ["id", "anio"]
         });
     }
 

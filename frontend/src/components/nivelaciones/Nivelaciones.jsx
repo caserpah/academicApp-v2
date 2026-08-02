@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faClipboardList, faSearch, faEraser, faEye, faUpload, faTimes, faFilePdf, faArchive,
+    faClipboardList, faSearch, faEraser, faEye, faUpload, faTimes, faFilePdf,
     faExclamationTriangle, faSchool, faFilter, faChevronUp, faChevronDown, faSpinner
 } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -11,7 +11,8 @@ import {
     fetchPendientesNivelacion,
     fetchNivelacionCatalogs,
     fetchReprobadosDirectos,
-    descargarActaNivelacionPdf
+    descargarActaNivelacionPdf,
+    fetchGruposPorVigencia
 } from "../../api/nivelacionesService.js";
 import { showSuccess, showError, showWarning } from "../../utils/notifications.js";
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
@@ -108,6 +109,28 @@ const Nivelaciones = () => {
             setFilters(prev => ({ ...prev, grupoId: '' }));
         }
     }, [filters.sedeId, grupos, filters.grupoId]);
+
+    // --- EFECTO: RECARGAR GRUPOS SI CAMBIA LA VIGENCIA ---
+    useEffect(() => {
+        const recargarGrupos = async () => {
+            // Evitamos que se dispare en la carga inicial (loadingCatalogs)
+            if (!filters.vigenciaId || loadingCatalogs) return;
+
+            try {
+                const nuevosGrupos = await fetchGruposPorVigencia(rolUsuario, filters.vigenciaId);
+                setGrupos(nuevosGrupos);
+
+                // Limpiar el grupo seleccionado si ya no existe en el nuevo año
+                setFilters(prev => {
+                    const grupoAunValido = nuevosGrupos.find(g => String(g.id) === String(prev.grupoId));
+                    return grupoAunValido ? prev : { ...prev, grupoId: '' };
+                });
+            } catch (error) {
+                console.error("Error al actualizar grupos por vigencia:", error);
+            }
+        };
+        recargarGrupos();
+    }, [filters.vigenciaId, loadingCatalogs, rolUsuario]); // Se dispara cada vez que el selector de Año Lectivo cambia
 
     // --- ACCIÓN DE BÚSQUEDA ---
     const handleBuscar = useCallback(async () => {
@@ -206,9 +229,9 @@ const Nivelaciones = () => {
                         Reporte de Nivelaciones
                     </h1>
                     {vigenciaActual && (
-                        <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">
-                            Año Lectivo: {vigenciaActual.anio} {esAdmin && '(Administrador)'}
-                        </span>
+                        <div className="text-sm font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-full border border-blue-200">
+                            Año Lectivo: <span className="text-blue-900">{vigenciaActual.anio}</span>
+                        </div>
                     )}
                 </div>
 
@@ -399,33 +422,39 @@ const Nivelaciones = () => {
                                                                         }}
                                                                         className="text-[11px] font-semibold text-gray-500 hover:text-blue-600 transition underline flex items-center gap-1"
                                                                     >
-                                                                        {/* Ajuste: Texto dinámico según el rol */}
-                                                                        <FontAwesomeIcon icon={faEye} /> {esAdmin ? 'Ver / Editar' : 'Ver Detalles'}
+                                                                        {/* Como ya no se puede editar lo evaluado, siempre mostramos "Ver Detalles" */}
+                                                                        <FontAwesomeIcon icon={faEye} /> {esAdmin && !['PROMOVIDO', 'REPROBADO'].includes(est.estadoMatricula) ? 'Ver / Editar' : 'Ver Detalles'}
                                                                     </button>
                                                                 </div>
                                                             ) : (
                                                                 // --- VISTA PARA ESTUDIANTES PENDIENTES ---
                                                                 esAdmin ? (
-                                                                    !esVigenciaHistorica ? (
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                setSelectedEstudiante(est);
-                                                                                setSelectedAreaId(area.areaId);
-                                                                                setMode("registrar");
-                                                                            }}
-                                                                            className="text-sm font-bold text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition shadow-sm inline-flex items-center"
-                                                                        >
-                                                                            <FontAwesomeIcon icon={faUpload} className="mr-2" /> Evaluar
-                                                                        </button>
-                                                                    ) : (
-                                                                        <span
-                                                                            className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-500 border border-gray-200 font-bold text-[11px] px-3 py-1.5 rounded-md shadow-sm cursor-help"
-                                                                            title="Año lectivo cerrado. Solo lectura."
-                                                                        >
-                                                                            <FontAwesomeIcon icon={faArchive} /> Histórico
-                                                                        </span>
-                                                                    )
+                                                                    // Si es Admin, SIEMPRE puede evaluar un PENDIENTE, incluso de años pasados
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setSelectedEstudiante(est);
+                                                                            setSelectedAreaId(area.areaId);
+                                                                            setMode("registrar");
+                                                                        }}
+                                                                        className="text-sm font-bold text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition shadow-sm inline-flex items-center"
+                                                                    >
+                                                                        <FontAwesomeIcon icon={faUpload} className="mr-2" /> Evaluar
+                                                                    </button>
+                                                                ) : esVigenciaHistorica ? (
+                                                                    // Si es docente y el año está cerrado, solo ve los detalles del pendiente
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setSelectedEstudiante(est);
+                                                                            setSelectedAreaId(area.areaId);
+                                                                            setMode("registrar");
+                                                                        }}
+                                                                        className="text-[11px] font-semibold text-gray-500 hover:text-blue-600 transition underline flex items-center gap-1"
+                                                                        title="Año lectivo cerrado. Solo lectura."
+                                                                    >
+                                                                        <FontAwesomeIcon icon={faEye} /> Ver Detalles
+                                                                    </button>
                                                                 ) : (
+                                                                    // Si es docente en el año actual y está pendiente de que el admin lo evalúe
                                                                     <span
                                                                         className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-600 border border-slate-200 font-bold text-[11px] px-3 py-1.5 rounded-md shadow-sm cursor-help"
                                                                         title="La nivelación está pendiente de ser registrada por secretaría."
@@ -482,7 +511,7 @@ const Nivelaciones = () => {
                     <NivelacionForm
                         registroOriginal={selectedEstudiante}
                         areaId={selectedAreaId}
-                        soloLectura={!esAdmin}
+                        soloLectura={!esAdmin || ['PROMOVIDO', 'REPROBADO'].includes(selectedEstudiante.estadoMatricula)}
                         onSuccess={async () => {
                             await showSuccess("Calificación de nivelación registrada de forma exitosa.");
                             setMode("lista"); // Una vez cerrada la alerta, cerramos el modal y recargamos la tabla oculta

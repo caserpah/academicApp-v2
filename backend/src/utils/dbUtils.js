@@ -207,7 +207,7 @@ export const validarFechaNoFutura = (campo, etiqueta, opcional = false) => {
         .custom((value) => {
             const hoy = new Date();
             const fecha = new Date(`${value}T00:00:00`); // Evitar problemas de zona horaria
-            if (fecha  > hoy) {
+            if (fecha > hoy) {
                 throw new Error(`La fecha ${etiqueta} no puede ser posterior a la actual.`);
             }
             return true;
@@ -240,4 +240,36 @@ export const validarOrdenFechas = (campoInicio, campoFin, mensaje = null) => {
 
         return true;
     });
+};
+
+/**
+ * Verifica si una matrícula existe y si su estado actual permite la edición.
+ * Si es válida, adjunta el registro al objeto req (req.matriculaActual)
+ * para comparar campos inmutables (como gradoId o vigenciaId) en pasos posteriores.
+ *
+ * @param {Model} Modelo - El modelo Sequelize a consultar (ej. Matricula).
+ * @returns {function} - Función usable con express-validator `.custom(...)`
+ */
+export const verificarReglasEdicionMatricula = (Modelo) => {
+    return async (value, { req }) => {
+        const idNumerico = Number(value);
+        if (isNaN(idNumerico) || idNumerico <= 0) {
+            throw new Error("El identificador proporcionado para la matrícula no es válido.");
+        }
+
+        const matricula = await Modelo.findByPk(idNumerico);
+
+        if (!matricula) {
+            throw new Error("La matrícula que intenta actualizar no existe.");
+        }
+
+        // Validar que no esté en un estado definitivo de cierre de año
+        if (["PROMOVIDO", "REPROBADO"].includes(matricula.estado)) {
+            throw new Error(`Acción denegada. La matrícula se encuentra en estado ${matricula.estado} y no puede ser modificada.`);
+        }
+
+        // Inyectar el registro original en el request
+        req.matriculaActual = matricula;
+        return true;
+    };
 };

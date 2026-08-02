@@ -234,7 +234,6 @@ const JuiciosForm = ({
                         <h3 className="text-lg font-semibold text-gray-700">
                             {mode === "agregar" ? "Registrar Nuevo Juicio" : (isReadOnly ? "Detalles del Juicio" : "Editar Juicio")}
                         </h3>
-                        {vigencia && <span className="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-bold">Año {vigencia.anio}</span>}
                     </div>
                     <div className="flex items-center">
                         <label className="mr-2 text-sm font-medium text-gray-600">Estado:</label>

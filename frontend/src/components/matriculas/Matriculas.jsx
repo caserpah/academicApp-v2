@@ -47,6 +47,7 @@ const Matriculas = () => {
 
     // Estado para filtros avanzados
     const [filtros, setFiltros] = useState({
+        vigenciaId: "",
         sedeId: "",
         grupoId: "",
         jornada: "",
@@ -104,6 +105,7 @@ const Matriculas = () => {
                 if (activa) {
                     setVigenciaActiva(activa);
                     setFormData(prev => ({ ...prev, vigenciaId: activa.id })); // Preseleccionamos la vigencia activa
+                    setFiltros(prev => ({ ...prev, vigenciaId: activa.id }));
                 }
 
                 setListasAuxiliares(prev => ({
@@ -140,13 +142,13 @@ const Matriculas = () => {
     // ----------------------------------------------------------------
     useEffect(() => {
         const cargarGrupos = async () => {
-            if (!formData.sedeId) {
+            if (!formData.sedeId || !formData.vigenciaId) {
                 setListasAuxiliares(prev => ({ ...prev, grupos: [] }));
                 return;
             }
             setLoadingGrupos(true);
             try {
-                const grupos = await fetchGruposPorSede(formData.sedeId);
+                const grupos = await fetchGruposPorSede(formData.sedeId, formData.vigenciaId);
                 setListasAuxiliares(prev => ({ ...prev, grupos: grupos || [] }));
             } catch (error) {
                 console.error("Error cargando grupos:", error);
@@ -156,18 +158,18 @@ const Matriculas = () => {
             }
         };
         cargarGrupos();
-    }, [formData.sedeId]);
+    }, [formData.sedeId, formData.vigenciaId]);
 
     // --- EFECTO: Cargar Grupos cuando cambia la Sede en el filtro ---
     useEffect(() => {
         const cargarGruposFiltro = async () => {
-            if (!filtros.sedeId) {
+            if (!filtros.sedeId || !filtros.vigenciaId) {
                 setGruposFiltro([]);
-                setFiltros(prev => ({ ...prev, grupoId: "" })); // Limpia el grupo si quitan la sede
+                setFiltros(prev => ({ ...prev, grupoId: "" })); // Limpia el grupo si quitan la sede o vigencia
                 return;
             }
             try {
-                const grupos = await fetchGruposPorSede(filtros.sedeId);
+                const grupos = await fetchGruposPorSede(filtros.sedeId, filtros.vigenciaId);
                 setGruposFiltro(grupos || []);
             } catch (error) {
                 console.error("Error cargando grupos de filtro:", error);
@@ -175,7 +177,7 @@ const Matriculas = () => {
             }
         };
         cargarGruposFiltro();
-    }, [filtros.sedeId]);
+    }, [filtros.sedeId, filtros.vigenciaId]);
 
     // ----------------------------------------------------------------
     // MANEJADORES
@@ -302,7 +304,8 @@ const Matriculas = () => {
                 // Enviamos los filtros actuales (Sede y Grupo) al backend
                 const respuesta = await activarMatriculasMasivo({
                     sedeId: filtros.sedeId,
-                    grupoId: filtros.grupoId
+                    grupoId: filtros.grupoId,
+                    vigenciaId: filtros.vigenciaId
                 });
 
                 showSuccess(respuesta.mensaje || "Estudiantes matriculados exitosamente.");
@@ -580,7 +583,24 @@ const Matriculas = () => {
                     </div>
 
                     {/* --- Barra de Filtros Avanzados --- */}
-                    <div className="bg-gray-50 p-4 mb-6 rounded-lg border border-gray-200 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+                    <div className="bg-gray-50 p-4 mb-6 rounded-lg border border-gray-200 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3 items-end">
+
+                        {/* Filtro Vigencia */}
+                        <div className="flex flex-col">
+                            <label className="text-sm text-gray-500 font-semibold mb-1">Año Lectivo</label>
+                            <select
+                                name="vigenciaId"
+                                value={filtros.vigenciaId}
+                                onChange={handleFiltroChange}
+                                className="border border-gray-300 rounded p-2 text-sm bg-blue-50 font-semibold text-blue-900 focus:ring-blue-500 outline-none"
+                            >
+                                {listasAuxiliares.vigencias.map(v => (
+                                    <option key={v.id} value={v.id}>
+                                        {v.anio} {v.activa ? "(Activa)" : ""}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
 
                         {/* Filtro Sede */}
                         <div className="flex flex-col">
@@ -678,6 +698,7 @@ const Matriculas = () => {
                             <button
                                 onClick={() => {
                                     setFiltros({
+                                        vigenciaId: vigenciaActiva?.id || "",
                                         sedeId: "", grupoId: "", jornada: "", estado: "", bloqueo_notas: "",
                                         es_nuevo: "", es_repitente: "", situacion_ano_anterior: ""
                                     });

@@ -47,14 +47,16 @@ const Grupos = () => {
     const [catalogos, setCatalogos] = useState({
         grados: [],
         sedes: [],
-        docentes: []
+        docentes: [],
+        vigencias: []
     });
 
     // Filtros Estructurados
     const [filters, setFilters] = useState({
         sedeId: "",
         gradoId: "",
-        jornada: ""
+        jornada: "",
+        vigenciaId: ""
     });
 
     // Búsqueda y Paginación
@@ -113,9 +115,10 @@ const Grupos = () => {
             if (catalogos.sedes.length === 0 && data.catalogos) {
                 setCatalogos(data.catalogos);
             }
-            // Cargar vigencia actual
-            if (data.vigencia) {
-                setVigenciaActual(data.vigencia);
+            // Establecer vigencia activa si no hay filtro de vigencia
+            if (data.vigenciaActiva && !filters.vigenciaId) {
+                setFilters(prev => ({ ...prev, vigenciaId: data.vigenciaActiva.id }));
+                setVigenciaActual(data.vigenciaActiva);
             }
 
         } catch (err) {
@@ -173,11 +176,14 @@ const Grupos = () => {
 
         try {
             setLoading(true);
+            const dataToSend = cleanData(formData);
+            dataToSend.vigenciaId = filters.vigenciaId || vigenciaActual?.id; // Aseguramos que se envíe la vigencia correcta
+
             if (mode === "agregar") {
-                await crearGrupo(cleanData(formData));
+                await crearGrupo(dataToSend);
                 showSuccess(`Grupo creado exitosamente.`);
             } else {
-                await actualizarGrupo(formData.id, cleanData(formData));
+                await actualizarGrupo(formData.id, dataToSend);
                 showSuccess(`Grupo actualizado exitosamente.`);
             }
             loadData(); // Recargar tabla
@@ -211,7 +217,8 @@ const Grupos = () => {
 
         try {
             setLoading(true);
-            await eliminarGrupo(grupo.id);
+            const vigenciaAfectada = filters.vigenciaId || vigenciaActual?.id; // Capturamos el año del filtro o el activo por defecto
+            await eliminarGrupo(grupo.id, vigenciaAfectada);
             showSuccess("Grupo eliminado exitosamente.");
             loadData();
             if (formData.id === grupo.id) resetForm();
@@ -249,6 +256,7 @@ const Grupos = () => {
                         resetForm={resetForm}
                         catalogos={catalogos}
                         vigencia={vigenciaActual}
+                        filtroVigenciaId={filters.vigenciaId}
                     />
                 </div>
 
@@ -283,8 +291,24 @@ const Grupos = () => {
                     </div>
 
                     {/* --- BARRA DE FILTROS DESPLEGABLES --- */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
 
+                        {/* Filtro Vigencia (Años Anteriores) */}
+                        <div className="flex flex-col">
+                            <label className="text-xs font-bold text-gray-500 mb-1 ml-1">Vigencia (Año)</label>
+                            <select
+                                name="vigenciaId"
+                                value={filters.vigenciaId}
+                                onChange={handleFilterChange}
+                                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none bg-blue-50 font-semibold"
+                            >
+                                {catalogos.vigencias.map(v => (
+                                    <option key={v.id} value={v.id}>
+                                        {v.anio} {v.activa ? "(Activa)" : "(Histórico)"}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                         {/* Filtro Sede */}
                         <div className="flex flex-col">
                             <label className="text-xs font-bold text-gray-500 mb-1 ml-1">Sede</label>
@@ -361,7 +385,7 @@ const Grupos = () => {
                                 {loadingData && grupos.length === 0 ? (
                                     <tr><td colSpan="7" className="py-10 text-center"><LoadingSpinner /></td></tr>
                                 ) : grupos.length > 0 ? (
-                                    grupos.map((grupo, index) => (
+                                    grupos.map((grupo) => (
                                         <tr key={grupo.id} className="hover:bg-gray-50 transition-colors duration-150">
                                             <td className="px-3 py-3 text-sm font-bold text-gray-700">{grupo.nombre}</td>
                                             <td className="px-3 py-3 text-sm text-gray-600">{grupo.grado?.nombre ? grupo.grado.nombre.replace(/_/g, ' ') : "N/A"}</td>

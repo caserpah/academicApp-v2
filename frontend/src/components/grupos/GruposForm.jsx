@@ -10,7 +10,8 @@ const GruposForm = ({
     handleSubmit,
     resetForm,
     catalogos, // { grados, sedes, docentes }
-    vigencia
+    vigencia,
+    filtroVigenciaId
 }) => {
     const inputBaseClasses =
         "mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150";
@@ -23,6 +24,9 @@ const GruposForm = ({
         handleChange({ target: { name, value: val } });
     };
 
+    const vigenciaSeleccionada = catalogos?.vigencias?.find(v => v.id === Number(filtroVigenciaId));
+    const anioMostrado = vigenciaSeleccionada ? vigenciaSeleccionada.anio : (vigencia?.anio || "---");
+
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
 
@@ -33,9 +37,8 @@ const GruposForm = ({
                         {mode === "agregar" ? "Registrar Nuevo Grupo" : "Editar Grupo"}
                     </h3>
 
-                    {/* Texto Informativo de Vigencia a la derecha */}
-                    <div className="text-sm font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-                        Año Lectivo: <span className="text-blue-900">{vigencia ? vigencia.anio : "---"}</span>
+                    <div className="text-sm font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-full border border-blue-200">
+                        Año Lectivo: <span className="text-blue-900">{anioMostrado}</span>
                     </div>
                 </div>
 

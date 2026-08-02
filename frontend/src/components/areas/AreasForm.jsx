@@ -63,7 +63,7 @@ const AreasForm = ({
                     </h3>
 
                     {/* Texto informativo del Año Lectivo */}
-                    <div className="text-sm font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-100 shadow-sm">
+                    <div className="text-sm font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-full border border-blue-200">
                         Año Lectivo: <span className="text-blue-900">{vigencia ? vigencia.anio : "---"}</span>
                     </div>
                 </div>
