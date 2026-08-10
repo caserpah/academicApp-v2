@@ -800,12 +800,21 @@ export const calificacionService = {
     },
 
     async auditarNotasPendientesAnteriores(grupoId, asignaturaId, periodoActual, vigenciaId) {
-        const grupo = await Grupo.findByPk(grupoId);
+        const grupo = await Grupo.findByPk(grupoId, {
+            include: [{ model: Grado, as: 'grado' }]
+        });
+
         if (!grupo) return { hayPendientes: false, detalles: [] };
 
+        // Extraemos el nombre del grado (aquí es donde realmente dice "CICLO VI")
+        const nombreGrado = (grupo.grado?.nombre || '').toUpperCase();
         const nombreGrupo = (grupo.nombre || '').toUpperCase();
-        const esCicloV = (nombreGrupo.includes('CICLO V') || nombreGrupo.includes('CICLO_V')) && !nombreGrupo.includes('VI');
-        const esCicloVI = nombreGrupo.includes('CICLO VI') || nombreGrupo.includes('CICLO_VI');
+
+        // Concatenamos ambos por seguridad (Ej: "CICLO VI A")
+        const cadenaEvaluacion = `${nombreGrado} ${nombreGrupo}`;
+
+        const esCicloV = (cadenaEvaluacion.includes('CICLO V') || cadenaEvaluacion.includes('CICLO_V')) && !cadenaEvaluacion.includes('VI');
+        const esCicloVI = cadenaEvaluacion.includes('CICLO VI') || cadenaEvaluacion.includes('CICLO_VI');
 
         // Definimos qué periodos son los "anteriores válidos" según el ciclo
         let periodosAnteriores = [];

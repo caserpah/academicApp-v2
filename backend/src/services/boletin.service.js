@@ -97,7 +97,7 @@ export const boletinService = {
         // =========================================================
         // FASE 2: CÁLCULOS EN MEMORIA
         // =========================================================
-        const notasAgrupadas = _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipoBoletin, periodoActual, rangosDesempeno, matriculasTotales, consolidadosAreas, nivelaciones, esPeriodoFinal);
+        const notasAgrupadas = _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipoBoletin, periodoActual, rangosDesempeno, matriculasTotales, consolidadosAreas, nivelaciones, esPeriodoFinal, esCicloVI, esCicloV);
         const { promediosGrupo, rankingEstudiantes } = _calcularEstadisticasYPuestos(notasAgrupadas, idsEstudiantesTotales);
 
         // =========================================================
@@ -138,8 +138,18 @@ export const boletinService = {
                 codigoVerificacion: registroCodigo.codigo,
 
                 cuadroHistorico: esPreescolar ? null : {
-                    promediosEstudiante: estadisticas.promedios,
-                    puestosEstudiante: estadisticas.puestos,
+                    promediosEstudiante: {
+                        p1: esCicloVI ? "---" : estadisticas.promedios.p1,
+                        p2: esCicloVI ? "---" : estadisticas.promedios.p2,
+                        p3: esCicloV ? "---" : estadisticas.promedios.p3,
+                        p4: esCicloV ? "---" : estadisticas.promedios.p4
+                    },
+                    puestosEstudiante: {
+                        p1: esCicloVI ? "---" : estadisticas.puestos.p1,
+                        p2: esCicloVI ? "---" : estadisticas.puestos.p2,
+                        p3: esCicloV ? "---" : estadisticas.puestos.p3,
+                        p4: esCicloV ? "---" : estadisticas.puestos.p4
+                    },
                     totalEstudiantes: matriculasTotales.length // Para mostrar "Puesto X de Y"
                 },
                 areas: notasEstudiante
@@ -173,7 +183,8 @@ export const boletinService = {
                 anioLectivo: anioLectivo,
                 esPreescolar: esPreescolar,
                 esValorativo: tipoBoletin === 'VALORATIVO',
-                esPeriodoFinal: esPeriodoFinal
+                esPeriodoFinal: esPeriodoFinal,
+                esCicloVI: esCicloVI
             },
             grupo: {
                 grado: gradoFormateado,
@@ -181,7 +192,12 @@ export const boletinService = {
                 jornada: jornadaFormateada,
                 sede: grupo.sede?.nombre ? grupo.sede.nombre.toUpperCase() : 'Sede no asignada',
                 directorGrupo: grupo.director ? `${grupo.director.identidad?.nombre || grupo.director.nombre || ''} ${grupo.director.identidad?.apellidos || grupo.director.apellidos || ''}`.trim() : 'SIN ASIGNAR',
-                promedioGrupoHistorico: promediosGrupo
+                promedioGrupoHistorico: {
+                    p1: esCicloVI ? "---" : promediosGrupo.p1,
+                    p2: esCicloVI ? "---" : promediosGrupo.p2,
+                    p3: esCicloV ? "---" : promediosGrupo.p3,
+                    p4: esCicloV ? "---" : promediosGrupo.p4
+                }
             },
             rangosDesempeno,
             estudiantes: boletinesGenerados
@@ -314,10 +330,14 @@ export const boletinService = {
 // FUNCIONES AUXILIARES PRIVADAS
 // =========================================================
 
-function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipoBoletin, periodoActual, rangosDesempeno, matriculasTotales = [], consolidadosAreas = [], nivelaciones = [], esPeriodoFinal = false) {
+function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipoBoletin, periodoActual, rangosDesempeno, matriculasTotales = [], consolidadosAreas = [], nivelaciones = [], esPeriodoFinal = false, esCicloVI = false, esCicloV = false) {
     const diccionario = {};
 
     calificacionesPlanas.forEach(cal => {
+        // Si la nota pertenece a un periodo fuera del ciclo, se ignora inmediatamente
+        if (esCicloVI && (Number(cal.periodo) === 1 || Number(cal.periodo) === 2)) return;
+        if (esCicloV && (Number(cal.periodo) === 3 || Number(cal.periodo) === 4)) return;
+
         const estId = cal.estudianteId;
         const areaNombre = (cal.asignatura?.area?.nombre || 'SIN ÁREA').toUpperCase().trim();
         const areaId = cal.asignatura?.area?.id;
@@ -358,7 +378,14 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
 
         let asigRef = areaRef.asignaturasObj[asigNombre];
 
-        asigRef.fallas += (cal.fallas || 0);
+        // Filtrado inteligente de fallas según el tipo de boletín
+        if (esPeriodoFinal) {
+            // Para el informe final, consolidamos las inasistencias de todo el ciclo/año
+            asigRef.fallas += (cal.fallas || 0);
+        } else if (isPeriodoActual) {
+            // Para periodos regulares, extraemos estrictamente las del periodo en curso
+            asigRef.fallas += (cal.fallas || 0);
+        }
 
         if (cal.periodo >= 1 && cal.periodo <= 4) {
             asigRef.notasHistoricas[`p${cal.periodo}`] = cal.notaDefinitiva;
@@ -460,10 +487,17 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
             });
 
             let metaEsperada = 0;
-            if (Number(periodoActual) === 1) metaEsperada = 3.0;
-            else if (Number(periodoActual) === 2) metaEsperada = 6.0;
-            else if (Number(periodoActual) === 3) metaEsperada = 9.0;
-            else if (Number(periodoActual) === 4) metaEsperada = 12.0;
+            if (esCicloVI) {
+                // Ciclo VI comienza en el periodo 3
+                if (Number(periodoActual) === 3) metaEsperada = 3.0;
+                else if (Number(periodoActual) === 4) metaEsperada = 6.0;
+            } else {
+                // Grados regulares y Ciclo V (que comienza en periodo 1)
+                if (Number(periodoActual) === 1) metaEsperada = 3.0;
+                else if (Number(periodoActual) === 2) metaEsperada = 6.0;
+                else if (Number(periodoActual) === 3) metaEsperada = 9.0;
+                else if (Number(periodoActual) === 4) metaEsperada = 12.0;
+            }
 
             // Redondeamos el acumulado a 2 decimales para evitar problemas de precisión en JS (ej. 2.999 -> 3.00)
             const acumuladoLimpio = Math.round(acumuladoArea * 100) / 100;
@@ -547,10 +581,10 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
                 docenteComportamiento: docenteComportamiento,
                 textoComportamiento: textoComportamiento,
                 fallasArea: esComportamiento ? "" : fallasArea,
-                p1Area: tieneP1 ? areaP1.toFixed(2) : "",
-                p2Area: tieneP2 ? areaP2.toFixed(2) : "",
-                p3Area: tieneP3 ? areaP3.toFixed(2) : "",
-                p4Area: tieneP4 ? areaP4.toFixed(2) : "",
+                p1Area: esCicloVI ? "---" : (tieneP1 ? areaP1.toFixed(2) : ""),
+                p2Area: esCicloVI ? "---" : (tieneP2 ? areaP2.toFixed(2) : ""),
+                p3Area: esCicloV ? "---" : (tieneP3 ? areaP3.toFixed(2) : ""),
+                p4Area: esCicloV ? "---" : (tieneP4 ? areaP4.toFixed(2) : ""),
                 acumuladoActualArea: notaDefinitivaAreaFinal,
                 notaNivelacion: notaNivelacionAsignada,
                 juicioAutomaticoArea: juicioAreaTexto,

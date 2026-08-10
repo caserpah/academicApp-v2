@@ -256,6 +256,9 @@ const CalificacionesPage = () => {
     // --- HANDLERS ---
     const handleFilterChange = (e) => {
         setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+        // Limpieza forzada inmediata: Oculta la alerta apenas se cambia de Sede, Grupo, Asignatura o Periodo
+        setAlertaPendientes({ show: false, count: 0, data: null });
     };
 
     /**

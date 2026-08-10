@@ -420,7 +420,7 @@
                     <th>Desempeño</th>
                     {{else}}
                     <th>Acumulado</th>
-                    <th>Estado Acum.</th>
+                    <th>Estado Acumul.</th>
                     {{#if ../configuracionImpresion.esValorativo}}
                     <th>Desempeño</th>
                     {{/if}}
@@ -471,9 +471,11 @@
                     <td class="centrado">
                         {{this.acumuladoActualArea}}
                         {{#if this.notaNivelacion}}
-                        <span style="font-size: 7.5px; color: #555; vertical-align: super; font-weight: bold;"> (Niv.)</span>
+                        <span style="font-size: 7.5px; color: #555; vertical-align: super; font-weight: bold;">
+                            (Niv.)</span>
                         {{/if}}
                     </td>
+
                     {{#if ../../configuracionImpresion.esPeriodoFinal}}
                     <td class="centrado" style="font-weight: bold; font-size: 8px;">{{this.desempenoArea}}</td>
                     {{else}}
