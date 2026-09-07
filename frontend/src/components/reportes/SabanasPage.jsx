@@ -26,6 +26,9 @@ const SabanasPage = () => {
 
     // Estados de datos
     const [vigencia, setVigencia] = useState(null);
+
+    const [vigencias, setVigencias] = useState([]);
+
     const [sedes, setSedes] = useState([]);
     const [grupos, setGrupos] = useState([]);
     const [cargaCompleta, setCargaCompleta] = useState([]);
@@ -38,6 +41,7 @@ const SabanasPage = () => {
 
     // Filtros seleccionados
     const [filters, setFilters] = useState({
+        vigenciaId: '',
         sedeId: '',
         grupoId: '',
         tipoSabana: '',
@@ -53,14 +57,22 @@ const SabanasPage = () => {
         const loadInit = async () => {
             try {
                 setLoadingCatalogs(true);
-                const data = await fetchCalificacionesCatalogs(rolUsuario);
+                const data = await fetchCalificacionesCatalogs(rolUsuario, filters.vigenciaId);
 
                 setVigencia(data.vigencia);
-                setSedes(data.sedes);
-                setGrupos(data.grupos);
+                setSedes(data.sedes || []);
+                setGrupos(data.grupos || []);
                 setCargaCompleta(data.cargaCompleta || []);
                 setAsignaturasGlobales(data.asignaturas || []);
                 setEsAdmin(data.esAdmin);
+
+                // Guardamos la lista de años devuelta por el servicio
+                setVigencias(data.listaVigencias || []);
+
+                // Autoselección inicial de la vigencia activa y la sede
+                if (!filters.vigenciaId && data.vigencia) {
+                    setFilters(prev => ({ ...prev, vigenciaId: data.vigencia.id }));
+                }
 
                 if (data.sedes.length === 1) {
                     setFilters(prev => ({ ...prev, sedeId: data.sedes[0].id }));
@@ -73,7 +85,7 @@ const SabanasPage = () => {
             }
         };
         if (user) loadInit();
-    }, [user, rolUsuario]);
+    }, [user, rolUsuario, filters.vigenciaId]);
 
     // 2. Cascada SEDE -> GRUPOS
     useEffect(() => {
@@ -146,6 +158,21 @@ const SabanasPage = () => {
         }
     }, [filters.tipoSabana]);
 
+    // 5. Calcular periodos disponibles según el ciclo
+    const periodosDisponibles = useMemo(() => {
+        if (!filters.grupoId) return [1, 2, 3, 4]; // Por defecto todos
+
+        const grupoSel = gruposDisponibles.find(g => String(g.id) === String(filters.grupoId));
+        if (!grupoSel) return [1, 2, 3, 4];
+
+        const nombreGrupo = (grupoSel.label || '').toUpperCase();
+
+        // Evaluamos primero CICLO VI para evitar falsos positivos con el V
+        if (nombreGrupo.includes('CICLO VI')) return [3, 4];
+        if (nombreGrupo.includes('CICLO V')) return [1, 2];
+
+        return [1, 2, 3, 4]; // Grados regulares
+    }, [filters.grupoId, gruposDisponibles]);
 
     // Handlers
     const handleFilterChange = (e) => {
@@ -176,6 +203,7 @@ const SabanasPage = () => {
         try {
             setIsGenerating(true);
             await descargarSabanaPdf({
+                vigenciaId: filters.vigenciaId,
                 grupoId: filters.grupoId,
                 tipoSabana: filters.tipoSabana,
                 asignaturaId: filters.asignaturaId || null,
@@ -221,7 +249,24 @@ const SabanasPage = () => {
                         Configuración del Reporte
                     </h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                        {/* Selector de Vigencia */}
+                        <div className="col-span-1 md:col-span-1">
+                            <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">Año Lectivo</label>
+                            <select
+                                name="vigenciaId"
+                                value={filters.vigenciaId}
+                                onChange={handleFilterChange}
+                                className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-indigo-50 text-indigo-900 font-semibold"
+                            >
+                                <option value="">-- Seleccionar --</option>
+                                {vigencias.map(v => (
+                                    <option key={v.id} value={v.id}>
+                                        {v.anio} {v.activa ? "(Activo)" : ""}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
 
                         {/* 1. Sede */}
                         <div className="col-span-1 md:col-span-1">
@@ -272,7 +317,7 @@ const SabanasPage = () => {
                                     <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">Periodo Evaluado</label>
                                     <select name="periodo" value={filters.periodo} onChange={handleFilterChange} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
                                         <option value="">-- Periodo --</option>
-                                        {[1, 2, 3, 4].map(p => <option key={p} value={p}>Periodo {p}</option>)}
+                                        {periodosDisponibles.map(p => <option key={p} value={p}>Periodo {p}</option>)}
                                     </select>
                                 </>
                             ) : (

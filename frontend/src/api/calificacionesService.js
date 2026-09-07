@@ -31,14 +31,18 @@ const formatGrado = (nombre) => {
  * - Si es Admin: Trae todos los grupos y asignaturas del colegio.
  * * @param {string} rol - El rol del usuario ('docente', 'admin', 'secretaria', etc.)
  */
-export const fetchCalificacionesCatalogs = async (rol) => {
+export const fetchCalificacionesCatalogs = async (rol, vigenciaSeleccionadaId = null) => {
     try {
         // Obtener vigencia activa
         const vigenciasResponse = await apiClient.get(VIGENCIAS_ENDPOINT);
         const vigenciasItems = vigenciasResponse.data?.data?.items || [];
-        const vigenciaActiva = vigenciasItems.find(v => v.activa === true);
 
-        if (!vigenciaActiva) throw new Error("No se encontró una vigencia activa.");
+        // Determinar la vigencia activa según el parámetro o la que esté marcada como activa
+        const vigenciaActiva = vigenciaSeleccionadaId
+            ? vigenciasItems.find(v => String(v.id) === String(vigenciaSeleccionadaId))
+            : vigenciasItems.find(v => v.activa === true);
+
+        if (!vigenciaActiva) throw new Error("No se encontró el año lectivo seleccionado.");
 
         const esAdmin = ['admin', 'secretaria', 'coordinador'].includes(rol);
 
@@ -73,7 +77,7 @@ export const fetchCalificacionesCatalogs = async (rol) => {
         } else {
             // --- ROL: DOCENTE (Ve solo lo SUYO) ---
             // Llamamos al endpoint en el backend (carga.controller) que filtra por usuario logueado
-            const cargaResponse = await apiClient.get(MIS_CARGAS_ENDPOINT);
+            const cargaResponse = await apiClient.get(`${MIS_CARGAS_ENDPOINT}?vigenciaId=${vigenciaActiva.id}&limit=200`);
             const itemsCarga = cargaResponse.data?.data?.items || cargaResponse.data?.data || [];
 
             // Extraer Sedes Únicas donde el docente tiene carga
@@ -104,6 +108,7 @@ export const fetchCalificacionesCatalogs = async (rol) => {
 
         return {
             vigencia: vigenciaActiva,
+            listaVigencias: vigenciasItems,      // Retornamos la lista completa para el <select> de sábanas
             sedes,               // Lista de sedes (filtrada o total)
             grupos,              // Lista de grupos
             asignaturas,         // Solo Admins

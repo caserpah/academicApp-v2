@@ -30,14 +30,17 @@ export const descargarSabanaPdf = async (params) => {
 
     } catch (error) {
         if (error.response && error.response.data instanceof Blob) {
+            let mensajeError = "Error al descargar el reporte.";
+
             try {
+                // Solo intentamos parsear el blob, no lanzamos errores aquí adentro
                 const errorText = await error.response.data.text();
                 const errorJson = JSON.parse(errorText);
-                throw new Error(errorJson.message || "Error al descargar el reporte.");
+                mensajeError = errorJson.message || errorJson.error || mensajeError;
             } catch (e) {
-                console.error("Error al parsear el mensaje de error del servidor:", e);
-                throw new Error("Error desconocido al procesar la respuesta del servidor.");
+                console.error("El servidor respondió con HTML o texto plano, no JSON:", e);
             }
+            throw new Error(mensajeError);
         }
         throw parseError(error, "Error de red al intentar generar el documento PDF.");
     }

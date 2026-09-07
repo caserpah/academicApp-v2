@@ -108,7 +108,8 @@
         .data-table td {
             border: 1px solid #475569;
             padding: 2px 1px;
-            text-align: center; /* Padding horizontal mínimo de 1px vital para formato Carta */
+            text-align: center;
+            /* Padding horizontal mínimo de 1px vital para formato Carta */
         }
 
         .data-table th {
@@ -116,7 +117,8 @@
             color: #334155;
             font-weight: 700;
             white-space: normal;
-            word-wrap: break-word; /* Permite saltos de línea en el encabezado de áreas */
+            word-wrap: break-word;
+            /* Permite saltos de línea en el encabezado de áreas */
         }
 
         .align-left {
@@ -138,7 +140,8 @@
         }
 
         .col-area {
-            width: 4%; /* Ancho base para las materias */
+            width: 4%;
+            /* Ancho base para las materias */
         }
 
         .col-stats {
@@ -153,6 +156,19 @@
             width: 4%;
             color: #94a3b8;
             white-space: nowrap;
+        }
+
+        .nota-baja {
+            color: #dc2626 !important;
+            font-weight: 700;
+        }
+
+        .nota-baja::after {
+            content: ' \25BC';
+            font-size: 7px;
+            color: #dc2626;
+            margin-left: 2px;
+            vertical-align: middle;
         }
 
         /* Reglas de Paginación para Puppeteer */
@@ -247,7 +263,7 @@
                 <td class="align-left col-nombre">{{this.nombreCompleto}}</td>
 
                 {{#each this.notasAreas}}
-                <td>{{this}}</td>
+                <td class="{{#if this.esBaja}}nota-baja{{/if}}">{{this.nota}}</td>
                 {{/each}}
 
                 <td style="background-color: #f8fafc;">{{this.suma}}</td>

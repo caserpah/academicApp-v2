@@ -9,10 +9,14 @@ const __dirname = path.dirname(__filename);
 
 export const reporteService = {
 
-    async generarSabanaPdf({ grupoId, tipoSabana, asignaturaId, periodo, usuario, vigencia }) {
+    async generarSabanaPdf({ grupoId, tipoSabana, asignaturaId, periodo, usuario, vigenciaId }) {
+
+        // Buscamos el año lectivo en la base de datos
+        const vigencia = await reporteRepository.findVigenciaById(vigenciaId);
+        if (!vigencia) throw new Error("EL año lectivo seleccionado no existe.");
 
         const grupo = await reporteRepository.findGrupoConDetalles(grupoId, vigencia.id);
-        if (!grupo) throw new Error("El grupo no existe.");
+        if (!grupo) throw new Error("El grupo seleccionado no existe.");
 
         const colegio = await reporteRepository.findColegio();
         const logoBase64 = await _obtenerLogoBase64();
@@ -27,7 +31,7 @@ export const reporteService = {
             urlEscudo: logoBase64,
             sedeNombre: grupo.sede.nombre,
             gradoNombre: grupo.grado.nombre,
-            grupoNombre: grupo.nombre,
+            gradoNombre: (grupo.grado.nombre || '').replace(/_/g, ' '),
             jornada: grupo.jornada === 'MANANA' ? 'MAÑANA' : grupo.jornada,
             anioLectivo: vigencia.anio,
         };
@@ -48,6 +52,10 @@ export const reporteService = {
                 diccionarioNotas[c.estudianteId][`p${c.periodo}`] = parseFloat(c.notaDefinitiva);
             });
 
+            // Variables para estadísticas (Nro y Porcentajes)
+            let tot = { p1: 0, p2: 0, p3: 0, p4: 0, ac: 0 };
+            let perd = { p1: 0, p2: 0, p3: 0, p4: 0, ac: 0 };
+
             // Procesamos filas
             const filasEstudiantes = matriculas.map((m, index) => {
                 const est = m.estudiante;
@@ -59,17 +67,26 @@ export const reporteService = {
                 const n4 = notas.p4 || null;
 
                 // Cálculo del Acumulado
-                let suma = 0;
-                let divisor = 0;
-                if (n1 !== null) { suma += n1; divisor++; }
-                if (n2 !== null) { suma += n2; divisor++; }
-                if (n3 !== null) { suma += n3; divisor++; }
-                if (n4 !== null) { suma += n4; divisor++; }
+                let suma = 0; let divisor = 0;
+                if (n1 !== null) { suma += n1; divisor++; tot.p1++; if (n1 < 3.0) perd.p1++; }
+                if (n2 !== null) { suma += n2; divisor++; tot.p2++; if (n2 < 3.0) perd.p2++; }
+                if (n3 !== null) { suma += n3; divisor++; tot.p3++; if (n3 < 3.0) perd.p3++; }
+                if (n4 !== null) { suma += n4; divisor++; tot.p4++; if (n4 < 3.0) perd.p4++; }
 
                 // Promedio: suma / periodos cursados (o dividido 4)
                 const promedio = divisor > 0 ? (suma / divisor) : null;
+                if (suma > 0) {
+                    tot.ac++;
+                    if (suma < divisor * 3.0) perd.ac++;
+                }
 
-                const formatNota = (val) => val !== null ? val.toFixed(2).replace('.', ',') : "";
+                const formatNota = (val, min = 3.0) => {
+                    if (val === null) return { nota: "-", esBaja: false };
+                    return {
+                        nota: val.toFixed(2).replace('.', ','),
+                        esBaja: val < min
+                    };
+                };
 
                 return {
                     numero: (index + 1).toString().padStart(2, '0'),
@@ -79,15 +96,36 @@ export const reporteService = {
                     p2: formatNota(n2),
                     p3: formatNota(n3),
                     p4: formatNota(n4),
-                    acumulado: suma > 0 ? formatNota(suma) : "",
-                    promedio: promedio !== null ? formatNota(promedio) : ""
+                    acumulado: suma > 0 ? formatNota(suma, divisor * 3.0) : { nota: "-", esBaja: false },
+                    promedio: promedio !== null ? formatNota(promedio) : { nota: "-", esBaja: false }
                 };
             });
+
+            // Función para formatear estadísticas "Nro (XX.X%)"
+            const formatStat = (total, perdidos, isAprueban) => {
+                if (total === 0) return "-";
+                const num = isAprueban ? (total - perdidos) : perdidos;
+                const porc = ((num / total) * 100).toFixed(1);
+                return `${num} (${porc}%)`;
+            };
 
             // Llenamos el contexto específico para esta plantilla
             contextoHbs.areaAsignatura = `${asignatura.area.nombre} (${asignatura.nombre})`;
             contextoHbs.docenteNombre = docente ? `${docente.identidad?.nombre} ${docente.identidad?.apellidos}`.toUpperCase() : "SIN ASIGNAR";
             contextoHbs.estudiantes = filasEstudiantes;
+
+            contextoHbs.stats = {
+                aprueban: {
+                    p1: formatStat(tot.p1, perd.p1, true), p2: formatStat(tot.p2, perd.p2, true),
+                    p3: formatStat(tot.p3, perd.p3, true), p4: formatStat(tot.p4, perd.p4, true),
+                    ac: formatStat(tot.ac, perd.ac, true)
+                },
+                reprueban: {
+                    p1: formatStat(tot.p1, perd.p1, false), p2: formatStat(tot.p2, perd.p2, false),
+                    p3: formatStat(tot.p3, perd.p3, false), p4: formatStat(tot.p4, perd.p4, false),
+                    ac: formatStat(tot.ac, perd.ac, false)
+                }
+            };
 
             // Delegamos al PDF service
             return await pdfService.crearPdfSabanas(contextoHbs, 'sabana-asignatura.hbs');
@@ -122,7 +160,12 @@ export const reporteService = {
             // Variables para las estadísticas al pie de la página
             let apruebanPorArea = {};
             let repruebanPorArea = {};
-            areasList.forEach(a => { apruebanPorArea[a.id] = 0; repruebanPorArea[a.id] = 0; });
+            let totalEvaluadosPorArea = {};
+            areasList.forEach(a => {
+                apruebanPorArea[a.id] = 0;
+                repruebanPorArea[a.id] = 0;
+                totalEvaluadosPorArea[a.id] = 0;
+            });
             let tresOMasPerdidasCount = 0;
 
             const filasEstudiantes = matriculas.map((m, index) => {
@@ -141,6 +184,7 @@ export const reporteService = {
                         const notaRedondeada = Math.round(notaPeriodo * 100) / 100;
                         sumaPromedios += notaRedondeada;
                         areasEvaluadas++;
+                        totalEvaluadosPorArea[area.id]++;
 
                         if (notaRedondeada < 3.0) {
                             nroAp++;
@@ -148,9 +192,12 @@ export const reporteService = {
                         } else {
                             apruebanPorArea[area.id]++;
                         }
-                        return notaRedondeada.toFixed(2).replace('.', ',');
+                        return {
+                            nota: notaRedondeada.toFixed(2).replace('.', ','),
+                            esBaja: notaRedondeada < 3.0
+                        };
                     }
-                    return "-"; // No cursó o no tiene notas en esta área
+                    return { nota: "-", esBaja: false };
                 });
 
                 if (nroAp >= 3) tresOMasPerdidasCount++;
@@ -176,14 +223,16 @@ export const reporteService = {
                 if (original) original.puesto = original.promRaw > 0 ? idx + 1 : "";
             });
 
+            const formatStatPorc = (count, total) => total > 0 ? `${count} (${((count / total) * 100).toFixed(1)}%)` : "-";
+
             contextoHbs.periodo = periodo;
             contextoHbs.directorNombre = grupo.director ? `${grupo.director.identidad?.nombre} ${grupo.director.identidad?.apellidos}`.toUpperCase() : "SIN ASIGNAR";
             contextoHbs.areas = areasList.map(a => a.abreviatura);
             contextoHbs.estudiantes = filasEstudiantes;
 
             // Inyectamos las estadísticas
-            contextoHbs.aprueban = areasList.map(a => apruebanPorArea[a.id]);
-            contextoHbs.reprueban = areasList.map(a => repruebanPorArea[a.id]);
+            contextoHbs.aprueban = areasList.map(a => formatStatPorc(apruebanPorArea[a.id], totalEvaluadosPorArea[a.id]));
+            contextoHbs.reprueban = areasList.map(a => formatStatPorc(repruebanPorArea[a.id], totalEvaluadosPorArea[a.id]));
             contextoHbs.tresOMasPerdidas = tresOMasPerdidasCount;
 
             return await pdfService.crearPdfSabanas(contextoHbs, 'sabana-areas-periodo.hbs');
@@ -193,7 +242,6 @@ export const reporteService = {
         // LÓGICA: SÁBANA DE ACUMULADOS POR ÁREA
         // ====================================================================
         if (tipoSabana === 'SABANA_ACUMULADOS') {
-
             const docente = await reporteRepository.findDocentePorUsuarioId(usuario.id);
             if (usuario.role === 'docente' && (!docente || grupo.directorId !== docente.id)) {
                 throw new Error("Acceso denegado. Solo el director de grupo puede generar la Sábana de Acumulados.");
@@ -210,6 +258,20 @@ export const reporteService = {
 
             const notasProcesadas = _procesarNotasPorArea(calificaciones, cargas);
 
+            let apruebanPorArea = {};
+            let repruebanPorArea = {};
+            let totalEvaluadosPorArea = {};
+            areasList.forEach(a => {
+                apruebanPorArea[a.id] = 0;
+                repruebanPorArea[a.id] = 0;
+                totalEvaluadosPorArea[a.id] = 0;
+            });
+
+            // LÓGICA DE CICLOS: Identificamos de qué ciclo es el grado para filtrar los acumulados
+            const gradoNombre = (grupo.grado.nombre || '').toUpperCase().replace(/_/g, ' ');
+            const esCicloV = gradoNombre.includes('CICLO V') && !gradoNombre.includes('CICLO VI');
+            const esCicloVI = gradoNombre.includes('CICLO VI');
+
             const filasEstudiantes = matriculas.map((m, index) => {
                 const est = m.estudiante;
                 const areasEstudiante = notasProcesadas[est.id] || {};
@@ -220,32 +282,56 @@ export const reporteService = {
                         let suma = 0;
                         let count = 0; // Para la columna 'N' (Periodos evaluados)
 
-                        if (areaData.countP1 > 0) { suma += areaData.p1; count++; }
-                        if (areaData.countP2 > 0) { suma += areaData.p2; count++; }
-                        if (areaData.countP3 > 0) { suma += areaData.p3; count++; }
-                        if (areaData.countP4 > 0) { suma += areaData.p4; count++; }
+                        // Aplicamos la lógica de suma según el ciclo del grado
+                        if (esCicloV) {
+                            if (areaData.countP1 > 0) { suma += areaData.p1; count++; }
+                            if (areaData.countP2 > 0) { suma += areaData.p2; count++; }
+                        } else if (esCicloVI) {
+                            if (areaData.countP3 > 0) { suma += areaData.p3; count++; }
+                            if (areaData.countP4 > 0) { suma += areaData.p4; count++; }
+                        } else {
+                            // Grados regulares (suman los 4 periodos)
+                            if (areaData.countP1 > 0) { suma += areaData.p1; count++; }
+                            if (areaData.countP2 > 0) { suma += areaData.p2; count++; }
+                            if (areaData.countP3 > 0) { suma += areaData.p3; count++; }
+                            if (areaData.countP4 > 0) { suma += areaData.p4; count++; }
+                        }
 
                         if (count > 0) {
+                            totalEvaluadosPorArea[area.id]++;
+                            // REGLA: Si la suma acumulada es menor que n * 3.0 = Reprueba
+                            const esBaja = suma < (count * 3.0);
+
+                            if (esBaja) repruebanPorArea[area.id]++;
+                            else apruebanPorArea[area.id]++;
+
                             return {
                                 suma: (Math.round(suma * 100) / 100).toFixed(2).replace('.', ','),
-                                n: count
+                                n: count,
+                                esBaja: esBaja
                             };
                         }
                     }
-                    return { suma: "-", n: "-" }; // Celdas vacías
+                    return { suma: "-", n: "-", esBaja: false };
                 });
 
                 return {
                     numero: (index + 1).toString().padStart(2, '0'),
                     nombreCompleto: `${est.primerApellido} ${est.segundoApellido || ''} ${est.primerNombre} ${est.segundoNombre || ''}`.trim(),
                     estado: 'Activo',
+                    acumuladoEstudiante: true,
                     acumulados: acumuladosAreasFila
                 };
             });
 
+            const formatStatPorc = (count, total) => total > 0 ? `${count} (${((count/total)*100).toFixed(1)}%)` : "-";
+
             contextoHbs.directorNombre = grupo.director ? `${grupo.director.identidad?.nombre} ${grupo.director.identidad?.apellidos}`.toUpperCase() : "SIN ASIGNAR";
             contextoHbs.areas = areasList.map(a => a.abreviatura);
             contextoHbs.estudiantes = filasEstudiantes;
+
+            contextoHbs.aprueban = areasList.map(a => formatStatPorc(apruebanPorArea[a.id], totalEvaluadosPorArea[a.id]));
+            contextoHbs.reprueban = areasList.map(a => formatStatPorc(repruebanPorArea[a.id], totalEvaluadosPorArea[a.id]));
 
             return await pdfService.crearPdfSabanas(contextoHbs, 'sabana-acumulados.hbs');
         }

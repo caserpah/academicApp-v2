@@ -11,6 +11,7 @@ import { Usuario } from "../models/usuario.js";
 import { Asignatura } from "../models/asignatura.js";
 import { Area } from "../models/area.js";
 import { Colegio } from "../models/colegio.js";
+import { Vigencia } from "../models/vigencia.js";
 
 export const reporteRepository = {
 
@@ -105,5 +106,10 @@ export const reporteRepository = {
                 include: [{ model: Area, as: 'area', attributes: ['id', 'nombre', 'abreviatura'] }]
             }]
         });
+    },
+
+    // Busca la vigencia por ID
+    async findVigenciaById(id) {
+        return Vigencia.findByPk(id, { attributes: ['id', 'anio'] });
     },
 };

@@ -182,6 +182,13 @@
             margin-left: 2px; /* Pequeño espacio de separación con el número */
             vertical-align: middle;
         }
+
+        .stats-footer td {
+            font-weight: 600;
+            background-color: #fff !important;
+            color: #475569;
+            padding: 3px 2px;
+        }
     </style>
 </head>
 
@@ -265,6 +272,20 @@
             </tr>
             {{/each}}
         </tbody>
+        <tfoot>
+            <tr class="stats-footer">
+                <td colspan="2" class="align-left" style="color: #0a7c34;">Estudiantes que aprueban el área:</td>
+                {{#each aprueban}}
+                <td colspan="2" style="color: #0a7c34; text-align: center;">{{this}}</td>
+                {{/each}}
+            </tr>
+            <tr class="stats-footer">
+                <td colspan="2" class="align-left" style="color: #b91c1c;">Estudiantes que reprueban el área:</td>
+                {{#each reprueban}}
+                <td colspan="2" style="color: #b91c1c; text-align: center;">{{this}}</td>
+                {{/each}}
+            </tr>
+        </tfoot>
     </table>
 
 </body>

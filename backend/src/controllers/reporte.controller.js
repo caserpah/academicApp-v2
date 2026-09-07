@@ -4,9 +4,10 @@ export const reporteController = {
 
     async descargarSabanaPdf(req, res, next) {
         try {
-            const vigencia = req.vigenciaActual;
             const usuario = req.user;
-            const { grupoId, tipoSabana, asignaturaId, periodo } = req.query;
+            const { grupoId, tipoSabana, asignaturaId, periodo, vigenciaId: queryVigenciaId } = req.query;
+
+            const vigenciaId = queryVigenciaId ? Number(queryVigenciaId) : req.vigenciaActual.id;
 
             if (!grupoId || !tipoSabana) {
                 const error = new Error("Faltan parámetros requeridos (grupoId, tipoSabana).");
@@ -27,7 +28,7 @@ export const reporteController = {
                 asignaturaId: asignaturaId ? parseInt(asignaturaId) : null,
                 periodo: periodo ? parseInt(periodo) : null,
                 usuario,
-                vigencia
+                vigenciaId
             });
 
             const nombreArchivo = `Sabana_${tipoSabana}_Grupo_${grupoId}.pdf`;

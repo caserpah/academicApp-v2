@@ -143,6 +143,27 @@
             /* 6 columnas de 8% = 48% restante */
         }
 
+        .nota-baja {
+            color: #dc2626 !important;
+            font-weight: 700;
+        }
+
+        .nota-baja::after {
+            content: ' \25BC';
+            font-size: 7px;
+            color: #dc2626;
+            margin-left: 2px;
+            vertical-align: middle;
+        }
+
+        .stats-footer td {
+            font-weight: 600;
+            background-color: #fff !important;
+            color: #475569;
+            padding: 3px 2px;
+            text-align: center;
+        }
+
         /* Reglas de Paginación para Puppeteer */
         .data-table thead {
             display: table-header-group;
@@ -217,15 +238,39 @@
             <tr>
                 <td class="col-nro">{{this.numero}}</td>
                 <td class="col-nombre">{{this.nombreCompleto}}</td>
-                <td class="col-nota">{{this.p1}}</td>
-                <td class="col-nota">{{this.p2}}</td>
-                <td class="col-nota">{{this.p3}}</td>
-                <td class="col-nota">{{this.p4}}</td>
-                <td class="col-nota" style="font-weight: bold;">{{this.acumulado}}</td>
-                <td class="col-nota" style="font-weight: bold; color: #1e40af;">{{this.promedio}}</td>
+                <td class="col-nota {{#if this.p1.esBaja}}nota-baja{{/if}}">{{this.p1.nota}}</td>
+                <td class="col-nota {{#if this.p2.esBaja}}nota-baja{{/if}}">{{this.p2.nota}}</td>
+                <td class="col-nota {{#if this.p3.esBaja}}nota-baja{{/if}}">{{this.p3.nota}}</td>
+                <td class="col-nota {{#if this.p4.esBaja}}nota-baja{{/if}}">{{this.p4.nota}}</td>
+                <td class="col-nota {{#if this.acumulado.esBaja}}nota-baja{{/if}}"
+                    style="font-weight: bold; background-color: #f8fafc;">{{this.acumulado.nota}}</td>
+                <td class="col-nota {{#if this.promedio.esBaja}}nota-baja{{/if}}"
+                    style="font-weight: bold; color: #1e40af; background-color: #f8fafc;">{{this.promedio.nota}}</td>
             </tr>
             {{/each}}
         </tbody>
+        <tfoot>
+            <tr class="stats-footer">
+                <td colspan="2" style="color: #0a7c34; text-align: left; padding-left: 6px;">Estudiantes que aprueban:
+                </td>
+                <td style="color: #0a7c34;">{{stats.aprueban.p1}}</td>
+                <td style="color: #0a7c34;">{{stats.aprueban.p2}}</td>
+                <td style="color: #0a7c34;">{{stats.aprueban.p3}}</td>
+                <td style="color: #0a7c34;">{{stats.aprueban.p4}}</td>
+                <td style="color: #0a7c34;">{{stats.aprueban.ac}}</td>
+                <td></td>
+            </tr>
+            <tr class="stats-footer">
+                <td colspan="2" style="color: #b91c1c; text-align: left; padding-left: 6px;">Estudiantes que reprueban:
+                </td>
+                <td style="color: #b91c1c;">{{stats.reprueban.p1}}</td>
+                <td style="color: #b91c1c;">{{stats.reprueban.p2}}</td>
+                <td style="color: #b91c1c;">{{stats.reprueban.p3}}</td>
+                <td style="color: #b91c1c;">{{stats.reprueban.p4}}</td>
+                <td style="color: #b91c1c;">{{stats.reprueban.ac}}</td>
+                <td></td>
+            </tr>
+        </tfoot>
     </table>
 
 </body>
