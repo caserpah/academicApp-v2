@@ -631,29 +631,24 @@
         {{#unless ../configuracionImpresion.esPreescolar}}
 
         {{#if ../configuracionImpresion.esPeriodoFinal}}
-        <!-- PIE DE PÁGINA PARA EL INFORME FINAL (Como en la foto) -->
+
+        <!-- PIE DE PÁGINA PARA EL INFORME FINAL -->
         <table class="tabla-pie-final">
             <tr>
                 <td style="width: 50%; text-align: left;">
                     <strong>Promedio del Grupo</strong>
-                    <span style="margin-left: 20px;">{{#if
-                        ../grupo.promedioGrupoHistorico.p4}}{{../grupo.promedioGrupoHistorico.p4}}{{else}}{{#if
-                        ../grupo.promedioGrupoHistorico.p3}}{{../grupo.promedioGrupoHistorico.p3}}{{else}}{{../grupo.promedioGrupoHistorico.p2}}{{/if}}{{/if}}</span>
+                    <span style="margin-left: 20px;">{{../grupo.promedioFinalGrupo}}</span>
                 </td>
                 <td style="width: 50%; text-align: right;">
                     <strong>Puesto del Estudiante en el Grupo</strong>
-                    <span style="margin-left: 10px;">{{#if
-                        this.cuadroHistorico.puestosEstudiante.p4}}{{this.cuadroHistorico.puestosEstudiante.p4}}{{else}}{{#if
-                        this.cuadroHistorico.puestosEstudiante.p3}}{{this.cuadroHistorico.puestosEstudiante.p3}}{{else}}{{this.cuadroHistorico.puestosEstudiante.p2}}{{/if}}{{/if}}
-                        Entre {{this.cuadroHistorico.totalEstudiantes}}</span>
+                    <span style="margin-left: 10px;">{{this.cuadroHistorico.puestoFinalEstudiante}} Entre
+                        {{this.cuadroHistorico.totalEstudiantes}}</span>
                 </td>
             </tr>
             <tr>
                 <td style="text-align: left;">
                     <strong>Promedio del Estudiante en el Grupo</strong>
-                    <span style="margin-left: 20px;">{{#if
-                        this.cuadroHistorico.promediosEstudiante.p4}}{{this.cuadroHistorico.promediosEstudiante.p4}}{{else}}{{#if
-                        this.cuadroHistorico.promediosEstudiante.p3}}{{this.cuadroHistorico.promediosEstudiante.p3}}{{else}}{{this.cuadroHistorico.promediosEstudiante.p2}}{{/if}}{{/if}}</span>
+                    <span style="margin-left: 20px;">{{this.cuadroHistorico.promedioFinalEstudiante}}</span>
                 </td>
                 <td style="text-align: right;">
                     <strong>Promocion:</strong>

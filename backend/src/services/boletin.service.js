@@ -142,7 +142,8 @@ export const boletinService = {
                         p1: esCicloVI ? "---" : estadisticas.promedios.p1,
                         p2: esCicloVI ? "---" : estadisticas.promedios.p2,
                         p3: esCicloV ? "---" : estadisticas.promedios.p3,
-                        p4: esCicloV ? "---" : estadisticas.promedios.p4
+                        p4: esCicloV ? "---" : estadisticas.promedios.p4,
+                        final: estadisticas.promedios.final || "---"
                     },
                     puestosEstudiante: {
                         p1: esCicloVI ? "---" : estadisticas.puestos.p1,
@@ -150,7 +151,10 @@ export const boletinService = {
                         p3: esCicloV ? "---" : estadisticas.puestos.p3,
                         p4: esCicloV ? "---" : estadisticas.puestos.p4
                     },
-                    totalEstudiantes: matriculasTotales.length // Para mostrar "Puesto X de Y"
+                    totalEstudiantes: matriculasTotales.length, // Para mostrar "Puesto X de Y"
+
+                    promedioFinalEstudiante: estadisticas.promedios.final || "---",
+                    puestoFinalEstudiante: estadisticas.puestos.final || "---"
                 },
                 areas: notasEstudiante
             };
@@ -197,7 +201,8 @@ export const boletinService = {
                     p2: esCicloVI ? "---" : promediosGrupo.p2,
                     p3: esCicloV ? "---" : promediosGrupo.p3,
                     p4: esCicloV ? "---" : promediosGrupo.p4
-                }
+                },
+                promedioFinalGrupo: promediosGrupo.final || "---"
             },
             rangosDesempeno,
             estudiantes: boletinesGenerados
@@ -556,7 +561,16 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
 
                 } else {
                     // Fallback de seguridad en memoria si el registro no existiera
-                    notaDefinitivaAreaFinal = acumuladoLimpio > 0 ? acumuladoLimpio.toFixed(2) : "";
+                    if (esPeriodoFinal) {
+                        // En el informe final necesitamos el promedio (Suma / Cantidad de Periodos)
+                        let divisor = (esCicloV || esCicloVI) ? 2 : 4;
+                        let promedioCalculado = acumuladoLimpio / divisor;
+                        notaDefinitivaAreaFinal = promedioCalculado > 0 ? promedioCalculado.toFixed(2) : "";
+                    } else {
+                        // En periodos regulares (1 al 4) mostramos la sumatoria (Acumulado)
+                        notaDefinitivaAreaFinal = acumuladoLimpio > 0 ? acumuladoLimpio.toFixed(2) : "";
+                    }
+
                     estadoGanandoPerdiendo = acumuladoLimpio >= metaEsperada ? 'G' : 'PR';
                 }
             } else {
@@ -605,14 +619,16 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
 
 function _calcularEstadisticasYPuestos(notasAgrupadas, idsEstudiantes) {
     const promediosGrupoAcumulador = {
-        p1: { suma: 0, count: 0 }, p2: { suma: 0, count: 0 }, p3: { suma: 0, count: 0 }, p4: { suma: 0, count: 0 }
+        p1: { suma: 0, count: 0 }, p2: { suma: 0, count: 0 }, p3: { suma: 0, count: 0 }, p4: { suma: 0, count: 0 },
+        final: { suma: 0, count: 0 } // <-- Acumulador para el promedio final
     };
     const rankingEstudiantes = {};
-    const promediosPorPeriodo = { p1: [], p2: [], p3: [], p4: [] };
+    const promediosPorPeriodo = { p1: [], p2: [], p3: [], p4: [], final: [] };
 
     for (const estId of idsEstudiantes) {
         const areasEstudiante = notasAgrupadas[estId] || [];
         let sumaP1 = 0, countP1 = 0; let sumaP2 = 0, countP2 = 0; let sumaP3 = 0, countP3 = 0; let sumaP4 = 0, countP4 = 0;
+        let sumaFinal = 0, countFinal = 0; // <-- Variables para el promedio final
 
         areasEstudiante.forEach(area => {
             if (!area.esComportamiento) {
@@ -630,6 +646,15 @@ function _calcularEstadisticasYPuestos(notasAgrupadas, idsEstudiantes) {
                 if (tieneP2) { sumaP2 += notaAreaP2; countP2++; }
                 if (tieneP3) { sumaP3 += notaAreaP3; countP3++; }
                 if (tieneP4) { sumaP4 += notaAreaP4; countP4++; }
+
+                // --- CÁLCULO DEL PROMEDIO ACUMULADO REAL ---
+                if (area.acumuladoActualArea && area.acumuladoActualArea !== "" && area.acumuladoActualArea !== "---") {
+                    const notaDef = parseFloat(String(area.acumuladoActualArea).replace(',', '.'));
+                    if (!isNaN(notaDef) && notaDef > 0) {
+                        sumaFinal += notaDef;
+                        countFinal++;
+                    }
+                }
             }
         });
 
@@ -637,16 +662,18 @@ function _calcularEstadisticasYPuestos(notasAgrupadas, idsEstudiantes) {
         const promEstP2 = countP2 > 0 ? parseFloat((sumaP2 / countP2).toFixed(2)) : null;
         const promEstP3 = countP3 > 0 ? parseFloat((sumaP3 / countP3).toFixed(2)) : null;
         const promEstP4 = countP4 > 0 ? parseFloat((sumaP4 / countP4).toFixed(2)) : null;
+        const promEstFinal = countFinal > 0 ? parseFloat((sumaFinal / countFinal).toFixed(2)) : null;
 
         rankingEstudiantes[estId] = {
-            promedios: { p1: promEstP1, p2: promEstP2, p3: promEstP3, p4: promEstP4 },
-            puestos: { p1: null, p2: null, p3: null, p4: null }
+            promedios: { p1: promEstP1, p2: promEstP2, p3: promEstP3, p4: promEstP4, final: promEstFinal },
+            puestos: { p1: null, p2: null, p3: null, p4: null, final: null }
         };
 
         if (promEstP1 !== null) { promediosPorPeriodo.p1.push({ estId, nota: promEstP1 }); promediosGrupoAcumulador.p1.suma += promEstP1; promediosGrupoAcumulador.p1.count++; }
         if (promEstP2 !== null) { promediosPorPeriodo.p2.push({ estId, nota: promEstP2 }); promediosGrupoAcumulador.p2.suma += promEstP2; promediosGrupoAcumulador.p2.count++; }
         if (promEstP3 !== null) { promediosPorPeriodo.p3.push({ estId, nota: promEstP3 }); promediosGrupoAcumulador.p3.suma += promEstP3; promediosGrupoAcumulador.p3.count++; }
         if (promEstP4 !== null) { promediosPorPeriodo.p4.push({ estId, nota: promEstP4 }); promediosGrupoAcumulador.p4.suma += promEstP4; promediosGrupoAcumulador.p4.count++; }
+        if (promEstFinal !== null) { promediosPorPeriodo.final.push({ estId, nota: promEstFinal }); promediosGrupoAcumulador.final.suma += promEstFinal; promediosGrupoAcumulador.final.count++; }
     }
 
     const asignarPuestos = (arregloPeriodo, campoPeriodo) => {
@@ -658,12 +685,14 @@ function _calcularEstadisticasYPuestos(notasAgrupadas, idsEstudiantes) {
     asignarPuestos(promediosPorPeriodo.p2, 'p2');
     asignarPuestos(promediosPorPeriodo.p3, 'p3');
     asignarPuestos(promediosPorPeriodo.p4, 'p4');
+    asignarPuestos(promediosPorPeriodo.final, 'final');
 
     const promediosGrupo = {
         p1: promediosGrupoAcumulador.p1.count > 0 ? parseFloat((promediosGrupoAcumulador.p1.suma / promediosGrupoAcumulador.p1.count).toFixed(2)) : null,
         p2: promediosGrupoAcumulador.p2.count > 0 ? parseFloat((promediosGrupoAcumulador.p2.suma / promediosGrupoAcumulador.p2.count).toFixed(2)) : null,
         p3: promediosGrupoAcumulador.p3.count > 0 ? parseFloat((promediosGrupoAcumulador.p3.suma / promediosGrupoAcumulador.p3.count).toFixed(2)) : null,
-        p4: promediosGrupoAcumulador.p4.count > 0 ? parseFloat((promediosGrupoAcumulador.p4.suma / promediosGrupoAcumulador.p4.count).toFixed(2)) : null
+        p4: promediosGrupoAcumulador.p4.count > 0 ? parseFloat((promediosGrupoAcumulador.p4.suma / promediosGrupoAcumulador.p4.count).toFixed(2)) : null,
+        final: promediosGrupoAcumulador.final.count > 0 ? parseFloat((promediosGrupoAcumulador.final.suma / promediosGrupoAcumulador.final.count).toFixed(2)) : null
     };
 
     return { promediosGrupo, rankingEstudiantes };
