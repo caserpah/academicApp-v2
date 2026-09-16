@@ -27,7 +27,7 @@ export const juicioService = {
     /**
      * Listado con filtros, ordenamiento y paginación.
      */
-    async list(params, vigenciaId) {
+    async list(params) {
         const page = Number(params.page) || 1;
         const limit = Number(params.limit) || 10;
         const orderBy = params.orderBy || "gradoId";
@@ -38,13 +38,12 @@ export const juicioService = {
             page,
             limit,
             orderBy,
-            order,
-            vigenciaId
+            order
         });
     },
 
-    async get(id, vigenciaId) {
-        const registro = await juicioRepository.findById(id, vigenciaId);
+    async get(id) {
+        const registro = await juicioRepository.findById(id);
         if (!registro) {
             const err = new Error("No se encontró el juicio solicitado.");
             err.status = 404;
@@ -56,27 +55,13 @@ export const juicioService = {
     /**
      * CREAR JUICIO (Con Reglas de Negocio)
      */
-    async create(data, vigenciaId) {
-
+    async create(data) {
         try {
-            const vigenciaSegura = Number(vigenciaId);
-            if (isNaN(vigenciaSegura)) {
-                throw new Error("El ID de la vigencia no es válido.");
-            }
-
-            // 1. Validar reglas de negocio y formatear datos (Global vs Específico)
             const payloadValidado = await this._aplicarReglasNegocio(data);
+            await this._verificarDuplicados(payloadValidado);
 
-            // 2. Verificar duplicados manualmente (para manejar NULLs correctamente)
-            await this._verificarDuplicados(payloadValidado, vigenciaSegura);
-
-            // 3. Crear el registro
-            const nuevo = await juicioRepository.create({
-                ...payloadValidado,
-                vigenciaId: vigenciaSegura, // Se inyecta la vigencia del usuario
-            });
-
-            return juicioRepository.findById(nuevo.id, vigenciaSegura);
+            const nuevo = await juicioRepository.create(payloadValidado);
+            return juicioRepository.findById(nuevo.id);
         } catch (error) {
             throw handleSequelizeError(error);
         }
@@ -85,50 +70,39 @@ export const juicioService = {
     /**
      * ACTUALIZAR JUICIO (Con Reglas de Negocio)
      */
-    async update(id, data, vigenciaId) {
+    async update(id, data) {
         try {
-            const vigenciaSegura = Number(vigenciaId);
-            const actual = await juicioRepository.findById(id, vigenciaSegura);
+            const actual = await juicioRepository.findById(id);
             if (!actual) {
                 const err = new Error("No se encontró el juicio solicitado.");
                 err.status = 404;
                 throw err;
             }
 
-            // Combinamos datos actuales con los nuevos para validar el estado final
             const datosAProcesar = { ...actual.toJSON(), ...data };
-
-            // 1. Re-validar reglas de negocio
             const payloadValidado = await this._aplicarReglasNegocio(datosAProcesar);
 
-            // 2. Verificar duplicados (excluyendo el ID actual)
-            await this._verificarDuplicados(payloadValidado, vigenciaSegura, id);
-
-            // 3. Actualizar
+            await this._verificarDuplicados(payloadValidado, id);
             await juicioRepository.updateById(id, payloadValidado);
 
-            return juicioRepository.findById(id, vigenciaSegura);
+            return juicioRepository.findById(id);
         } catch (error) {
             throw handleSequelizeError(error);
         }
     },
 
-    async remove(id, vigenciaId) {
+    async remove(id) {
         try {
-            const registro = await juicioRepository.findById(id, vigenciaId);
+            const registro = await juicioRepository.findById(id);
             if (!registro) {
                 const err = new Error("No se encontró el juicio solicitado.");
                 err.status = 404;
                 throw err;
             }
-            await juicioRepository.deleteById(id, vigenciaId);
+            await juicioRepository.deleteById(id);
             return true;
         } catch (error) {
-            throw formatearErrorForaneo(
-                error,
-                "este juicio",
-                "calificaciones asociadas"
-            );
+            throw formatearErrorForaneo(error, "este juicio", "calificaciones asociadas");
         }
     },
 
@@ -231,13 +205,12 @@ export const juicioService = {
     /**
      * Simula un índice único estricto que considera NULLs como valores iguales.
      */
-    async _verificarDuplicados(payload, vigenciaId, excludeId = null) {
+    async _verificarDuplicados(payload, excludeId = null) {
         // Preparamos los filtros básicos
         const filtros = {
-            vigenciaId,
             dimensionId: payload.dimensionId,
             desempenoId: payload.desempenoId,
-            excludeId: excludeId, // Pasamos el excludeId directamente al repositorio actualizado
+            excludeId: excludeId,
             page: 1,
             limit: 1
         };
@@ -247,8 +220,6 @@ export const juicioService = {
 
         filtros.gradoId = payload.gradoId || null;
         filtros.asignaturaId = payload.asignaturaId || null;
-
-        // Manejo del cero en periodo
         filtros.periodo = (payload.periodo !== undefined && payload.periodo !== null) ? payload.periodo : null;
 
         const existe = await juicioRepository.findAll(filtros);
@@ -308,7 +279,7 @@ export const juicioService = {
      * IMPORTAR MASIVO DESDE EXCEL (.xlsx)
      * Valida todo el archivo antes de guardar. Si hay un error, rechaza todo.
      */
-    async importarMasivo(fileBuffer, vigenciaId) {
+    async importarMasivo(fileBuffer) {
         const transaction = await sequelize.transaction();
         const errores = [];
         const registrosParaCrear = [];
@@ -317,9 +288,7 @@ export const juicioService = {
         const firmasEnExcel = new Set();
 
         try {
-            // Leer el buffer como Workbook
-            const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
-
+            const workbook = XLSX.read(fileBuffer, { type: 'buffer' }); // Leer el buffer como Workbook
             // Obtener la primera hoja
             const sheetName = workbook.SheetNames[0];
             const sheet = workbook.Sheets[sheetName];
@@ -352,8 +321,8 @@ export const juicioService = {
 
             // CARGAMOS JUICIOS EXISTENTES (OPTIMIZACIÓN DE RENDIMIENTO)
 
-            // Traemos todos los juicios de la vigencia en una sola consulta
-            const juiciosExistentes = await juicioRepository.findAllForValidation(vigenciaId);
+            // Traemos todos los juicios en una sola consulta
+            const juiciosExistentes = await juicioRepository.findAllForValidation();
 
             // Creamos un Set de "Firmas" de los juicios que ya existen en BD
             const firmasExistentesDB = new Set(
@@ -411,8 +380,7 @@ export const juicioService = {
                         desempenoId,
                         periodo,
                         texto,
-                        activo,
-                        vigenciaId
+                        activo
                     };
 
                     // OPTIMIZACIÓN REAL: Replicamos la limpieza lógica aquí en memoria para no llamar a la BD
@@ -433,7 +401,7 @@ export const juicioService = {
 
                     // Si pasa, guardamos la firma y agregamos al lote
                     firmasEnExcel.add(firmaActual);
-                    registrosParaCrear.push({ ...payloadFinal, vigenciaId });
+                    registrosParaCrear.push({ ...payloadFinal });
 
                 } catch (error) {
                     errores.push(`Fila ${linea}: ${error.message}`);

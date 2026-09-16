@@ -23,7 +23,7 @@ const RANGOS_ENDPOINT = '/api/desempenos/rangos';
  */
 export const fetchCatalogs = async () => {
     try {
-        // Obtener vigencias para encontrar la activa
+        // Obtener vigencias para encontrar la activa (necesaria para asignaturas y rangos)
         const vigenciasResponse = await apiClient.get(VIGENCIAS_ENDPOINT);
         const vigenciasItems = vigenciasResponse.data?.data?.items || [];
         const vigenciaActiva = vigenciasItems.find(v => v.activa === true);
@@ -42,7 +42,7 @@ export const fetchCatalogs = async () => {
             rangosRes
         ] = await Promise.all([
             // El backend filtra por vigencia usando el token (req.vigenciaActual)
-            apiClient.get(`${JUICIOS_ENDPOINT}?vigenciaId=${vigenciaActiva.id}`),
+            apiClient.get(`${JUICIOS_ENDPOINT}`),
             apiClient.get(`${ASIGNATURAS_ENDPOINT}?vigenciaId=${vigenciaActiva.id}&limit=100&activo=true`),
             apiClient.get(`${GRADOS_ENDPOINT}?limit=100`),
             apiClient.get(`${DIMENSIONES_ENDPOINT}?limit=100`),

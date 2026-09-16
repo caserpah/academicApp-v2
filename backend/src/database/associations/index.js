@@ -262,7 +262,6 @@ export const definirAsociaciones = () => {
             [Carga, "cargas"],
             [Matricula, "matriculas"],
             [Calificacion, "calificaciones"],
-            [Juicio, "juicios"],
             [Area, "areas"],
             [Asignatura, "asignaturas"],
             [VentanaCalificacion, "ventanasCalificacion"],

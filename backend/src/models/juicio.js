@@ -3,11 +3,10 @@ import { sequelize } from "../database/db.connect.js";
 
 /**
  * Modelo: Juicio
- * Representa los juicios cualitativos por asignatura, periodo, grado y vigencia.
+ * Representa los juicios cualitativos por asignatura, periodo, grado y dimensión.
  */
 
 export const Juicio = sequelize.define("juicio", {
-
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -55,14 +54,6 @@ export const Juicio = sequelize.define("juicio", {
         onUpdate: "CASCADE",
         onDelete: "RESTRICT"
     },
-
-    vigenciaId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: { model: "vigencias", key: "id" },
-        onUpdate: "CASCADE",
-        onDelete: "RESTRICT"
-    },
 }, {
     tableName: "juicios",
     timestamps: true,
@@ -77,9 +68,12 @@ export const Juicio = sequelize.define("juicio", {
                 "periodo",
                 "dimensionId",
                 "desempenoId",
-                "asignaturaId",
-                "vigenciaId"
+                "asignaturaId"
             ]
+        },
+        {
+            name: "idx_juicio_grado",
+            fields: ["gradoId"]
         }
     ]
 });

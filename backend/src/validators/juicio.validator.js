@@ -228,7 +228,7 @@ export const ValidarCrearJuicio = [
     // VALIDACIÓN DE DUPLICADOS (INTEGRIDAD)
     // Se inserta aquí para evitar crear registros idénticos
     body("desempenoId").custom(async (value, { req }) => {
-        const { vigenciaId, periodo, gradoId, asignaturaId, dimensionId } = req.body;
+        const { periodo, gradoId, asignaturaId, dimensionId } = req.body;
 
         // Convertimos undefined/"" a null para la consulta correcta
         const grado = gradoId || null;
@@ -236,10 +236,9 @@ export const ValidarCrearJuicio = [
 
         const duplicado = await Juicio.findOne({
             where: {
-                vigenciaId,
                 periodo,
                 dimensionId,
-                desempenoId: value, // El que estamos validando
+                desempenoId: value,
                 gradoId: grado,
                 asignaturaId: asignatura
             }
@@ -334,13 +333,12 @@ export const validarActualizarJuicio = [
         .optional() // Solo si se envía validamos duplicidad
         .custom(async (value, { req }) => {
             const idJuicio = req.params.id;
-            const { vigenciaId, periodo, gradoId, asignaturaId, dimensionId } = req.body;
+            const { periodo, gradoId, asignaturaId, dimensionId } = req.body;
 
-            if (!vigenciaId || !periodo || !dimensionId) return true; // Faltan datos para validar integridad
+            if (!periodo || !dimensionId) return true; // Faltan datos para validar integridad
 
             const duplicado = await Juicio.findOne({
                 where: {
-                    vigenciaId,
                     periodo,
                     dimensionId,
                     desempenoId: value,

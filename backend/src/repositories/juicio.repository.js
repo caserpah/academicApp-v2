@@ -11,7 +11,6 @@ export const juicioRepository = {
      * Listar juicios con filtros, paginación y ordenamiento.
      */
     async findAll({
-        vigenciaId,
         gradoId,
         dimensionId,
         desempenoId,
@@ -25,8 +24,8 @@ export const juicioRepository = {
         order,
         excludeId
     }) {
-        // Filtro base: siempre por vigencia
-        const where = { vigenciaId };
+        // Filtro base
+        const where = {};
 
         if (excludeId) {
             where.id = { [Op.ne]: excludeId };
@@ -137,9 +136,9 @@ export const juicioRepository = {
         };
     },
 
-    findById(id, vigenciaId) {
+    findById(id) {
         return Juicio.findOne({
-            where: { id, vigenciaId },
+            where: { id },
             include: [
                 { model: Asignatura, as: "asignatura", attributes: ["id", "codigo", "nombre", "abreviatura"] },
                 { model: Grado, as: "grado", attributes: ["id", "nombre", "codigo", "modalidad"] },
@@ -156,23 +155,20 @@ export const juicioRepository = {
     async updateById(id, data) {
         const registro = await Juicio.findByPk(id);
         if (!registro) return null;
-
         await registro.update(data);
         return registro;
     },
 
-    async deleteById(id, vigenciaId) {
-        const registro = await Juicio.findOne({ where: { id, vigenciaId } });
+    async deleteById(id) {
+        const registro = await Juicio.findByPk(id);
         if (!registro) return false;
-
         await registro.destroy();
         return true;
     },
 
     // Método específico para validación masiva: Trae solo campos esenciales y sin relaciones para máxima velocidad
-    async findAllForValidation(vigenciaId) {
+    async findAllForValidation() {
         return Juicio.findAll({
-            where: { vigenciaId },
             attributes: ['id', 'gradoId', 'asignaturaId', 'dimensionId', 'desempenoId', 'periodo'],
             raw: true // Importante: Devuelve objetos planos, más rápido y ligero
         });

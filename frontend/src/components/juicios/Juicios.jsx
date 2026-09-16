@@ -24,7 +24,7 @@ const Juicios = () => {
     // --- ESTADOS ---
     const initialFormState = {
         id: null, texto: '', periodo: '', activo: true,
-        gradoId: '', dimensionId: '', desempenoId: '', asignaturaId: '', vigenciaId: ''
+        gradoId: '', dimensionId: '', desempenoId: '', asignaturaId: ''
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -78,10 +78,6 @@ const Juicios = () => {
                 setDimensiones(data.dimensiones);
                 setDesempenos(data.desempenos);
                 setRangos(data.rangos);
-
-                if (data.vigencia?.id) {
-                    setFormData(prev => ({ ...prev, vigenciaId: data.vigencia.id }));
-                }
             } catch (err) {
                 console.error(err);
                 showError("Error cargando catálogos iniciales.");
@@ -109,7 +105,6 @@ const Juicios = () => {
         try {
             setLoadingData(true);
             const params = {
-                vigenciaId: vigencia.id,
                 page: pagination.page,
                 limit: pagination.limit,
                 search: activeSearch,
@@ -218,7 +213,6 @@ const Juicios = () => {
             dimensionId: juicio.dimension?.id || juicio.dimensionId || '',
             desempenoId: juicio.desempeno?.id || juicio.desempenoId || '',
             asignaturaId: juicio.asignatura?.id || juicio.asignaturaId || '',
-            vigenciaId: juicio.vigenciaId,
             activo: juicio.activo
         });
         setMode("editar");
@@ -263,7 +257,7 @@ const Juicios = () => {
     };
 
     const resetForm = () => {
-        setFormData({ ...initialFormState, vigenciaId: vigencia ? vigencia.id : '' });
+        setFormData({ ...initialFormState });
         setMode("agregar");
     };
 
@@ -497,7 +491,7 @@ const Juicios = () => {
                                         const codDesp = despObj.codigo || '';
                                         const nomDesp = despObj.nombre || 'N/A';
 
-                                        const rangoInfo = rangos.find(r => Number(r.desempenoId) === Number(despObj.id || juicio.desempenoId) && Number(r.vigenciaId) === Number(juicio.vigenciaId));
+                                        const rangoInfo = rangos.find(r => Number(r.desempenoId) === Number(despObj.id || juicio.desempenoId) && Number(r.vigenciaId) === Number(vigencia.id));
                                         const textoRango = codDesp === 'UN' ? '-' : (rangoInfo ? `${rangoInfo.minNota} - ${rangoInfo.maxNota}` : 'S/D');
 
                                         let badgeColor = 'bg-gray-100 text-gray-800';
