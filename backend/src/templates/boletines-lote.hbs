@@ -313,8 +313,8 @@
                 <col style="width: 5%;">
                 <col style="width: 5%;">
                 <col style="width: 5%;">
-                <col style="width: 12%;">
                 <col style="width: 15%;">
+                <col style="width: 12%;">
             </colgroup>
             {{else}}
             {{#if ../configuracionImpresion.esValorativo}}
@@ -325,9 +325,9 @@
                 <col style="width: 5%;">
                 <col style="width: 5%;">
                 <col style="width: 5%;">
+                <col style="width: 10%;">
                 <col style="width: 9%;">
                 <col style="width: 8%;">
-                <col style="width: 10%;">
             </colgroup>
             {{else}}
             <colgroup>
@@ -415,16 +415,18 @@
                     <th>P2</th>
                     <th>P3</th>
                     <th>P4</th>
+
                     {{#if ../configuracionImpresion.esPeriodoFinal}}
+                    <th>Desempeño</th>
                     <th>Definitiva</th>
-                    <th>Desempeño</th>
                     {{else}}
-                    <th>Acumulado</th>
-                    <th>Estado Acumul.</th>
                     {{#if ../configuracionImpresion.esValorativo}}
-                    <th>Desempeño</th>
+                    <th>Desempeño Periodo</th>
                     {{/if}}
+                    <th>Acumulado Anual</th>
+                    <th>Estado Acumulado</th>
                     {{/if}}
+
                     {{/if}}
                 </tr>
             </thead>
@@ -468,6 +470,9 @@
                     <td class="centrado">{{this.p2Area}}</td>
                     <td class="centrado">{{this.p3Area}}</td>
                     <td class="centrado">{{this.p4Area}}</td>
+
+                    {{#if ../../configuracionImpresion.esPeriodoFinal}}
+                    <td class="centrado" style="font-weight: bold; font-size: 8px;">{{this.desempenoArea}}</td>
                     <td class="centrado">
                         {{this.acumuladoActualArea}}
                         {{#if this.notaNivelacion}}
@@ -475,15 +480,20 @@
                             (Niv.)</span>
                         {{/if}}
                     </td>
-
-                    {{#if ../../configuracionImpresion.esPeriodoFinal}}
-                    <td class="centrado" style="font-weight: bold; font-size: 8px;">{{this.desempenoArea}}</td>
                     {{else}}
-                    <td class="centrado">{{this.estadoGanandoPerdiendo}}</td>
                     {{#if ../../configuracionImpresion.esValorativo}}
                     <td class="centrado" style="font-weight: bold; font-size: 8px;">{{this.desempenoArea}}</td>
                     {{/if}}
+                    <td class="centrado">
+                        {{this.acumuladoActualArea}}
+                        {{#if this.notaNivelacion}}
+                        <span style="font-size: 7.5px; color: #555; vertical-align: super; font-weight: bold;">
+                            (Niv.)</span>
+                        {{/if}}
+                    </td>
+                    <td class="centrado">{{this.estadoGanandoPerdiendo}}</td>
                     {{/if}}
+
                     {{/if}}
                 </tr>
 

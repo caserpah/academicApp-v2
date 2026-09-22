@@ -30,8 +30,8 @@ export const reporteService = {
             nombreInstitucion: colegio ? colegio.nombre : "INSTITUCIÓN EDUCATIVA",
             urlEscudo: logoBase64,
             sedeNombre: grupo.sede.nombre,
-            gradoNombre: grupo.grado.nombre,
             gradoNombre: (grupo.grado.nombre || '').replace(/_/g, ' '),
+            grupoNombre: grupo.nombre,
             jornada: grupo.jornada === 'MANANA' ? 'MAÑANA' : grupo.jornada,
             anioLectivo: vigencia.anio,
         };

@@ -291,7 +291,7 @@ export const matriculaService = {
         const fechaResStr = formatearFecha(colegio?.fechaResolucion);
 
         const dataMatriculas = {
-            tituloDocumento: `Acta_Matricula_${matriculaRaw.estudiante.documento}`,
+            tituloDocumento: `Matricula_${matriculaRaw.estudiante.documento}`,
             encabezadoInstitucional: {
                 nombre: colegio?.nombre || "INSTITUCIÓN EDUCATIVA CARLOS ADOLFO URUETA",
                 info_legal: `Registro DANE: ${colegio?.registroDane || ''} | Resolución de Aprobación No. ${colegio?.resolucion || ''} del ${fechaResStr || ''}`,

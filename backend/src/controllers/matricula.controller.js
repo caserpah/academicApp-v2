@@ -211,7 +211,7 @@ export const matriculaController = {
             const pdfBuffer = await matriculaService.generarPdfActa(id);
 
             res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', `inline; filename="Acta_Matricula_${id}.pdf"`);
+            res.setHeader('Content-Disposition', `inline; filename="Matricula_${id}.pdf"`);
             return res.send(pdfBuffer);
         } catch (error) {
             next(error);

@@ -113,7 +113,7 @@ export const descargarActaMatricula = async (idMatricula) => {
         const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `Acta_Matricula_${idMatricula}.pdf`);
+        link.setAttribute('download', `Matricula_${idMatricula}.pdf`);
         document.body.appendChild(link);
         link.click();
         link.parentNode.removeChild(link);
