@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"; // Importamos Link para la navegación
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faFilePen, faEdit, faChevronLeft, faChevronRight, faUserCheck,
-    faUsers, faSearch, faLock, faFilter, faFilePdf, faPrint
+    faUsers, faSearch, faLock, faFilter, faFilePdf, faPrint, faFileExcel
 } from "@fortawesome/free-solid-svg-icons";
 
 // Hooks y Servicios
@@ -12,7 +12,7 @@ import { showSuccess, showWarning, showError, showConfirm } from "../../utils/no
 import { fetchInitialData as fetchSedesData } from "../../api/sedesService.js";
 import { fetchGruposPorSede } from "../../api/gruposService.js";
 import { listarEstudiantes } from "../../api/estudiantesService.js";
-import { eliminarMatricula, descargarActaMatricula, descargarActasLote, descargarFormatoBlanco, activarMatriculasMasivo } from "../../api/matriculasService.js";
+import { eliminarMatricula, descargarActaMatricula, descargarActasLote, descargarFormatoBlanco, activarMatriculasMasivo, descargarListadoExcel } from "../../api/matriculasService.js";
 import { fetchVigencias } from "../../api/vigenciasService.js";
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
 import MatriculasForm from "./MatriculasForm.jsx";
@@ -74,6 +74,9 @@ const Matriculas = () => {
     // Estado para spinners de descarga de PDFs
     const [downloadingPdf, setDownloadingPdf] = useState(false);
     const [downloadingId, setDownloadingId] = useState(null); // Para el spinner de la tabla
+
+    // Estado para spinner de descarga de Excel
+    const [downloadingExcel, setDownloadingExcel] = useState(false);
 
     const formContainerRef = useRef(null);
     const studentInputRef = useRef(null);
@@ -364,7 +367,7 @@ const Matriculas = () => {
 
     const handleDescargarLote = async () => {
         if (!filtros.grupoId) {
-            return showWarning("Por favor, seleccione un Grado y Grupo en los filtros para generar las actas por lote.");
+            return showWarning("Por favor, seleccione un Grado y Grupo en los filtros para generar las actas.");
         }
 
         // Buscamos el nombre del grupo seleccionado para el nombre del archivo
@@ -373,7 +376,7 @@ const Matriculas = () => {
 
         try {
             setDownloadingPdf(true);
-            //showSuccess("Generando actas por lote, por favor espere..."); // Aviso porque puede tardar unos segundos
+            //showSuccess("Generando actas por grupo, por favor espere..."); // Aviso porque puede tardar unos segundos
             await descargarActasLote(filtros.grupoId, nombreGrupo);
         } catch (error) {
             showError(error.message);
@@ -390,6 +393,21 @@ const Matriculas = () => {
             showError(error.message);
         } finally {
             setDownloadingPdf(false);
+        }
+    };
+
+    const handleDescargarExcel = async () => {
+        if (!filtros.estado) {
+            return showWarning("Por favor, seleccione un Estado en los filtros para generar el listado en Excel.");
+        }
+
+        try {
+            setDownloadingExcel(true);
+            await descargarListadoExcel({ busqueda, ...filtros });
+        } catch (error) {
+            showError(error.message);
+        } finally {
+            setDownloadingExcel(false);
         }
     };
 
@@ -477,7 +495,7 @@ const Matriculas = () => {
                             <span className="hidden md:inline">Formato en Blanco</span>
                         </button>
 
-                        {/* BOTÓN: Actas por Lote */}
+                        {/* BOTÓN: Actas por grupos */}
                         <button
                             onClick={handleDescargarLote}
                             disabled={!filtros.grupoId || downloadingPdf || matriculas.length === 0}
@@ -494,7 +512,28 @@ const Matriculas = () => {
                             ) : (
                                 <FontAwesomeIcon icon={faFilePdf} className="mr-2" />
                             )}
-                            <span className="hidden md:inline">Actas por Lote</span>
+                            <span className="hidden md:inline">Actas por Grupos</span>
+                        </button>
+
+                        {/* BOTÓN: Exportar Listado a Excel */}
+                        <button
+                            onClick={handleDescargarExcel}
+                            disabled={!filtros.estado || downloadingExcel || matriculas.length === 0}
+                            className={`px-3 py-2 rounded-lg transition flex items-center shadow-sm text-sm font-medium
+        ${filtros.estado && matriculas.length > 0
+                                    ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+                                    : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed disabled:opacity-75'}`}
+                            title={!filtros.estado ? "Seleccione un Estado en el filtro inferior para exportar" : "Exportar listado a Excel"}
+                        >
+                            {downloadingExcel ? (
+                                <svg className="animate-spin mr-2 h-4 w-4 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            ) : (
+                                <FontAwesomeIcon icon={faFileExcel} className="mr-2" />
+                            )}
+                            <span className="hidden md:inline">Exportar Excel</span>
                         </button>
 
                         {/* Botón Promoción Masiva */}

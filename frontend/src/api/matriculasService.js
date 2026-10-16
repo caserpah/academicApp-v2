@@ -185,3 +185,33 @@ export const descargarFormatoBlanco = async () => {
         throw parseError(error, "Error de conexión al descargar el formato.");
     }
 };
+
+/**
+ * Descargar Listado de Matrículas en Excel
+ */
+export const descargarListadoExcel = async (params) => {
+    try {
+        const response = await apiClient.get(`${MATRICULAS_ENDPOINT}/listado/excel`, {
+            params,
+            responseType: 'blob'
+        });
+
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Listado_Matriculas_${params.estado || 'Completo'}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        return true;
+    } catch (error) {
+        if (error.response && error.response.data instanceof Blob) {
+            const errorText = await error.response.data.text();
+            const errorJson = JSON.parse(errorText);
+            throw new Error(errorJson.message || "Error al generar el archivo Excel");
+        }
+        throw parseError(error, "Error de conexión al descargar el Excel.");
+    }
+};

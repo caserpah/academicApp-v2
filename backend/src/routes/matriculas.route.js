@@ -95,4 +95,12 @@ router.patch(
     matriculaController.activarMasivo
 );
 
+// Descargar Listado en Excel
+router.get(
+    "/listado/excel",
+    protect,
+    restrictTo(["admin", "secretaria"]),
+    matriculaController.descargarExcelListado
+);
+
 export default router;

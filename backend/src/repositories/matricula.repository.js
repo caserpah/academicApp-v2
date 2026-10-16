@@ -97,7 +97,7 @@ export const matriculaRepository = {
             attributes: [
                 "id", "tipoDocumento", "documento",
                 "primerNombre", "segundoNombre",
-                "primerApellido", "segundoApellido", "sexo"
+                "primerApellido", "segundoApellido", "sexo", "fechaNacimiento"
             ],
         });
 

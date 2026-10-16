@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { reporteRepository } from "../repositories/reporte.repository.js";
 import { pdfService } from "./pdf.service.js";
+import XlsxPopulate from 'xlsx-populate';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -324,7 +325,7 @@ export const reporteService = {
                 };
             });
 
-            const formatStatPorc = (count, total) => total > 0 ? `${count} (${((count/total)*100).toFixed(1)}%)` : "-";
+            const formatStatPorc = (count, total) => total > 0 ? `${count} (${((count / total) * 100).toFixed(1)}%)` : "-";
 
             contextoHbs.directorNombre = grupo.director ? `${grupo.director.identidad?.nombre} ${grupo.director.identidad?.apellidos}`.toUpperCase() : "SIN ASIGNAR";
             contextoHbs.areas = areasList.map(a => a.abreviatura);
@@ -336,6 +337,212 @@ export const reporteService = {
             return await pdfService.crearPdfSabanas(contextoHbs, 'sabana-acumulados.hbs');
         }
         throw new Error("El tipo de Sábana solicitado no es válido.");
+    },
+
+    async generarSabanaExcel({ grupoId, tipoSabana, periodo, vigenciaId, grupoNombre }) {
+        if (tipoSabana !== 'SABANA_AREAS' && tipoSabana !== 'SABANA_ACUMULADOS') {
+            throw new Error("El formato Excel solo está disponible para Áreas y Acumulados.");
+        }
+
+        // 1. Obtener los datos (Reutilizamos la lógica del PDF)
+        const vigencia = await reporteRepository.findVigenciaById(vigenciaId);
+        const grupo = await reporteRepository.findGrupoConDetalles(grupoId, vigencia.id);
+        const matriculas = await reporteRepository.findMatriculasActivas(grupoId, vigencia.id);
+        if (matriculas.length === 0) throw new Error("No hay estudiantes activos en este grupo.");
+        const idsEstudiantes = matriculas.map(m => m.estudiante.id);
+
+        const cargas = await reporteRepository.findCargasConAreaPorGrupo(grupoId, vigencia.id);
+        const calificaciones = await reporteRepository.findCalificacionesHistoricas(idsEstudiantes, null, vigencia.id);
+
+        const areasMap = new Map();
+        cargas.forEach(c => {
+            if (c.asignatura && c.asignatura.area) areasMap.set(c.asignatura.area.id, c.asignatura.area);
+        });
+        const areasList = Array.from(areasMap.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+        const notasProcesadas = _procesarNotasPorArea(calificaciones, cargas);
+
+        // Inicializamos contadores para las estadísticas
+        let repruebanPorArea = {};
+        let totalEvaluadosPorArea = {};
+        areasList.forEach(a => {
+            repruebanPorArea[a.id] = 0;
+            totalEvaluadosPorArea[a.id] = 0;
+        });
+
+        // Variables de Ciclos para Acumulados
+        const gradoNombre = (grupo.grado.nombre || '').toUpperCase().replace(/_/g, ' ');
+        const esCicloV = gradoNombre.includes('CICLO V') && !gradoNombre.includes('CICLO VI');
+        const esCicloVI = gradoNombre.includes('CICLO VI');
+
+        // 2. Cargamos la plantilla de Excel con xlsx-populate
+        const templateName = tipoSabana === 'SABANA_AREAS' ? 'plantilla_sabana_areas.xlsx' : 'plantilla_sabana_acumulados.xlsx';
+        const templatePath = path.join(__dirname, `../../public/plantillas/${templateName}`);
+        const workbook = await XlsxPopulate.fromFileAsync(templatePath); // Carga asíncrona de la plantilla
+
+        const wsSabana = workbook.sheet('Sabana');
+
+        // 3. Remplazar encabezados (Filas 3 a 6)
+        const directorNombre = grupo.director ? `${grupo.director.identidad?.nombre} ${grupo.director.identidad?.apellidos}`.toUpperCase() : "SIN ASIGNAR";
+        const jornadaText = grupo.jornada === 'MANANA' ? 'MAÑANA' : grupo.jornada;
+
+        wsSabana.cell('A3').value(tipoSabana === 'SABANA_AREAS' ? `Periodo Evaluado: ${periodo}` : 'CONSOLIDADO DE ACUMULADOS');
+        wsSabana.cell('A4').value(`Sede: ${grupo.sede.nombre} | Año Lectivo: ${vigencia.anio} | Jornada: ${jornadaText}`);
+        wsSabana.cell('A5').value(`Grado: ${gradoNombre} | Grupo: ${grupo.nombre}`);
+        wsSabana.cell('A6').value(`Director de Grupo: ${directorNombre}`);
+
+        // 4. Escribir los encabezados de las áreas (Fila 9, desde la Columna C)
+        let colIndex = 3; // 3 equivale a la Columna C
+
+        if (tipoSabana === 'SABANA_ACUMULADOS') {
+            // Unimos celdas de # y Estudiante porque la cabecera será doble
+            wsSabana.range('A8:A9').merged(true).value('#').style({ bold: true, horizontalAlignment: 'center', verticalAlignment: 'center', border: true });
+            wsSabana.range('B8:B9').merged(true).value('ESTUDIANTE').style({ bold: true, horizontalAlignment: 'center', verticalAlignment: 'center', border: true });
+        }
+
+        areasList.forEach(area => {
+            if (tipoSabana === 'SABANA_AREAS') {
+                const cell = wsSabana.cell(9, colIndex);
+                cell.value(area.abreviatura);
+                cell.style({ bold: true, fontColor: '1E293B', fill: 'F1F5F9', horizontalAlignment: 'center', verticalAlignment: 'center', border: true });
+                colIndex++;
+            } else {
+                // ACUMULADOS: Ocupa 2 columnas
+                // Fila 8: Nombre del área centrado
+                wsSabana.range(8, colIndex, 8, colIndex + 1).merged(true).value(area.abreviatura)
+                    .style({ bold: true, fontColor: '1E293B', fill: 'E2E8F0', horizontalAlignment: 'center', border: true });
+                // Fila 9: SUM y N
+                wsSabana.cell(9, colIndex).value('SUM').style({ bold: true, fontColor: '475569', fill: 'F1F5F9', horizontalAlignment: 'center', border: true });
+                wsSabana.cell(9, colIndex + 1).value('N').style({ bold: true, fontColor: '475569', fill: 'F1F5F9', horizontalAlignment: 'center', border: true });
+                colIndex += 2;
+            }
+        });
+
+        // 5. Llenar estudiantes y sus notas (Fila 10 en adelante)
+        let currentRow = 10;
+        matriculas.forEach((m, index) => {
+            const est = m.estudiante;
+            const areasEstudiante = notasProcesadas[est.id] || {};
+
+            wsSabana.cell(currentRow, 1).value(index + 1).style({ border: true, horizontalAlignment: 'center' });
+            wsSabana.cell(currentRow, 2).value(`${est.primerApellido} ${est.segundoApellido || ''} ${est.primerNombre} ${est.segundoNombre || ''}`.trim()).style('border', true);
+
+            let colArea = 3;
+            areasList.forEach(area => {
+                const areaData = areasEstudiante[area.id];
+                if (tipoSabana === 'SABANA_AREAS') {
+                    const notaPeriodo = areaData && areaData[`countP${periodo}`] > 0 ? areaData[`p${periodo}`] : null;
+                    const cell = wsSabana.cell(currentRow, colArea).style('border', true).style('horizontalAlignment', 'center');
+
+                    if (notaPeriodo !== null) {
+                        const notaRedondeada = Math.round(notaPeriodo * 100) / 100;
+                        totalEvaluadosPorArea[area.id]++;
+                        if (notaRedondeada < 3.0) {
+                            repruebanPorArea[area.id]++;
+                            cell.style({ fontColor: 'DC2626', bold: true, fill: 'FFC000' });
+                        }
+                        cell.value(notaRedondeada).style('numberFormat', '0.00');
+                    } else {
+                        cell.value("-");
+                    }
+                    colArea++;
+                } else {
+                    // LÓGICA ACUMULADOS
+                    let suma = 0, count = 0;
+                    if (areaData) {
+                        if (esCicloV) {
+                            if (areaData.countP1 > 0) { suma += areaData.p1; count++; }
+                            if (areaData.countP2 > 0) { suma += areaData.p2; count++; }
+                        } else if (esCicloVI) {
+                            if (areaData.countP3 > 0) { suma += areaData.p3; count++; }
+                            if (areaData.countP4 > 0) { suma += areaData.p4; count++; }
+                        } else {
+                            if (areaData.countP1 > 0) { suma += areaData.p1; count++; }
+                            if (areaData.countP2 > 0) { suma += areaData.p2; count++; }
+                            if (areaData.countP3 > 0) { suma += areaData.p3; count++; }
+                            if (areaData.countP4 > 0) { suma += areaData.p4; count++; }
+                        }
+                    }
+
+                    const cellSum = wsSabana.cell(currentRow, colArea).style('border', true).style('horizontalAlignment', 'center');
+                    const cellN = wsSabana.cell(currentRow, colArea + 1).style('border', true).style('horizontalAlignment', 'center');
+
+                    if (count > 0) {
+                        totalEvaluadosPorArea[area.id]++;
+                        const esBaja = suma < (count * 3.0);
+                        if (esBaja) {
+                            repruebanPorArea[area.id]++;
+                            cellSum.style({ fontColor: 'DC2626', bold: true, fill: 'FFC000' });
+                        }
+                        cellSum.value(Math.round(suma * 100) / 100).style('numberFormat', '0.00');
+                        cellN.value(count);
+                    } else {
+                        cellSum.value('-');
+                        cellN.value('-');
+                    }
+                    colArea += 2;
+                }
+            });
+            currentRow++;
+        });
+
+        // ---------------------------------------------------------
+        // 5.5 Filas de resumen al final (Debajo de estudiantes)
+        // ---------------------------------------------------------
+        const rowAprob = currentRow;
+        const rowReprob = currentRow + 1;
+
+        wsSabana.range(rowAprob, 1, rowAprob, 2).merged(true).value('Estudiantes que aprueban el área:').style({ bold: true, fontColor: '047857', horizontalAlignment: 'right', verticalAlignment: 'center', border: true });
+        wsSabana.range(rowReprob, 1, rowReprob, 2).merged(true).value('Estudiantes que reprueban el área:').style({ bold: true, fontColor: 'DC2626', horizontalAlignment: 'right', verticalAlignment: 'center', border: true });
+
+        let colResumen = 3;
+        areasList.forEach(area => {
+            const reprobados = repruebanPorArea[area.id];
+            const evaluados = totalEvaluadosPorArea[area.id];
+            const aprobados = evaluados - reprobados;
+            const porcAprobados = evaluados > 0 ? ((aprobados / evaluados) * 100).toFixed(1) : "0.0";
+            const porcReprobados = evaluados > 0 ? ((reprobados / evaluados) * 100).toFixed(1) : "0.0";
+
+            const txtAprob = `${aprobados}\n(${porcAprobados}%)`;
+            const txtReprob = `${reprobados}\n(${porcReprobados}%)`;
+
+            if (tipoSabana === 'SABANA_AREAS') {
+                wsSabana.cell(rowAprob, colResumen).value(txtAprob).style({ fontColor: '047857', horizontalAlignment: 'center', verticalAlignment: 'center', wrapText: true, border: true });
+                wsSabana.cell(rowReprob, colResumen).value(txtReprob).style({ fontColor: 'DC2626', horizontalAlignment: 'center', verticalAlignment: 'center', wrapText: true, border: true });
+                colResumen++;
+            } else {
+                // Acumulados: Fusionamos las 2 columnas del área
+                wsSabana.range(rowAprob, colResumen, rowAprob, colResumen + 1).merged(true).value(txtAprob).style({ fontColor: '047857', horizontalAlignment: 'center', verticalAlignment: 'center', wrapText: true, border: true });
+                wsSabana.range(rowReprob, colResumen, rowReprob, colResumen + 1).merged(true).value(txtReprob).style({ fontColor: 'DC2626', horizontalAlignment: 'center', verticalAlignment: 'center', wrapText: true, border: true });
+                colResumen += 2;
+            }
+        });
+
+        wsSabana.row(rowAprob).height(32);
+        wsSabana.row(rowReprob).height(32);
+
+        // ---------------------------------------------------------
+        // 6. Datos ocultos para las gráficas (Fila 1000, Columna AA)
+        // ---------------------------------------------------------
+        let statRow = 1001;
+        areasList.forEach(area => {
+            const reprobados = repruebanPorArea[area.id];
+            const evaluados = totalEvaluadosPorArea[area.id];
+            const porcentaje = evaluados > 0 ? (reprobados / evaluados) : 0;
+
+            wsSabana.cell(statRow, 27).value(area.abreviatura); // AA
+            wsSabana.cell(statRow, 28).value(reprobados);       // AB
+            wsSabana.cell(statRow, 29).value(porcentaje).style('numberFormat', '0.0%'); // AC
+
+            statRow++;
+        });
+
+        // Ocultamos las filas sobrantes para que la gráfica se ajuste perfecta
+        for (let r = statRow; r <= 1030; r++) {
+            wsSabana.row(r).hidden(true);
+        }
+
+        return await workbook.outputAsync();
     }
 };
 

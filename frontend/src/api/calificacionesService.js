@@ -66,10 +66,11 @@ export const fetchCalificacionesCatalogs = async (rol, vigenciaSeleccionadaId = 
             const rawGrupos = gruposRes.data?.data?.items || gruposRes.data?.data || [];
             grupos = rawGrupos.map(g => ({
                 id: g.id,
-                sedeId: g.sedeId, // Importante para el filtro
-                // Formato: "Sexto A | Mañana"
-                label: `${formatGrado(g.grado?.nombre)} ${g.nombre} | ${formatearJornada(g.jornada)}`,
-                gradoId: g.gradoId // Útil para filtrar asignaturas si quisieras
+                sedeId: g.sedeId,
+                label: `${formatGrado(g.grado?.nombre)} ${g.nombre} | ${formatearJornada(g.jornada)}`, // Formato: "Sexto A | Mañana"
+                gradoId: g.gradoId,
+                codigoGrado: g.grado?.codigo,
+                letraGrupo: g.nombre
             }));
 
             asignaturas = asigRes.data?.data?.items || asigRes.data?.data || [];
@@ -97,7 +98,9 @@ export const fetchCalificacionesCatalogs = async (rol, vigenciaSeleccionadaId = 
                     gruposMap.set(g.id, {
                         id: g.id,
                         sedeId: item.sedeId, // Vinculamos grupo a la sede de la carga
-                        label: `${formatGrado(g.grado?.nombre)} ${g.nombre} | ${formatearJornada(g.jornada)}`
+                        label: `${formatGrado(g.grado?.nombre)} ${g.nombre} | ${formatearJornada(g.jornada)}`,
+                        codigoGrado: g.grado?.codigo,
+                        letraGrupo: g.nombre
                     });
                 }
             });

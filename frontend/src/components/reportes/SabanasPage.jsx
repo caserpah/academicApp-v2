@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faChartLine, faSchool, faFilter, faDownload, faSpinner, faEraser, faInfoCircle
+    faChartLine, faSchool, faFilter, faDownload, faSpinner, faEraser, faInfoCircle, faFileExcel
 } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../../context/AuthContext.jsx";
 
 // Reutilizamos el fetcher de catálogos
 import { fetchCalificacionesCatalogs } from "../../api/calificacionesService.js";
-import { descargarSabanaPdf } from "../../api/reportesService.js";
+import { descargarSabana } from "../../api/reportesService.js";
 
 import { showError } from "../../utils/notifications.js";
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
@@ -26,9 +26,7 @@ const SabanasPage = () => {
 
     // Estados de datos
     const [vigencia, setVigencia] = useState(null);
-
     const [vigencias, setVigencias] = useState([]);
-
     const [sedes, setSedes] = useState([]);
     const [grupos, setGrupos] = useState([]);
     const [cargaCompleta, setCargaCompleta] = useState([]);
@@ -65,18 +63,15 @@ const SabanasPage = () => {
                 setCargaCompleta(data.cargaCompleta || []);
                 setAsignaturasGlobales(data.asignaturas || []);
                 setEsAdmin(data.esAdmin);
+                setVigencias(data.listaVigencias || []); // Guardamos la lista de años devuelta por el servicio
 
-                // Guardamos la lista de años devuelta por el servicio
-                setVigencias(data.listaVigencias || []);
-
-                // Autoselección inicial de la vigencia activa y la sede
-                if (!filters.vigenciaId && data.vigencia) {
-                    setFilters(prev => ({ ...prev, vigenciaId: data.vigencia.id }));
-                }
-
-                if (data.sedes.length === 1) {
-                    setFilters(prev => ({ ...prev, sedeId: data.sedes[0].id }));
-                }
+                setFilters(prev => {
+                    let newFilters = { ...prev };
+                    let changed = false;
+                    if (!prev.vigenciaId && data.vigencia) { newFilters.vigenciaId = data.vigencia.id; changed = true; }
+                    if (data.sedes.length === 1 && prev.sedeId !== data.sedes[0].id) { newFilters.sedeId = data.sedes[0].id; changed = true; }
+                    return changed ? newFilters : prev;
+                });
             } catch (err) {
                 console.error("Error cargando catálogos para Sábanas:", err);
                 showError("No se pudieron cargar los datos iniciales.");
@@ -85,7 +80,8 @@ const SabanasPage = () => {
             }
         };
         if (user) loadInit();
-    }, [user, rolUsuario, filters.vigenciaId]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, rolUsuario]);
 
     // 2. Cascada SEDE -> GRUPOS
     useEffect(() => {
@@ -96,10 +92,13 @@ const SabanasPage = () => {
         const gruposDeLaSede = grupos.filter(g => String(g.sedeId) === String(filters.sedeId));
         setGruposDisponibles(gruposDeLaSede);
 
-        if (!gruposDeLaSede.find(g => String(g.id) === String(filters.grupoId))) {
-            setFilters(prev => ({ ...prev, grupoId: '', tipoSabana: '', asignaturaId: '', periodo: '' }));
-        }
-    }, [filters.sedeId, grupos, filters.grupoId]);
+        setFilters(prev => {
+            if (prev.grupoId !== '' && !gruposDeLaSede.find(g => String(g.id) === String(prev.grupoId))) {
+                return { ...prev, grupoId: '', tipoSabana: '', asignaturaId: '', periodo: '' };
+            }
+            return prev;
+        });
+    }, [filters.sedeId, grupos]);
 
     // 3. Reglas de Negocio: Tipos de Sábana y Asignaturas
     const tiposSabanaDisponibles = useMemo(() => {
@@ -111,15 +110,11 @@ const SabanasPage = () => {
 
         // 2. Buscamos si dentro de esa carga existe la asignatura "COMPORTAMIENTO" (indicador infalible de que es director)
         const esDirectorDeEsteGrupo = cargaDelGrupo.some(item =>
-            item.asignatura &&
-            item.asignatura.nombre &&
-            item.asignatura.nombre.toUpperCase().includes('COMPORTAMIENTO')
+            item.asignatura?.nombre?.toUpperCase().includes('COMPORTAMIENTO')
         );
 
         // Si NO es el director, solo puede ver la Sábana 1 (Asignatura)
-        if (!esDirectorDeEsteGrupo) {
-            return TIPOS_SABANA_BASE.filter(t => t.id === 'SABANA_ASIGNATURA');
-        }
+        if (!esDirectorDeEsteGrupo) return TIPOS_SABANA_BASE.filter(t => t.id === 'SABANA_ASIGNATURA');
 
         // Si es director, ve todas las opciones
         return TIPOS_SABANA_BASE;
@@ -139,55 +134,55 @@ const SabanasPage = () => {
             const filtradas = cargaCompleta
                 .filter(item => String(item.grupo.id) === String(filters.grupoId))
                 .map(item => item.asignatura);
-
-            // Eliminamos duplicados
-            nuevasAsignaturas = [...new Map(filtradas.map(item => [item.id, item])).values()];
+            nuevasAsignaturas = [...new Map(filtradas.map(item => [item.id, item])).values()]; // Eliminamos duplicados
         }
         setAsignaturasDisponibles(nuevasAsignaturas);
-
     }, [filters.grupoId, filters.tipoSabana, esAdmin, cargaCompleta, asignaturasGlobales]);
 
     // 4. Limpieza dinámica al cambiar de tipo de sábana
     useEffect(() => {
-        if (filters.tipoSabana === 'SABANA_ASIGNATURA') {
-            setFilters(prev => ({ ...prev, periodo: '' })); // No necesita periodo
-        } else if (filters.tipoSabana === 'SABANA_AREAS') {
-            setFilters(prev => ({ ...prev, asignaturaId: '' })); // No necesita asignatura
-        } else if (filters.tipoSabana === 'SABANA_ACUMULADOS') {
-            setFilters(prev => ({ ...prev, asignaturaId: '', periodo: '' })); // No necesita ninguno
-        }
+        setFilters(prev => {
+            if (prev.tipoSabana === 'SABANA_ASIGNATURA' && prev.periodo !== '') {
+                return { ...prev, periodo: '' };
+            }
+            if (prev.tipoSabana === 'SABANA_AREAS' && prev.asignaturaId !== '') {
+                return { ...prev, asignaturaId: '' };
+            }
+            if (prev.tipoSabana === 'SABANA_ACUMULADOS' && (prev.asignaturaId !== '' || prev.periodo !== '')) {
+                return { ...prev, asignaturaId: '', periodo: '' };
+            }
+            return prev; // Si no hay cambios, devuelve el mismo objeto para detener el render
+        });
     }, [filters.tipoSabana]);
 
     // 5. Calcular periodos disponibles según el ciclo
     const periodosDisponibles = useMemo(() => {
         if (!filters.grupoId) return [1, 2, 3, 4]; // Por defecto todos
-
         const grupoSel = gruposDisponibles.find(g => String(g.id) === String(filters.grupoId));
+
         if (!grupoSel) return [1, 2, 3, 4];
 
         const nombreGrupo = (grupoSel.label || '').toUpperCase();
-
         // Evaluamos primero CICLO VI para evitar falsos positivos con el V
         if (nombreGrupo.includes('CICLO VI')) return [3, 4];
         if (nombreGrupo.includes('CICLO V')) return [1, 2];
-
         return [1, 2, 3, 4]; // Grados regulares
     }, [filters.grupoId, gruposDisponibles]);
 
     // Handlers
-    const handleFilterChange = (e) => {
+    const handleFilterChange = useCallback((e) => {
         setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    };
+    }, []);
 
-    const clearFilters = () => {
-        setFilters({
-            sedeId: sedes.length === 1 ? filters.sedeId : '',
+    const clearFilters = useCallback(() => {
+        setFilters(prev => ({
+            ...prev,
             grupoId: '',
             tipoSabana: '',
             asignaturaId: '',
             periodo: ''
-        });
-    };
+        }));
+    }, []);
 
     // Validación de formulario completo
     const isFormComplete = useMemo(() => {
@@ -197,22 +192,41 @@ const SabanasPage = () => {
         return true;
     }, [filters]);
 
-    const handleGenerarSabana = async () => {
+    const handleGenerarSabana = async (formato = 'pdf') => {
         if (!isFormComplete) return;
+
+        // Extraemos el nombre del grupo y le quitamos los espacios (ej. "6 A" -> "6A")
+        const grupoSel = gruposDisponibles.find(g => String(g.id) === String(filters.grupoId));
+        let nombreGrupoCorto = filters.grupoId;
+
+console.log("Grupo seleccionado:", grupoSel);
+
+        if (grupoSel) {
+            const codGrado = grupoSel.codigoGrado || '';
+            const nomGrupo = grupoSel.letraGrupo || '';
+
+            if (codGrado && nomGrupo) {
+                nombreGrupoCorto = `${codGrado}${nomGrupo}`; // Resultado: "10A"
+            } else {
+                nombreGrupoCorto = grupoSel.label ? grupoSel.label.split('|')[0].replace(/\s+/g, '') : filters.grupoId;
+            }
+        }
 
         try {
             setIsGenerating(true);
-            await descargarSabanaPdf({
+            await descargarSabana({
                 vigenciaId: filters.vigenciaId,
                 grupoId: filters.grupoId,
                 tipoSabana: filters.tipoSabana,
                 asignaturaId: filters.asignaturaId || null,
-                periodo: filters.periodo || null
-            });
+                periodo: filters.periodo || null,
+                grupoNombre: nombreGrupoCorto
+            }, formato);
+
             Swal.fire({
                 icon: 'success',
                 title: '¡Éxito!',
-                text: 'Sábana generada y descargada exitosamente.',
+                text: `Sábana descargada exitosamente en formato ${formato.toUpperCase()}.`,
                 timer: 3000, // <-- Se cierra solo después de 3 segundos
                 showConfirmButton: false
             });
@@ -253,17 +267,10 @@ const SabanasPage = () => {
                         {/* Selector de Vigencia */}
                         <div className="col-span-1 md:col-span-1">
                             <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">Año Lectivo</label>
-                            <select
-                                name="vigenciaId"
-                                value={filters.vigenciaId}
-                                onChange={handleFilterChange}
-                                className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-indigo-50 text-indigo-900 font-semibold"
-                            >
+                            <select name="vigenciaId" value={filters.vigenciaId} onChange={handleFilterChange} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-indigo-50 text-indigo-900 font-semibold">
                                 <option value="">-- Seleccionar --</option>
                                 {vigencias.map(v => (
-                                    <option key={v.id} value={v.id}>
-                                        {v.anio} {v.activa ? "(Activo)" : ""}
-                                    </option>
+                                    <option key={v.id} value={v.id}>{v.anio} {v.activa ? "(Activo)" : ""}</option>
                                 ))}
                             </select>
                         </div>
@@ -286,9 +293,7 @@ const SabanasPage = () => {
                             <select name="grupoId" value={filters.grupoId} onChange={handleFilterChange} disabled={!filters.sedeId} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none disabled:bg-gray-100">
                                 <option value="">-- Grupo --</option>
                                 {gruposDisponibles.map(g => (
-                                    <option key={g.id} value={g.id}>
-                                        {formatearNombreGrupo(g.label)}
-                                    </option>
+                                    <option key={g.id} value={g.id}>{formatearNombreGrupo(g.label)}</option>
                                 ))}
                             </select>
                         </div>
@@ -330,13 +335,19 @@ const SabanasPage = () => {
 
                     {/* Botones */}
                     <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
-                        <button onClick={clearFilters} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg flex items-center gap-2">
+                        <button type="button" onClick={clearFilters} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg flex items-center gap-2">
                             <FontAwesomeIcon icon={faEraser} /> Limpiar
                         </button>
 
-                        <button onClick={handleGenerarSabana} disabled={!isFormComplete || isGenerating} className={`px-5 py-2 text-white text-sm font-bold rounded-lg flex items-center gap-2 shadow-sm transition-transform ${!isFormComplete ? 'bg-gray-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 active:scale-95'}`}>
-                            {isGenerating ? <><FontAwesomeIcon icon={faSpinner} spin /> Procesando Cálculos...</> : <><FontAwesomeIcon icon={faDownload} /> Generar Sábana</>}
+                        <button type="button" onClick={() => handleGenerarSabana('pdf')} disabled={!isFormComplete || isGenerating} className={`px-5 py-2 text-white text-sm font-bold rounded-lg flex items-center gap-2 shadow-sm transition-transform ${!isFormComplete ? 'bg-gray-300 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 active:scale-95'}`}>
+                            {isGenerating ? <><FontAwesomeIcon icon={faSpinner} spin /> Procesando...</> : <><FontAwesomeIcon icon={faDownload} /> PDF</>}
                         </button>
+
+                        {(filters.tipoSabana === 'SABANA_AREAS' || filters.tipoSabana === 'SABANA_ACUMULADOS') && (
+                            <button type="button" onClick={() => handleGenerarSabana('excel')} disabled={!isFormComplete || isGenerating} className={`px-5 py-2 text-white text-sm font-bold rounded-lg flex items-center gap-2 shadow-sm transition-transform ${!isFormComplete ? 'bg-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 active:scale-95'}`}>
+                                {isGenerating ? <><FontAwesomeIcon icon={faSpinner} spin /> Procesando...</> : <><FontAwesomeIcon icon={faFileExcel} /> Excel</>}
+                            </button>
+                        )}
                     </div>
                 </div>
 

@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
+import ExcelJS from "exceljs";
 import { fileURLToPath } from "url";
 import { pdfService } from "./pdf.service.js";
 import { sequelize } from "../database/db.connect.js";
@@ -354,7 +355,92 @@ export const matriculaService = {
         };
 
         return await pdfService.crearPdfMatriculas(dataMatriculas);
-    }
+    },
+
+    /**
+     * GENERAR EXCEL: LISTADO DE MATRÍCULAS
+     */
+    async generarExcelListado(filtros) {
+        // Usamos el findAll pero forzamos un límite alto para traer todos los de la búsqueda
+        const resultado = await matriculaRepository.findAll({
+            ...filtros,
+            limit: 10000,
+            page: 1
+        });
+
+        const matriculas = resultado.items;
+
+        if (!matriculas || matriculas.length === 0) {
+            throw new Error("No se encontraron registros para exportar con los filtros aplicados.");
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Listado Matrículas");
+
+        // Definir las columnas
+        worksheet.columns = [
+            { header: "Estudiante", key: "nombres", width: 40 },
+            { header: "Tipo Doc.", key: "tipo_doc", width: 12 },
+            { header: "Documento", key: "documento", width: 18 },
+            { header: "Edad", key: "edad", width: 10 },
+            { header: "Folio Matrícula", key: "folio", width: 22 },
+            { header: "Sede", key: "sede", width: 30 },
+            { header: "Jornada", key: "jornada", width: 15 },
+            { header: "Grado", key: "grado", width: 25 },
+            { header: "Grupo", key: "grupo", width: 15 },
+            { header: "Estado", key: "estado", width: 18 }
+        ];
+
+        // Estilos para la cabecera
+        worksheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+        worksheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0056B3" } };
+        worksheet.getRow(1).alignment = { vertical: "middle", horizontal: "center" };
+
+        // ACTIVAR AUTO-FILTROS (Desde la columna A hasta la J en la fila 1)
+        worksheet.autoFilter = 'A1:J1';
+
+        // Congelar la primera fila para que siempre sea visible al hacer scroll
+        worksheet.views = [
+            { state: 'frozen', xSplit: 0, ySplit: 1 }
+        ];
+
+        // Función auxiliar para calcular la edad
+        const calcularEdad = (fechaNacimiento) => {
+            if (!fechaNacimiento) return "N/A";
+            const hoy = new Date();
+            const nacimiento = new Date(fechaNacimiento);
+            let edad = hoy.getFullYear() - nacimiento.getFullYear();
+            const mes = hoy.getMonth() - nacimiento.getMonth();
+            if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+                edad--;
+            }
+            return edad;
+        };
+
+        // Llenar las filas
+        matriculas.forEach((mat) => {
+            const est = mat.estudiante;
+            const nombreCompleto = `${est.primerNombre || ''} ${est.segundoNombre || ''} ${est.primerApellido || ''} ${est.segundoApellido || ''}`.replace(/\s+/g, ' ').trim();
+            const gradoNombre = mat.grupo?.grado?.nombre ? mat.grupo.grado.nombre.replace(/_/g, " ") : "Sin Grado";
+            const grupoNombre = mat.grupo?.nombre ? mat.grupo.nombre : "N/A";
+            const jornada = mat.grupo?.jornada ? mat.grupo.jornada.replace("MANANA", "MAÑANA") : "N/A";
+
+            worksheet.addRow({
+                nombres: nombreCompleto,
+                tipo_doc: est.tipoDocumento,
+                documento: est.documento,
+                edad: calcularEdad(est.fechaNacimiento),
+                folio: mat.folio,
+                sede: mat.sede?.nombre || "N/A",
+                jornada: jornada,
+                grado: gradoNombre,
+                grupo: grupoNombre,
+                estado: mat.estado
+            });
+        });
+
+        return await workbook.xlsx.writeBuffer();
+    },
 };
 
 // Función para cargar el logo institucional y convertirlo a Base64 para incrustarlo en el PDF

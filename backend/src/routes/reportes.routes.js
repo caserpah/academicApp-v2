@@ -13,7 +13,15 @@ router.get(
     "/sabanas/pdf",
     protect,
     restrictTo(["docente", "admin", "secretaria", "coordinador", "director"]),
-    reporteController.descargarSabanaPdf
+    reporteController.descargarSabana
+);
+
+// Ruta para generar Excel
+router.get(
+    "/sabanas/excel",
+    protect,
+    restrictTo(["docente", "admin", "secretaria", "coordinador", "director"]),
+    reporteController.descargarSabana
 );
 
 export default router;

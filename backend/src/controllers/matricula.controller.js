@@ -251,5 +251,34 @@ export const matriculaController = {
         } catch (error) {
             next(error);
         }
+    },
+
+    /**
+     * GET /api/matriculas/listado/excel
+     */
+    async descargarExcelListado(req, res, next) {
+        try {
+            const vigenciaContexto = getVigenciaFromRequest(req);
+            const vigenciaIdFiltro = req.query.vigenciaId ? Number(req.query.vigenciaId) : vigenciaContexto.id;
+
+            const filtros = {
+                vigenciaId: vigenciaIdFiltro,
+                sedeId: req.query.sedeId,
+                grupoId: req.query.grupoId,
+                gradoId: req.query.gradoId,
+                estado: req.query.estado,
+                busqueda: req.query.busqueda,
+                jornada: req.query.jornada
+            };
+
+            const excelBuffer = await matriculaService.generarExcelListado(filtros);
+
+            const estadoNombre = filtros.estado || 'Todos';
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', `attachment; filename="Listado_Matriculas_${estadoNombre}.xlsx"`);
+            return res.send(excelBuffer);
+        } catch (error) {
+            next(error);
+        }
     }
 };

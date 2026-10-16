@@ -2,10 +2,10 @@ import { reporteService } from "../services/reporte.service.js";
 
 export const reporteController = {
 
-    async descargarSabanaPdf(req, res, next) {
+    async descargarSabana(req, res, next) {
         try {
             const usuario = req.user;
-            const { grupoId, tipoSabana, asignaturaId, periodo, vigenciaId: queryVigenciaId } = req.query;
+            const { grupoId, tipoSabana, asignaturaId, periodo, vigenciaId: queryVigenciaId, formato = 'pdf', grupoNombre } = req.query;
 
             const vigenciaId = queryVigenciaId ? Number(queryVigenciaId) : req.vigenciaActual.id;
 
@@ -22,24 +22,41 @@ export const reporteController = {
                 throw error;
             }
 
-            const pdfBuffer = await reporteService.generarSabanaPdf({
+            if (tipoSabana === 'SABANA_AREAS' && !periodo) {
+                const error = new Error("Debe seleccionar obligatoriamente un periodo para generar este reporte.");
+                error.status = 400;
+                throw error;
+            }
+
+            const params = {
                 grupoId: parseInt(grupoId),
                 tipoSabana: tipoSabana.toUpperCase(),
                 asignaturaId: asignaturaId ? parseInt(asignaturaId) : null,
                 periodo: periodo ? parseInt(periodo) : null,
                 usuario,
-                vigenciaId
-            });
+                vigenciaId,
+                grupoNombre
+            };
 
-            const nombreArchivo = `Sabana_${tipoSabana}_Grupo_${grupoId}.pdf`;
+            let bufferArchivo, nombreArchivo, contentType;
+            const identificadorGrupo = grupoNombre || grupoId; // Construimos el mismo nombre: ej. SABANA_AREAS_6A.xlsx
 
-            res.setHeader("Content-Type", "application/pdf");
+            if (formato === 'excel') {
+                bufferArchivo = await reporteService.generarSabanaExcel(params);
+                nombreArchivo = `${tipoSabana}_${identificadorGrupo}.xlsx`;
+                contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            } else {
+                bufferArchivo = await reporteService.generarSabanaPdf(params);
+                nombreArchivo = `${tipoSabana}_${identificadorGrupo}.pdf`;
+                contentType = "application/pdf";
+            }
+
+            res.setHeader("Content-Type", contentType);
             res.setHeader("Content-Disposition", `attachment; filename="${nombreArchivo}"`);
-
-            return res.send(pdfBuffer);
+            return res.send(bufferArchivo);
 
         } catch (error) {
-            console.error("Error en descargarSabanaPdf:", error);
+            console.error("Error en descargarSabana:", error);
             next(error);
         }
     }
