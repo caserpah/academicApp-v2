@@ -22,6 +22,7 @@ import GrillaCalificaciones from "./GrillaCalificaciones.jsx";
 import JustificacionModal from "./JustificacionModal.jsx";
 import CalificacionesImportModal from "./CalificacionesImportModal.jsx"
 import { formatearNombreGrupo } from "../../utils/formatters.js";
+import Swal from "sweetalert2";
 
 const CalificacionesPage = () => {
     // --- AUTH CONTEXT ---
@@ -341,7 +342,15 @@ const CalificacionesPage = () => {
 
             // Llama al nuevo servicio que descarga TODO el libro del docente para ese periodo
             await descargarPlantillaDocente(filters.periodo);
-            showSuccess("Descarga iniciada. Revisa tus descargas.");
+
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: 'Descarga iniciada. Revisa tus descargas.',
+                timer: 3000, // <-- Se cierra solo después de 3 segundos
+                showConfirmButton: false
+            });
+
         } catch (error) {
             console.log(error)
             showError("Error al generar la plantilla. Verifica tu carga académica.");
