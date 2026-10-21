@@ -8,7 +8,8 @@
         /* Márgenes de la hoja reducidos ligeramente para dar más espacio a la letra grande */
         @page {
             size: 215.9mm 330.2mm;
-            margin: 5mm 5mm 5mm 28mm; /* top, right, bottom, left */
+            margin: 5mm 5mm 5mm 28mm;
+            /* top, right, bottom, left */
         }
 
         body {
@@ -73,7 +74,8 @@
 
         .header-info-extra .badge {
             background-color: #f0f0f0;
-            border: 1px solid #929191;;
+            border: 1px solid #929191;
+            ;
             padding: 4px 8px;
             border-radius: 4px;
             display: inline-block;
@@ -91,7 +93,8 @@
         /* Padding de 4px para que la letra grande quepa bien */
         th,
         td {
-            border: 1px solid #929191;;
+            border: 1px solid #929191;
+            ;
             padding: 2px 3px;
             vertical-align: top;
             overflow: hidden;
@@ -124,7 +127,8 @@
             display: block;
             text-transform: uppercase;
             text-align: center;
-            min-height: 13px; /* Mantiene el alto de la celda aunque no haya texto */
+            min-height: 13px;
+            /* Mantiene el alto de la celda aunque no haya texto */
         }
 
         .value-left {
@@ -134,7 +138,8 @@
             display: block;
             text-transform: uppercase;
             text-align: left;
-            min-height: 13px; /* Mantiene el alto de la celda aunque no haya texto */
+            min-height: 13px;
+            /* Mantiene el alto de la celda aunque no haya texto */
         }
 
 
@@ -175,29 +180,36 @@
             text-align: center;
         }
 
-        /* ================= NUEVA HISTORIAL ================= */
+        /* ================= HISTORIAL ================= */
         .historial-table {
             margin-top: 6px;
             width: 100%;
             border-collapse: collapse;
-            table-layout: fixed; /* Esto asegura que las columnas respeten los porcentajes asignados */
+            table-layout: fixed;
+            /* Esto asegura que las columnas respeten los porcentajes asignados */
         }
 
         .historial-table th {
             color: #555;
             font-weight: bold;
-            font-size: 9.5px; /* Aumentamos el tamaño de la letra */
+            font-size: 9.5px;
+            /* Aumentamos el tamaño de la letra */
             text-transform: uppercase;
             text-align: center;
-            padding: 4px 2px; /* Un poco más de aire alrededor del texto */
+            padding: 4px 2px;
+            /* Un poco más de aire alrededor del texto */
             border: 1px solid #929191;
-            background-color: transparent; /* Fondo blanco limpio */
-            vertical-align: middle; /* Centrado vertical perfecto */
+            background-color: transparent;
+            /* Fondo blanco limpio */
+            vertical-align: middle;
+            /* Centrado vertical perfecto */
         }
 
         .historial-table td {
-            border: 1px solid #929191;;
-            height: 29px; /* Aumentamos la altura de la celda aprovechando el espacio libre, ideal para escribir a mano */
+            border: 1px solid #929191;
+            ;
+            height: 29px;
+            /* Aumentamos la altura de la celda aprovechando el espacio libre, ideal para escribir a mano */
         }
     </style>
 </head>
@@ -277,22 +289,23 @@
             </tr>
         </table>
 
-        <table>
+        <table style="table-layout: fixed; width: 100%;">
             <tr>
-                <th colspan="4" class="section-title">III. Información Complementaria y Seguridad Social</th>
+                <th colspan="3" class="section-title">III. Información Complementaria y Seguridad Social</th>
             </tr>
             <tr>
-                <td colspan="2"><span class="label">E.P.S.</span><span class="value">{{this.estudiante.eps}}</span></td>
-                <td colspan="2"><span class="label text-center">Población Víctima del Conflicto</span><span
+                <td><span class="label">E.P.S.</span><span class="value">{{this.estudiante.eps}}</span></td>
+                <td><span class="label text-center">Grupo Sisbén</span><span
+                        class="value">{{this.estudiante.sisben}}</span></td>
+                <td><span class="label text-center">Población Víctima del Conflicto</span><span
                         class="value">{{this.estudiante.pobVictima}}</span></td>
             </tr>
             <tr>
-                <td colspan="1"><span class="label">Etnia / Resguardo</span><span
-                        class="value">{{this.estudiante.etnia}} {{#if this.estudiante.resguardo}}-
-                        {{this.estudiante.resguardo}}{{/if}}</span></td>
-                <td colspan="1"><span class="label">Tipo de Discapacidad</span><span
+                <td><span class="label">Etnia / Resguardo</span><span class="value">{{this.estudiante.etnia}} {{#if
+                        this.estudiante.resguardo}}- {{this.estudiante.resguardo}}{{/if}}</span></td>
+                <td><span class="label">Tipo de Discapacidad</span><span
                         class="value">{{this.estudiante.discapacidad}}</span></td>
-                <td colspan="2"><span class="label text-center">Capacidades Excepcionales</span><span
+                <td><span class="label text-center">Capacidades Excepcionales</span><span
                         class="value">{{this.estudiante.capacidadExcepcional}}</span></td>
             </tr>
         </table>
@@ -347,37 +360,37 @@
             </tr>
         </table>
 
-        <!-- NUEVA TABLA DE HISTORIAL DE MATRÍCULAS -->
+        <!-- TABLA DE HISTORIAL DE MATRÍCULAS -->
         <table class="historial-table">
             <thead>
                 <tr>
                     <th style="width: 6%; background-color: #e2e8f0;">Año</th>
                     <th style="width: 8%; background-color: #e2e8f0;">Grado</th>
                     <th style="width: 6%; background-color: #e2e8f0;">Grupo</th>
-                    <th style="width: 15%; background-color: #e2e8f0;">Sede</th>
-                    <th style="width: 10%; background-color: #e2e8f0;">Jornada</th>
-                    <th style="width: 20%; background-color: #e2e8f0;">Padre o Acudiente</th>
-                    <th style="width: 20%; background-color: #e2e8f0;">Estudiante</th>
-                    <th style="width: 15%; background-color: #e2e8f0;">Rector(a)</th>
+                    <th style="width: 10%; background-color: #e2e8f0;">Sede</th>
+                    <th style="width: 9%; background-color: #e2e8f0;">Jornada</th>
+                    <th style="width: 17%; background-color: #e2e8f0;">Padre o Acudiente</th>
+                    <th style="width: 17%; background-color: #e2e8f0;">Estudiante</th>
+                    <th style="width: 17%; background-color: #e2e8f0;">Rector(a)</th>
+                    <th style="width: 10%; background-color: #e2e8f0;">Fecha</th>
                 </tr>
             </thead>
             <tbody>
-                <!-- 15 Filas Vacías para registro manual -->
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
             </tbody>
         </table>
 
