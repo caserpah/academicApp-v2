@@ -70,7 +70,7 @@ export const obtenerJuicio = async (nota, rangos, context, dimensionId) => {
     let idDesempenoBusqueda = rango.desempenoId;
 
     try {
-        let whereClause = { vigenciaId: context.vigenciaId, dimensionId: dimensionId, activo: true };
+        let whereClause = { dimensionId: dimensionId, activo: true };
 
         if (dimensionId === DIM.COMPORTAMIENTO) {
             Object.assign(whereClause, { periodo: 0, gradoId: null, asignaturaId: context.asignaturaId, desempenoId: idDesempenoBusqueda });
