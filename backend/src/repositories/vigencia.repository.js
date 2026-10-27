@@ -1,3 +1,5 @@
+
+
 import { Op } from "sequelize";
 import { Vigencia } from "../models/vigencia.js";
 

@@ -34,4 +34,19 @@ export const desempenoRangoRepository = {
         await registro.destroy();
         return true;
     },
+
+    /* Contar cuántos desempeños rangos pertenecen a una vigencia específica */
+    async countByVigencia(vigenciaId, options = {}) {
+        return DesempenoRango.count({ where: { vigenciaId }, ...options });
+    },
+
+    /* Obtener todos los desempeños rangos de una vigencia específica en formato raw */
+    async findAllRawByVigencia(vigenciaId, options = {}) {
+        return DesempenoRango.findAll({ where: { vigenciaId }, raw: true, ...options });
+    },
+
+    /* Crear múltiples desempeños rangos a la vez */
+    async bulkCreate(data, options = {}) {
+        return DesempenoRango.bulkCreate(data, options);
+    }
 };

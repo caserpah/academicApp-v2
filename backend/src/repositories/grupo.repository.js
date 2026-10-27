@@ -130,4 +130,19 @@ export const grupoRepository = {
         await registro.destroy();
         return true;
     },
+
+    /* Contar grupos por vigencia */
+    async countByVigencia(vigenciaId, options = {}) {
+        return Grupo.count({ where: { vigenciaId }, ...options });
+    },
+
+    /* Obtener todos los grupos de una vigencia específica en formato raw */
+    async findAllRawByVigencia(vigenciaId, options = {}) {
+        return Grupo.findAll({ where: { vigenciaId }, raw: true, ...options });
+    },
+
+    /* Crear múltiples grupos a la vez */
+    async bulkCreate(data, options = {}) {
+        return Grupo.bulkCreate(data, options);
+    }
 };

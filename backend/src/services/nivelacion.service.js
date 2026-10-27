@@ -327,7 +327,7 @@ export const nivelacionService = {
                 await t.rollback();
                 return {
                     status: 'warning',
-                    mensaje: `Faltan ${reporteFaltantes.length} calificaciones por ingresar. ¿Desea forzar el cierre?`,
+                    mensaje: `Faltan ${reporteFaltantes.length} calificaciones por ingresar.`,
                     faltantes: reporteFaltantes // Enviamos el detalle al frontend
                 };
             }

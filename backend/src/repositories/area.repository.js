@@ -126,8 +126,8 @@ export const areaRepository = {
      * Crear un registro de área.
      * (La validación de vigenciaId y datos se hace en el servicio/validador)
      */
-    async create(data) {
-        return Area.create(data);
+    async create(data, options = {}) {
+        return Area.create(data, options);
     },
 
     /**
@@ -151,4 +151,14 @@ export const areaRepository = {
             where: { id },
         });
     },
+
+    /* Contar cuántas áreas pertenecen a una vigencia específica */
+    async countByVigencia(vigenciaId, options = {}) {
+        return Area.count({ where: { vigenciaId }, ...options });
+    },
+
+    /* Obtener todas las áreas de una vigencia específica, en formato raw (sin instancias de Sequelize) */
+    async findAllRawByVigencia(vigenciaId, options = {}) {
+        return Area.findAll({ where: { vigenciaId }, raw: true, ...options });
+    }
 };

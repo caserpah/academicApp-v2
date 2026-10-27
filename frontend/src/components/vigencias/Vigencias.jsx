@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCalendarAlt, faEdit, faTrash, faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
-import { fetchVigencias, crearVigencia, actualizarVigencia, eliminarVigencia, cerrarVigencia, abrirVigencia } from "../../api/vigenciasService.js";
+import { faCalendarAlt, faEdit, faTrash, faCheckCircle, faTimesCircle, faCopy } from "@fortawesome/free-solid-svg-icons";
+import { fetchVigencias, crearVigencia, actualizarVigencia, eliminarVigencia, cerrarVigencia, abrirVigencia, clonarConfiguracionVigencia } from "../../api/vigenciasService.js";
 import { showSuccess, showError, showWarning, showConfirm } from "../../utils/notifications.js";
 import VigenciasForm from "./VigenciasForm.jsx";
+import ClonarVigenciaModal from "./ClonarVigenciaModal.jsx";
 
 const Vigencias = () => {
     const initialFormState = { id: null, anio: "", fechaInicio: "", fechaFin: "", activa: false };
     const [formData, setFormData] = useState(initialFormState);
     const [vigencias, setVigencias] = useState([]);
+    const [isCloneModalOpen, setIsCloneModalOpen] = useState(false);
+    const [vigenciaCloneDestino, setVigenciaCloneDestino] = useState(null);
     const [mode, setMode] = useState("agregar");
     const [loading, setLoading] = useState(false);
     const formContainerRef = useRef(null);
@@ -64,7 +67,8 @@ const Vigencias = () => {
     };
 
     const handleEdit = (v) => {
-        setFormData(v);
+        const { id, anio, fechaInicio, fechaFin } = v;
+        setFormData({ id, anio, fechaInicio, fechaFin });
         setMode("editar");
         formContainerRef.current?.scrollIntoView({ behavior: "smooth" });
     };
@@ -120,6 +124,24 @@ const Vigencias = () => {
         }
     };
 
+    const handleClonarSubmit = async (destinoId, payload) => {
+        try {
+            setLoading(true);
+            const mensaje = await clonarConfiguracionVigencia(destinoId, payload);
+            showSuccess(mensaje);
+            setIsCloneModalOpen(false);
+        } catch (err) {
+            showError(err.response?.data?.message || err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const abrirModalClonar = (vigencia) => {
+        setVigenciaCloneDestino(vigencia);
+        setIsCloneModalOpen(true);
+    };
+
     const resetForm = () => { setFormData(initialFormState); setMode("agregar"); };
 
     return (
@@ -173,6 +195,7 @@ const Vigencias = () => {
                                         <td className="px-4 py-4 text-right space-x-2">
                                             <button onClick={() => handleEdit(v)} title="Editar" className="text-blue-600 hover:scale-110 transition-transform"><FontAwesomeIcon icon={faEdit} size="lg" /></button>
                                             <button onClick={() => handleDelete(v)} className="text-red-600 hover:scale-110 transition-transform"><FontAwesomeIcon icon={faTrash} size="lg" /></button>
+                                            <button onClick={() => abrirModalClonar(v)} title="Clonar Configuraciones" className="text-emerald-600 hover:scale-110 transition-transform"><FontAwesomeIcon icon={faCopy} size="lg" /></button>
                                         </td>
                                     </tr>
                                 ))}
@@ -181,6 +204,16 @@ const Vigencias = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Se renderiza el modal para clonar configuraciones de vigencias */}
+            <ClonarVigenciaModal
+                isOpen={isCloneModalOpen}
+                onClose={() => setIsCloneModalOpen(false)}
+                vigenciaDestino={vigenciaCloneDestino}
+                vigenciasDisponibles={vigencias}
+                onClonar={handleClonarSubmit}
+                loading={loading}
+            />
         </div>
     );
 };

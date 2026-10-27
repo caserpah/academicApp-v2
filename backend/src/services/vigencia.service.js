@@ -1,4 +1,9 @@
+import { sequelize } from "../database/db.connect.js";
 import { vigenciaRepository } from "../repositories/vigencia.repository.js";
+import { areaRepository } from "../repositories/area.repository.js";
+import { asignaturaRepository } from "../repositories/asignatura.repository.js";
+import { grupoRepository } from "../repositories/grupo.repository.js";
+import { desempenoRangoRepository } from "../repositories/desempenoRango.repository.js";
 import { setVigenciaActiva } from "../utils/vigencia.helper.js";
 import { formatearErrorForaneo } from "../utils/dbUtils.js";
 
@@ -125,4 +130,133 @@ export const vigenciaService = {
         await registro.update({ activa: false });
         return registro;
     },
+
+    /**
+     * Clona configuraciones de una vigencia origen a una vigencia destino.
+     */
+    async clonarConfiguracion(destinoId, payload) {
+        const { vigenciaOrigenId, opciones } = payload;
+
+        if (Number(destinoId) === Number(vigenciaOrigenId)) {
+            const err = new Error("El año lectivo de origen y destino no pueden ser el mismo.");
+            err.status = 400;
+            throw err;
+        }
+
+        const vigenciaDestino = await vigenciaRepository.findById(destinoId);
+        const vigenciaOrigen = await vigenciaRepository.findById(vigenciaOrigenId);
+
+        if (!vigenciaDestino || !vigenciaOrigen) {
+            const err = new Error("No se encontró el año lectivo de origen o destino especificado.");
+            err.status = 404;
+            throw err;
+        }
+
+        const t = await sequelize.transaction();
+
+        try {
+            // Clonar Rangos de desempeño
+            if (opciones.desempenos) {
+                const count = await desempenoRangoRepository.countByVigencia(destinoId, { transaction: t });
+                if (count > 0) throw new Error("El año lectivo de destino ya tiene rangos de desempeño configurados.");
+
+                const rangosOrigen = await desempenoRangoRepository.findAllRawByVigencia(vigenciaOrigenId, { transaction: t });
+
+                if (rangosOrigen.length > 0) {
+                    const nuevosRangos = rangosOrigen.map(item => ({
+                        vigenciaId: destinoId,
+                        desempenoId: item.desempenoId,
+                        minNota: item.minNota,
+                        maxNota: item.maxNota,
+                        activo: item.activo
+                    }));
+                    await desempenoRangoRepository.bulkCreate(nuevosRangos, { transaction: t });
+                }
+            }
+
+            // Clonar Áreas (almacenando el mapeo de IDs para las asignaturas)
+            let mapaAreas = {};
+            if (opciones.areas) {
+                const countAreas = await areaRepository.countByVigencia(destinoId, { transaction: t });
+                if (countAreas > 0) throw new Error("El año lectivo de destino ya tiene áreas configuradas.");
+
+                const areasOrigen = await areaRepository.findAllRawByVigencia(vigenciaOrigenId, { transaction: t });
+
+                for (const item of areasOrigen) {
+                    const nuevaArea = await areaRepository.create({
+                        vigenciaId: destinoId,
+                        codigo: item.codigo,
+                        nombre: item.nombre,
+                        abreviatura: item.abreviatura,
+                        promociona: item.promociona
+                    }, { transaction: t });
+
+                    mapaAreas[item.id] = nuevaArea.id;
+                }
+            }
+
+            // Clonar Asignaturas
+            if (opciones.asignaturas) {
+                const countAsig = await asignaturaRepository.countByVigencia(destinoId, { transaction: t });
+                if (countAsig > 0) throw new Error("El año lectivo de destino ya tiene asignaturas configuradas.");
+
+                if (!opciones.areas) {
+                    throw new Error("Para clonar las asignaturas, debe seleccionar también la clonación de áreas.");
+                }
+
+                const asignaturasOrigen = await asignaturaRepository.findAllRawByVigencia(vigenciaOrigenId, { transaction: t });
+
+                if (asignaturasOrigen.length > 0) {
+                    const nuevasAsignaturas = asignaturasOrigen.map(item => {
+                        if (!mapaAreas[item.areaId]) {
+                            throw new Error(`Inconsistencia relacional: No se encontró el área asociada a la asignatura ${item.nombre}.`);
+                        }
+
+                        return {
+                            vigenciaId: destinoId,
+                            areaId: mapaAreas[item.areaId],
+                            codigo: item.codigo,
+                            nombre: item.nombre,
+                            nombreCorto: item.nombreCorto,
+                            abreviatura: item.abreviatura,
+                            porcentual: item.porcentual
+                        };
+                    });
+                    await asignaturaRepository.bulkCreate(nuevasAsignaturas, { transaction: t });
+                }
+            }
+
+            // Clonar Grupos
+            if (opciones.grupos) {
+                const countGrupos = await grupoRepository.countByVigencia(destinoId, { transaction: t });
+                if (countGrupos > 0) throw new Error("El año lectivo de destino ya tiene grupos configurados.");
+
+                const gruposOrigen = await grupoRepository.findAllRawByVigencia(vigenciaOrigenId, { transaction: t });
+
+                if (gruposOrigen.length > 0) {
+                    const nuevosGrupos = gruposOrigen.map(item => ({
+                        vigenciaId: destinoId,
+                        nombre: item.nombre,
+                        gradoId: item.gradoId,
+                        jornada: item.jornada,
+                        cupos: item.cupos,
+                        sobrecupoPermitido: item.sobrecupoPermitido,
+                        sedeId: item.sedeId
+                    }));
+                    await grupoRepository.bulkCreate(nuevosGrupos, { transaction: t });
+                }
+            }
+
+            await t.commit();
+            return { message: "Configuración clonada exitosamente." };
+
+        } catch (error) {
+            await t.rollback();
+            if (error.status) throw error;
+
+            const err = new Error(error.message || "Error interno al intentar clonar la configuración.");
+            err.status = error.message.includes("ya tiene") || error.message.includes("debe seleccionar") ? 400 : 500;
+            throw err;
+        }
+    }
 };

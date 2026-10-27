@@ -1,6 +1,6 @@
 import React from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSave, faTimes, faInfoCircle } from "@fortawesome/free-solid-svg-icons";
+import { faSave, faTimes } from "@fortawesome/free-solid-svg-icons";
 
 const VigenciasForm = ({ formData, setFormData, mode, loading, handleSubmit, resetForm }) => {
 
@@ -18,15 +18,9 @@ const VigenciasForm = ({ formData, setFormData, mode, loading, handleSubmit, res
                 <h3 className="text-lg font-semibold text-gray-700">
                     {mode === "agregar" ? "Configurar Nueva Vigencia" : `Editando Año ${formData.anio}`}
                 </h3>
-                {mode === "agregar" && (
-                    <span className="text-xs bg-blue-50 text-blue-600 p-2 rounded-lg flex items-center">
-                        <FontAwesomeIcon icon={faInfoCircle} className="mr-2" />
-                        Solo una vigencia puede estar activa a la vez.
-                    </span>
-                )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 {/* Año */}
                 <div>
                     <label className="block text-sm font-medium text-gray-600 mb-1">
@@ -68,19 +62,6 @@ const VigenciasForm = ({ formData, setFormData, mode, loading, handleSubmit, res
                         required
                     />
                 </div>
-
-                {/* Switch Activa */}
-                <div className="flex items-center space-x-3 mb-2 ml-4">
-                    <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                            type="checkbox" name="activa"
-                            checked={formData.activa} onChange={handleChange}
-                            className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        <span className="ml-3 text-sm font-medium text-gray-700">Vigencia Activa</span>
-                    </label>
-                </div>
             </div>
 
             <div className="flex justify-end space-x-3 pt-4 border-t">
@@ -89,7 +70,7 @@ const VigenciasForm = ({ formData, setFormData, mode, loading, handleSubmit, res
                     className="bg-blue-600 text-white px-5 py-2 rounded-lg shadow-md hover:bg-blue-700 transition duration-150 flex items-center"
                 >
                     <FontAwesomeIcon icon={faSave} className="mr-2" />
-                    {mode === "agregar" ? "Habilitar Año" : "Guardar Cambios"}
+                    {mode === "agregar" ? "Guardar Vigencia" : "Guardar Cambios"}
                 </button>
                 <button type="button" onClick={resetForm} className="bg-red-500 text-white px-5 py-2 rounded-lg shadow-md hover:bg-red-600 transition duration-150 flex items-center hover:scale-[1.01]">
                     <FontAwesomeIcon icon={faTimes} className="mr-2" /> Cancelar

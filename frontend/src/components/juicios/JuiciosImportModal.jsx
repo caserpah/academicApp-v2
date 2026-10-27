@@ -99,7 +99,7 @@ const JuiciosImportModal = ({ onClose, onSuccess }) => {
                         <FontAwesomeIcon icon={faFileExcel} className="text-green-600" />
                         Importación Masiva de Juicios
                     </h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
+                    <button onClick={onClose} className="text-gray-400 hover:text-red-600 transition">
                         <FontAwesomeIcon icon={faTimes} size="lg" />
                     </button>
                 </div>

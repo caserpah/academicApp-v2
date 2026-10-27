@@ -62,3 +62,12 @@ export const cerrarVigencia = async (id) => {
         throw parseError(error, "Error al cerrar la vigencia");
     }
 };
+
+export const clonarConfiguracionVigencia = async (destinoId, payload) => {
+    try {
+        const response = await apiClient.post(`${VIGENCIAS_ENDPOINT}/${destinoId}/clonar-configuracion`, payload);
+        return response.data.message;
+    } catch (error) {
+        throw parseError(error, "Error al clonar la configuración");
+    }
+};

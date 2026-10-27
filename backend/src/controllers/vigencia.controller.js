@@ -104,4 +104,20 @@ export const vigenciaController = {
             next(error);
         }
     },
+
+    /**
+     * Clonar configuración de otras vigencias (Solo administrador).
+     */
+    async clonarConfiguracion(req, res, next) {
+        try {
+            const destinoId = req.params.id;
+            const payload = req.body;
+            // payload esperado: { vigenciaOrigenId: 1, opciones: { areas: true, asignaturas: true, grupos: true, desempenos: false } }
+
+            const data = await vigenciaService.clonarConfiguracion(destinoId, payload);
+            return sendSuccess(res, data, data.message);
+        } catch (error) {
+            next(error);
+        }
+    }
 };

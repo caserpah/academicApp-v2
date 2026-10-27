@@ -68,7 +68,6 @@ router.use("/coordinadores-sedes", vigenciaContext, coordinadorSedesRoutes);
 /* ============================================================
     📘 GESTIÓN ACADÉMICA
    ============================================================ */
-import vigenciaConfigRoutes from "./vigenciaConfig.route.js";
 import grupoRoutes from "./grupos.route.js";
 import cargaRoutes from "./carga.routes.js";
 import calificacionRoutes from "./calificacion.routes.js";
@@ -89,7 +88,6 @@ import certificadoRoutes from "./certificados.routes.js";
 import reporteRoutes from "./reportes.routes.js";
 import listadosRoutes from "./listados.routes.js";
 
-router.use("/vigencias-config", vigenciaConfigRoutes); // Configuración de vigencias
 router.use("/grupos", vigenciaContext, grupoRoutes);
 router.use("/cargas", vigenciaContext, cargaRoutes);
 router.use("/calificaciones", vigenciaContext, calificacionRoutes);

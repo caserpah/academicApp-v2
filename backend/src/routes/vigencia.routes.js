@@ -68,4 +68,12 @@ router.post(
     vigenciaController.cerrar
 );
 
+// Clonar configuración (áreas, grupos, etc.) desde otra vigencia (solo admin)
+router.post(
+    "/:id/clonar-configuracion",
+    protect,
+    restrictTo(["admin", "secretaria"]),
+    vigenciaController.clonarConfiguracion
+);
+
 export default router;

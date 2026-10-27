@@ -150,4 +150,19 @@ export const asignaturaRepository = {
             where: { id }
         });
     },
+
+    /* Contar cuántas asignaturas pertenecen a una vigencia específica */
+    async countByVigencia(vigenciaId, options = {}) {
+        return Asignatura.count({ where: { vigenciaId }, ...options });
+    },
+
+    /* Obtener todas las asignaturas de una vigencia específica, en formato raw (sin instancias de Sequelize) */
+    async findAllRawByVigencia(vigenciaId, options = {}) {
+        return Asignatura.findAll({ where: { vigenciaId }, raw: true, ...options });
+    },
+
+    /* Crear múltiples asignaturas de forma masiva */
+    async bulkCreate(data, options = {}) {
+        return Asignatura.bulkCreate(data, options);
+    }
 };
