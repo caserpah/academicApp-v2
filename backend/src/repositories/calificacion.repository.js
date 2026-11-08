@@ -94,6 +94,16 @@ export const calificacionRepository = {
     },
 
     /**
+     * Buscar si el estudiante tiene calificaciones asociadas a esta vigencia/grupo
+     */
+    async tieneCalificaciones(estudianteId, vigenciaId, transaction = null) {
+        return Calificacion.count({
+            where: { estudianteId, vigenciaId },
+            transaction
+        });
+    },
+
+    /**
      * Obtiene la Carga Académica del docente incluyendo los grupos y sus estudiantes ACTIVOS.
      * Define el "DEBER SER" (a quiénes debería haber calificado).
      */

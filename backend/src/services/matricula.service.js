@@ -1,4 +1,3 @@
-
 import fs from "fs/promises";
 import path from "path";
 import ExcelJS from "exceljs";
@@ -6,10 +5,10 @@ import { fileURLToPath } from "url";
 import { pdfService } from "./pdf.service.js";
 import { sequelize } from "../database/db.connect.js";
 import { matriculaRepository } from "../repositories/matricula.repository.js";
-import { HistorialMatriculas } from "../models/historial_matriculas.js";
-import { Grupo } from "../models/grupo.js";
-import { Calificacion } from "../models/calificacion.js";
-import { Colegio } from "../models/colegio.js";
+import { vigenciaRepository } from "../repositories/vigencia.repository.js";
+import { grupoRepository } from "../repositories/grupo.repository.js";
+import { calificacionRepository } from "../repositories/calificacion.repository.js";
+import { colegioRepository } from "../repositories/colegio.repository.js";
 import { mapearDatosMatricula, formatearFecha } from "../utils/matriculaMapper.js";
 import { formatearErrorForaneo } from "../utils/dbUtils.js";
 import { handleSequelizeError } from "../middleware/handleSequelizeError.js";
@@ -59,7 +58,6 @@ export const matriculaService = {
     async crear(datos, usuarioAuditorId) {
         try {
             return await sequelize.transaction(async (t) => {
-                // Desestructuración de campos permitidos
                 const {
                     estudianteId, grupoId, gradoId, sedeId, vigenciaId, anioVigencia, observaciones, estado,
                     metodologia, es_nuevo, es_repitente, bloqueo_notas, situacion_ano_anterior
@@ -78,8 +76,8 @@ export const matriculaService = {
                 }
 
                 // Validar Cupos del Grupo
-                const grupo = await Grupo.findByPk(grupoId, { transaction: t });
-                if (!grupo) throw new Error("El grupo seleccionado no existe.");
+                const grupo = await grupoRepository.findById(grupoId, vigenciaId);
+                if (!grupo) throw new Error("El grupo seleccionado no existe para el año lectivo especificado.");
 
                 if (!grupo.sobrecupoPermitido) {
                     const matriculados = await matriculaRepository.countByGrupo(grupoId, vigenciaId, { transaction: t });
@@ -113,14 +111,15 @@ export const matriculaService = {
                 const nuevaMatricula = await matriculaRepository.create(nuevaMatriculaData, { transaction: t });
 
                 // Crear Historial Inicial (Auditoría)
-                await HistorialMatriculas.create({
+                const historialData = {
                     matriculaId: nuevaMatricula.id,
                     estadoNuevo: nuevaMatricula.estado,
-                    grupoNuevoId: grupoId,
-                    sedeNuevoId: sedeId,
+                    grupoNuevoId: nuevaMatricula.grupoId,
+                    sedeNuevoId: nuevaMatricula.sedeId,
                     usuarioId: usuarioAuditorId,
                     motivo: "Creación inicial de matrícula"
-                }, { transaction: t });
+                };
+                await matriculaRepository.crearHistorial(historialData, { transaction: t });
 
                 return nuevaMatricula;
             });
@@ -164,13 +163,13 @@ export const matriculaService = {
                 if (grupoId && Number(grupoId) !== matriculaActual.grupoId) {
                     hayCambioCritico = true;
 
-                    const nuevoGrupo = await Grupo.findByPk(grupoId, { transaction: t });
+                    const nuevoGrupo = await grupoRepository.findById(grupoId, matriculaActual.vigenciaId);
 
                     // Validar cupos solo si me muevo a un grupo distinto
                     if (!nuevoGrupo.sobrecupoPermitido) {
                         const conteo = await matriculaRepository.countByGrupo(grupoId, matriculaActual.vigenciaId, { transaction: t });
                         if (conteo >= nuevoGrupo.cupos) {
-                            throw new Error(`El grupo de destino no tiene cupos.`);
+                            throw new Error(`El grupo de destino no tiene cupos para el año lectivo especificado.`);
                         }
                     }
                     cambios.push("Cambio de Grupo");
@@ -209,7 +208,7 @@ export const matriculaService = {
 
                 // Registrar Historial si hubo cambios críticos
                 if (hayCambioCritico) {
-                    await HistorialMatriculas.create({
+                    await matriculaRepository.crearHistorial({
                         matriculaId: id,
                         estadoAnterior: matriculaActual.estado,
                         estadoNuevo: estado || matriculaActual.estado,
@@ -245,12 +244,7 @@ export const matriculaService = {
             }
 
             // Buscar si el estudiante tiene calificaciones asociadas a esta vigencia/grupo
-            const notasExistentes = await Calificacion.count({
-                where: {
-                    estudianteId: registro.estudianteId,
-                    vigenciaId: registro.vigenciaId
-                }
-            });
+            const notasExistentes = await calificacionRepository.tieneCalificaciones(registro.estudianteId, registro.vigenciaId);
 
             if (notasExistentes > 0) {
                 const err = new Error("La matrícula no puede eliminarse porque el estudiante ya tiene calificaciones registradas.");
@@ -271,24 +265,13 @@ export const matriculaService = {
     },
 
     /**
-     * Activar (Matricular) Prematriculas masivamente
-     */
-    async activarPrematriculasMasivo({ filtros, usuarioId }) {
-        try {
-            return await matriculaRepository.activarPrematriculasMasivo(filtros, usuarioId);
-        } catch (error) {
-            throw handleSequelizeError(error);
-        }
-    },
-
-    /**
      * GENERAR PDF: ACTA INDIVIDUAL
      */
     async generarPdfActa(id) {
         const matriculaRaw = await matriculaRepository.findByIdCompleto(id);
         if (!matriculaRaw) throw new Error("Matrícula no encontrada");
 
-        const colegio = await Colegio.findOne();
+        const colegio = await colegioRepository.findOne();
         const logoBase64 = await _obtenerLogoBase64();
         const fechaResStr = formatearFecha(colegio?.fechaResolucion);
 
@@ -316,7 +299,7 @@ export const matriculaService = {
             throw new Error("No hay matrículas activas en este grupo para generar actas.");
         }
 
-        const colegio = await Colegio.findOne();
+        const colegio = await colegioRepository.findOne();
         const logoBase64 = await _obtenerLogoBase64();
         const fechaResStr = formatearFecha(colegio?.fechaResolucion);
 
@@ -339,7 +322,7 @@ export const matriculaService = {
      * GENERAR PDF: ACTA EN BLANCO
      */
     async generarPdfBlanco() {
-        const colegio = await Colegio.findOne();
+        const colegio = await colegioRepository.findOne();
         const logoBase64 = await _obtenerLogoBase64();
         const fechaResStr = formatearFecha(colegio?.fechaResolucion);
 
@@ -441,6 +424,163 @@ export const matriculaService = {
         });
 
         return await workbook.xlsx.writeBuffer();
+    },
+
+    /**
+     * FORMALIZACIÓN - PASO 1: Consulta origen con exclusión cruzada y regla de egresados (Por Código)
+     */
+    async obtenerEvaluadosParaFormalizar(grupoId, vigenciaId, vigenciaDestinoId) {
+        // 1. Consultar el grupo de origen para identificar su grado
+        const grupoOrigen = await grupoRepository.findById(grupoId, vigenciaId);
+        if (!grupoOrigen) throw new Error("El grupo de origen no fue encontrado en la base de datos.");
+
+        // Extraemos el código exacto del grado
+        const codigoGradoOrigen = grupoOrigen.grado?.codigo;
+
+        // Identificar si es un grado terminal usando los códigos estandarizados
+        const esGradoTerminal = codigoGradoOrigen === '11' || codigoGradoOrigen === 'C6';
+
+        // 2. Obtener todos los del grupo origen
+        const resultado = await matriculaRepository.findAll({
+            grupoId: grupoId,
+            vigenciaId: vigenciaId,
+            limit: 500,
+            page: 1
+        });
+
+        // 3. Filtrar aplicando la Regla de Negocio de Egresados
+        const evaluadosBase = resultado.items.filter(m => {
+            if (m.estado === 'REPROBADO') return true; // Los reprobados siempre se muestran para que repitan
+
+            if (m.estado === 'PROMOVIDO') {
+                if (esGradoTerminal) {
+                    return false; // Si aprobó el grado 11 o C6, es Egresado. No se puede matricular de nuevo.
+                }
+                return true; // Promovidos de otros grados sí pasan
+            }
+            return false;
+        });
+
+        const evaluadosFinales = [];
+
+        // 4. Excluir a los que ya tienen matrícula en el año destino
+        for (const m of evaluadosBase) {
+            const est = m.estudiante;
+
+            const matriculaExistente = await matriculaRepository.findByEstudianteYVigencia(est.id, vigenciaDestinoId);
+
+            if (matriculaExistente) {
+                // Si el destino es la misma vigencia del origen (Ciclo V -> Ciclo VI)
+                if (matriculaExistente.id !== m.id) {
+                    continue; // Se omite, ya fue formalizado en otro grupo
+                }
+            }
+
+            const nombreCompleto = `${est.primerApellido || ''} ${est.segundoApellido || ''} ${est.primerNombre || ''} ${est.segundoNombre || ''}`.replace(/\s+/g, ' ').trim();
+
+            evaluadosFinales.push({
+                id: m.id,
+                estudianteId: est.id,
+                documento: est.documento,
+                nombreCompleto: nombreCompleto,
+                dictamen: m.estado
+            });
+        }
+
+        return evaluadosFinales.sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto));
+    },
+
+    /**
+     * FORMALIZACIÓN - PASO 2: Ejecuta Inserción Masiva
+     */
+    async formalizarMatriculasLote(destino, estudiantes, usuarioAuditorId) {
+        try {
+            return await sequelize.transaction(async (t) => {
+                // 1. Obtener datos del año de destino para armar el folio
+                const vigenciaDestino = await vigenciaRepository.findById(destino.vigenciaId, { transaction: t });
+                if (!vigenciaDestino) throw new Error("El año lectivo de destino no existe.");
+
+                // 2. Validar Cupos del grupo destino
+                const grupoDestinoObj = await grupoRepository.findById(destino.grupoId, destino.vigenciaId, { transaction: t });
+                if (!grupoDestinoObj) throw new Error("El grupo de destino no existe.");
+
+                if (!grupoDestinoObj.sobrecupoPermitido) {
+                    const ocupados = await matriculaRepository.countByGrupo(destino.grupoId, destino.vigenciaId, { transaction: t });
+                    if (ocupados + estudiantes.length > grupoDestinoObj.cupos) {
+                        throw new Error(`El grupo destino no tiene cupos suficientes. Cupos disponibles: ${grupoDestinoObj.cupos - ocupados}`);
+                    }
+                }
+
+                const nombreGradoDestino = (grupoDestinoObj.grado?.nombre || "").toUpperCase();
+                const esDestinoCicloVI = nombreGradoDestino.includes("CICLO_VI") || nombreGradoDestino.includes("CICLO VI");
+
+                let procesados = 0;
+                let omitidos = 0;
+
+                // 3. Procesar cada estudiante
+                for (const est of estudiantes) {
+                    // Validar que no esté matriculado ya en el año destino
+                    const matriculaExistente = await matriculaRepository.findByEstudianteYVigencia(est.estudianteId, destino.vigenciaId, { transaction: t });
+                    if (matriculaExistente) {
+                        // Permitir doble matrícula solo si es PROMOVIDO y el destino es CICLO VI
+                        const esExcepcionCiclo = (matriculaExistente.estado === 'PROMOVIDO' && esDestinoCicloVI);
+
+                        if (!esExcepcionCiclo) {
+                            omitidos++;
+                            continue; // Si no es la excepción, bloqueamos la doble matrícula en el mismo año
+                        }
+                    }
+
+                    // APLICACIÓN DE REGLAS DE NEGOCIO SEGÚN DICTAMEN
+                    const esRepitente = est.dictamen === 'REPROBADO';
+                    const situacionAnterior = esRepitente ? 'REPROBO' : 'APROBO';
+
+                    const nuevaMatriculaData = {
+                        folio: generarFolio(vigenciaDestino.anio),
+                        estudianteId: est.estudianteId,
+                        gradoId: grupoDestinoObj.gradoId,
+                        grupoId: destino.grupoId,
+                        sedeId: destino.sedeId,
+                        vigenciaId: destino.vigenciaId,
+                        estado: "ACTIVA",
+                        metodologia: "TRADICIONAL",
+                        es_nuevo: false, // Son estudiantes antiguos que vienen del origen
+                        es_repitente: esRepitente,
+                        situacion_ano_anterior: situacionAnterior,
+                        bloqueo_notas: false,
+                        fechaHora: new Date(),
+                        usuarioCreacion: usuarioAuditorId
+                    };
+
+                    // Insertar en BD
+                    const nuevaMatricula = await matriculaRepository.create(nuevaMatriculaData, { transaction: t });
+
+                    // Registrar Auditoría
+                    await matriculaRepository.crearHistorial({
+                        matriculaId: nuevaMatricula.id,
+                        estadoNuevo: "ACTIVA",
+                        grupoNuevoId: destino.grupoId,
+                        sedeNuevoId: destino.sedeId,
+                        usuarioId: usuarioAuditorId,
+                        motivo: `Formalización de matrícula por Promoción/Repitencia (${est.dictamen})`
+                    }, { transaction: t });
+
+                    procesados++;
+                }
+
+                if (procesados === 0 && omitidos > 0) {
+                    throw new Error("Todos los estudiantes seleccionados ya están matriculados en el año lectivo de destino.");
+                }
+
+                return {
+                    procesados,
+                    omitidos,
+                    mensaje: `Se formalizaron exitosamente ${procesados} matrículas.` + (omitidos > 0 ? ` (Se omitieron ${omitidos} por tener matrícula activa en el mismo año lectivo).` : "")
+                };
+            });
+        } catch (error) {
+            throw handleSequelizeError(error);
+        }
     },
 };
 

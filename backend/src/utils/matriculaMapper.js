@@ -65,45 +65,21 @@ export const mapearDatosMatricula = (matriculaRaw, esBlanco = false) => {
             esPrematricula: false,
             tituloReporte: "FICHA DE MATRÍCULA",
             estudiante: {
-                apellidos: "",
-                nombres: "",
-                tipoDoc: "",
-                documento: "",
-                lugarExpedicion: "",
-                fechaNac: "",
-                edad: "",
-                lugarNacimiento: "",
-                genero: "", rh: "",
-                direccion: "",
-                barrio: "", estrato: "",
-                mupioResidencia: "", zona: "",
-                telefono: "",
-                eps: "",
-                sisben: "",
-                pobVictima: "",
-                etnia: "", resguardo: "",
-                discapacidad: "",
-                capacidadExcepcional: ""
+                apellidos: "", nombres: "", tipoDoc: "", documento: "", lugarExpedicion: "",
+                fechaNac: "", edad: "", lugarNacimiento: "", genero: "", rh: "", direccion: "",
+                barrio: "", estrato: "", municipioResidencia: "", zona: "", telefono: "",
+                eps: "", sisben: "", pobVictima: "", etnia: "", resguardo: "", discapacidad: "", capacidadExcepcional: ""
             },
-            acudiente: {
-                nombre: "",
-                parentesco: "",
-                telefono: "",
-                tipoDoc: "",
-                documento: "",
-                fechaNac: "",
-                lugarExpedicion: "",
-                direccion: "",
-                email: ""
-            },
-            observaciones: ""
+            acudiente: { nombre: "", parentesco: "", telefono: "", tipoDoc: "", documento: "", fechaNac: "", lugarExpedicion: "", direccion: "", email: "" },
+            observaciones: "",
+            matriculaActual: { anio: "", grado: "", grupo: "", sede: "", jornada: "", fecha: "" },
+            historial: Array.from({ length: 14 }, () => ({}))
         };
     }
 
     // MAPEO DE DATOS REALES
     const est = matriculaRaw.estudiante || {};
-    // Extraemos el primer acudiente si existe
-    const acu = (est.acudientes && est.acudientes.length > 0) ? est.acudientes[0] : {};
+    const acu = (est.acudientes && est.acudientes.length > 0) ? est.acudientes[0] : {}; // Extraemos el primer acudiente si existe
     const parentescoExtraido = acu.acudiente_estudiantes?.afinidad || acu.AcudienteEstudiantes?.afinidad || "";
 
     const grupo = matriculaRaw.grupo || {};
@@ -149,6 +125,16 @@ export const mapearDatosMatricula = (matriculaRaw, esBlanco = false) => {
             direccion: acu.direccion || "",
             email: acu.usuario?.email || acu.email || ""
         },
-        observaciones: matriculaRaw.observaciones
+        observaciones: matriculaRaw.observaciones,
+        matriculaActual: {
+            anio: matriculaRaw.vigencia?.anio || new Date(matriculaRaw.fechaHora || Date.now()).getFullYear(),
+            grado: (grado.nombre || "").replace(/_/g, " "),
+            grupo: grupo.nombre || "",
+            sede: matriculaRaw.sede?.nombre || "",
+            jornada: formatEnum(grupo.jornada, diccionarios.jornada),
+            fecha: formatearFecha(matriculaRaw.fechaHora || new Date(), false)
+        },
+        // 14 filas vacías para compensar el espacio vertical
+        historial: Array.from({ length: 14 }, () => ({}))
     };
 };

@@ -38,6 +38,10 @@ export const colegioRepository = {
         return Colegio.findByPk(id, { attributes: attributes || undefined });
     },
 
+    async findOne(where, { attributes = null } = {}) {
+        return Colegio.findOne({ where, attributes: attributes || undefined });
+    },
+
     async create(payload) {
         return Colegio.create(payload);
     },

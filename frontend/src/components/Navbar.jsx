@@ -23,6 +23,8 @@ const Navbar = ({ toggleSidebar }) => {
         '/carga-academica': 'Académico / Carga',
         '/docentes': 'Académico / Docentes',
         '/matriculas': 'Estudiantes / Matrículas',
+        '/matriculas/masivo': 'Estudiantes / Promoción Académica',
+        '/matriculas/formalizacion': 'Estudiantes / Formalización de Matrículas',
         '/estudiantes': 'Estudiantes / Listado',
         '/observador': 'Estudiantes / Observador del Alumno',
         '/acudientes': 'Estudiantes / Acudientes',

@@ -34,6 +34,7 @@ import Acudientes from '../components/acudientes/Acudientes.jsx';
 import AsignarAcudientes from '../components/estudiantes/AcudientesTab.jsx';
 import Matriculas from "../components/matriculas/Matriculas.jsx";
 import PromocionMasiva from "../components/matriculas/PromocionMasiva.jsx";
+import FormalizacionMatriculas from "../components/matriculas/FormalizacionMatriculas.jsx";
 import Vigencias from '../components/vigencias/Vigencias.jsx';
 import Ventanas from '../components/ventanas/Ventanas.jsx';
 import Nivelaciones from '../components/nivelaciones/Nivelaciones.jsx';
@@ -88,6 +89,7 @@ const AppRoutes = () => {
                     <Route path="acudientes" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador"]}><Acudientes /></ProtectedRoute>} />
                     <Route path="matriculas" element={<ProtectedRoute requiredRoles="admin"><Matriculas /></ProtectedRoute>} />
                     <Route path="matriculas/masivo" element={<ProtectedRoute requiredRoles="admin"><PromocionMasiva /></ProtectedRoute>} />
+                    <Route path="matriculas/formalizacion" element={<ProtectedRoute requiredRoles="admin"><FormalizacionMatriculas /></ProtectedRoute>} />
 
                     {/* === EVALUACIÓN === */}
                     <Route path="juicios" element={<ProtectedRoute requiredRoles={["admin", "secretaria", "coordinador", "docente"]}><Juicios /></ProtectedRoute>} />

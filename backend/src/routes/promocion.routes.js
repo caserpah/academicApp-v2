@@ -27,4 +27,12 @@ router.post(
     promocionController.ejecutarMasiva
 );
 
+// Endpoint para verificar si un grupo tiene estudiantes activos
+router.get(
+    "/verificar-matriculas",
+    protect,
+    restrictTo(["admin", "coordinador", "secretaria"]),
+    promocionController.verificarActivos
+);
+
 export default router;

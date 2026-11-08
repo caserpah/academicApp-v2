@@ -34,6 +34,7 @@ const menuStructure = [
         items: [
             { path: "/matriculas", label: "Matrículas", icon: "file-pen", requiredRole: 'admin' },
             { path: "/matriculas/masivo", label: "Promoción Académica", icon: "users-gear", requiredRole: 'admin' },
+            { path: "/matriculas/formalizacion", label: "Formalización de Matrículas", icon: "check-double", requiredRole: 'admin' },
             { path: "/estudiantes", label: "Estudiantes", icon: "users", requiredRole: 'admin' },
             { path: "/observador", label: "Observador del Alumno", icon: "clipboard-list", requiredRoles: ['admin', 'docente', 'coordinador'] },
             { path: "/acudientes", label: "Acudientes", icon: "hands-holding-child", requiredRole: 'admin' },

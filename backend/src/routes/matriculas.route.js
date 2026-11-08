@@ -6,7 +6,6 @@ import {
     validarCrearMatricula,
     validarActualizarMatricula,
     validarListar,
-    validarMasivo
 } from "../validators/matricula.validator.js";
 
 const router = express.Router();
@@ -87,20 +86,32 @@ router.delete(
     matriculaController.eliminar
 );
 
-// Activar matrículas masivamente (Pasar de PREMATRICULADO a ACTIVA)
-router.patch(
-    "/masivo/activar",
-    protect,
-    restrictTo(["admin", "secretaria"]),
-    matriculaController.activarMasivo
-);
-
 // Descargar Listado en Excel
 router.get(
     "/listado/excel",
     protect,
     restrictTo(["admin", "secretaria"]),
     matriculaController.descargarExcelListado
+);
+
+// ==========================================
+// RUTAS DE FORMALIZACIÓN (NUEVO AÑO)
+// ==========================================
+
+// Consultar estudiantes evaluados listos para formalizar
+router.get(
+    "/formalizacion/pendientes",
+    protect,
+    restrictTo(["admin", "secretaria"]),
+    matriculaController.consultarPendientesFormalizacion
+);
+
+// Ejecutar la formalización masiva
+router.post(
+    "/formalizacion/ejecutar",
+    protect,
+    restrictTo(["admin", "secretaria"]),
+    matriculaController.formalizarMasivo
 );
 
 export default router;

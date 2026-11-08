@@ -209,6 +209,11 @@ export const nivelacionService = {
             // 3. Obtener los estudiantes activos del grupo
             const todasLasMatriculas = await calificacionRepository.findMatriculasPorGrupo(grupoId, vigenciaId);
 
+            // Filtramos las matrículas de los estudiantes que fueron excluidos manualmente desde el frontend
+            const matriculasExcluidasIds = todasLasMatriculas
+                .filter(m => estudiantesExcluidos.includes(m.estudiante.id))
+                .map(m => m.id);
+
             // Filtramos a los que tienen bloqueo_notas por sistema Y a los excluidos manualmente desde el frontend
             const matriculas = todasLasMatriculas.filter(m =>
                 m.estado === 'ACTIVA' &&
@@ -472,6 +477,12 @@ export const nivelacionService = {
             // 6. GUARDAR EN BASE DE DATOS (Masivo)
             // ------------------------------------
 
+            // Eliminamos datos viejos de estudiantes pospuestos para que el simulador no lea "Aprobados" fantasma
+            if (matriculasExcluidasIds.length > 0) {
+                await nivelacionRepository.eliminarConsolidadosPorMatriculas(matriculasExcluidasIds, vigenciaId, t);
+                await nivelacionRepository.eliminarNivelacionesPorMatriculas(matriculasExcluidasIds, vigenciaId, t);
+            }
+
             // 6.1 Guardado masivo del Consolidado Final
             if (registrosConsolidados.length > 0) {
                 await nivelacionRepository.guardarConsolidadosMasivo(registrosConsolidados, t);
@@ -500,7 +511,7 @@ export const nivelacionService = {
 
             // 6.3 Guardar las nuevas Nivelaciones / Actualizar las existentes
             if (registrosParaNivelar.length > 0) {
-                await nivelacionRepository.crearMasivo(registrosParaNivelar, t);
+                await nivelacionRepository.crearMasivo(registrosParaNivelar, { transaction: t });
             }
 
             await nivelacionRepository.marcarCierreGrupo(grupoId, t);

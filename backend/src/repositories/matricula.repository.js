@@ -330,59 +330,25 @@ export const matriculaRepository = {
     },
 
     /**
-     * Activar (Matricular) Prematriculas masivamente
-     * Ejecuta una transacción para actualizar los estados y generar el historial.
+     * Cuenta específicamente los estudiantes con matrícula "ACTIVA" en un grupo.
+     * Utilizado para validar antes de generar consolidados de promoción.
      */
-    async activarPrematriculasMasivo(filtros, usuarioId) {
-        return await sequelize.transaction(async (t) => {
-            const where = { estado: "PREMATRICULADO" };
-
-            // Aplicamos los filtros exactos que envía el frontend y el controlador
-            if (filtros.sedeId) where.sedeId = filtros.sedeId;
-            if (filtros.grupoId) where.grupoId = filtros.grupoId;
-            if (filtros.vigenciaId) where.vigenciaId = filtros.vigenciaId;
-
-            // Recuperar únicamente los IDs y datos necesarios para el historial de auditoría
-            const prematriculas = await Matricula.findAll({
-                where,
-                attributes: ['id', 'grupoId', 'sedeId'],
-                transaction: t
-            });
-
-            if (prematriculas.length === 0) {
-                const error = new Error("No hay estudiantes prematriculados que coincidan con los filtros seleccionados.");
-                error.status = 404;
-                throw error;
-            }
-
-            const idsAfectados = prematriculas.map(m => m.id);
-
-            // Ejecutar la actualización masiva (Bulk Update optimizado en BD)
-            await Matricula.update(
-                { estado: "ACTIVA", usuarioActualizacion: usuarioId },
-                { where: { id: idsAfectados }, transaction: t }
-            );
-
-            // Estructurar el lote para el Historial Académico
-            const historialLote = prematriculas.map(m => ({
-                matriculaId: m.id,
-                estadoAnterior: "PREMATRICULADO",
-                estadoNuevo: "ACTIVA",
-                grupoAnteriorId: m.grupoId,
-                grupoNuevoId: m.grupoId,
-                sedeAnteriorId: m.sedeId,
-                sedeNuevoId: m.sedeId,
-                usuarioId: usuarioId,
-                motivo: "Asentamiento masivo en firme (Matrícula Masiva)"
-            }));
-
-            // Inserción masiva de historial
-            await HistorialMatriculas.bulkCreate(historialLote, { transaction: t });
-
-            return {
-                procesados: idsAfectados.length,
-                mensaje: `Se procesaron y activaron exitosamente ${idsAfectados.length} matrículas.`
-            };
+    async countActivasPorGrupo(grupoId, vigenciaId, { transaction } = {}) {
+        return Matricula.count({
+            where: {
+                grupoId,
+                vigenciaId,
+                estado: "ACTIVA"
+            },
+            transaction
         });
-    }
-};
+    },
+
+    /**
+     * Insertar un registro en el historial de matrículas.
+     * Útil para auditoría de cambios críticos (traslados, retiros, cambios de estado).
+     */
+    async crearHistorial(payload, { transaction } = {}) {
+        return HistorialMatriculas.create(payload, { transaction });
+    },
+}

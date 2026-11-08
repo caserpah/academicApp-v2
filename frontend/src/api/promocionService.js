@@ -96,3 +96,15 @@ export const fetchGruposPorVigencia = async (vigenciaId, sedeId, gradoId = null)
         return [];
     }
 };
+
+/**
+ * Verifica la cantidad de estudiantes con matrícula activa en un grupo
+ */
+export const verificarMatriculasActivas = async (grupoId, vigenciaId) => {
+    try {
+        const response = await apiClient.get(`${PROMOCION_ENDPOINT}/verificar-matriculas?grupoId=${grupoId}&vigenciaId=${vigenciaId}`);
+        return response.data;
+    } catch (error) {
+        throw parseError(error, "Error al verificar la cantidad de estudiantes activos.");
+    }
+};

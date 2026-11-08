@@ -1,5 +1,4 @@
 import { Op } from "sequelize";
-import { Vigencia } from "../models/vigencia.js";
 import { Nivelacion } from "../models/nivelacion.js";
 import { Matricula } from "../models/matricula.js";
 import { Area } from "../models/area.js";
@@ -388,5 +387,34 @@ export const nivelacionRepository = {
 
         // Retornamos true si está marcado, de lo contrario false
         return grupo ? grupo.cierreGenerado : false;
-    }
+    },
+
+    /**
+     * LIMPIEZA DE POSPUESTOS
+     * Elimina los consolidados de los estudiantes excluidos para evitar registros huérfanos
+     */
+    async eliminarConsolidadosPorMatriculas(matriculasIds, vigenciaId, transaction) {
+        return await CalificacionArea.destroy({
+            where: {
+                matriculaId: { [Op.in]: matriculasIds },
+                vigenciaId: vigenciaId
+            },
+            transaction
+        });
+    },
+
+    /**
+     * LIMPIEZA DE NIVELACIONES
+     * Elimina las nivelaciones de los estudiantes excluidos para evitar registros huérfanos
+     * y mantener la integridad de los datos.
+     */
+    async eliminarNivelacionesPorMatriculas(matriculasIds, vigenciaId, transaction) {
+        return await Nivelacion.destroy({
+            where: {
+                matriculaId: { [Op.in]: matriculasIds },
+                vigenciaId: vigenciaId
+            },
+            transaction
+        });
+    },
 };

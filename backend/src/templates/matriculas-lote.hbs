@@ -36,7 +36,7 @@
         }
 
         .header-logo img {
-            max-height: 75px;
+            max-height: 55px;
             max-width: 100%;
         }
 
@@ -207,9 +207,17 @@
 
         .historial-table td {
             border: 1px solid #929191;
-            ;
             height: 29px;
             /* Aumentamos la altura de la celda aprovechando el espacio libre, ideal para escribir a mano */
+
+            /* Nuevas reglas de contención para evitar saltos de línea y deformaciones */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 10px;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
         }
     </style>
 </head>
@@ -238,169 +246,181 @@
             </div>
         </div>
 
-        <table>
+        <!-- I. DATOS PERSONALES -->
+        <table style="table-layout: fixed; width: 100%;">
             <tr>
-                <th colspan="5" class="section-title">I. Datos Personales del Estudiante</th>
+                <th colspan="10" class="section-title">I. Datos Personales del Estudiante</th>
             </tr>
             <tr>
-                <td colspan="5"><span class="label">Apellidos y Nombres Completos</span><span
-                        class="value-left">{{this.estudiante.apellidos}} {{this.estudiante.nombres}}</span></td>
+                <td colspan="10">
+                    <span class="label">Apellidos y Nombres Completos</span>
+                    <span class="value-left">{{this.estudiante.apellidos}} {{this.estudiante.nombres}}</span>
+                </td>
             </tr>
             <tr>
-                <td colspan="1"><span class="label">Tipo de Doc.</span><span
+                <!-- Comprimimos Tipo Doc, y expandimos Num Doc y Expedición -->
+                <td colspan="2"><span class="label">Tipo de Documento</span><span
                         class="value">{{this.estudiante.tipoDoc}}</span></td>
-                <td colspan="2"><span class="label">Número de Documento</span><span
+                <td colspan="3"><span class="label">Número de Documento</span><span
                         class="value">{{this.estudiante.documento}}</span></td>
-                <td colspan="2"><span class="label text-center">Lugar de Expedición</span><span
+                <td colspan="5"><span class="label text-center">Lugar de Expedición</span><span
                         class="value">{{this.estudiante.lugarExpedicion}}</span></td>
             </tr>
             <tr>
-                <td colspan="1"><span class="label">Fecha Nac.</span><span
+                <!-- Comprimimos Edad y RH -->
+                <td colspan="2"><span class="label">Fecha de Nacimiento</span><span
                         class="value">{{this.estudiante.fechaNac}}</span></td>
                 <td colspan="1"><span class="label text-center">Edad</span><span
                         class="value text-center">{{this.estudiante.edad}}</span></td>
-                <td colspan="1"><span class="label text-center">Lugar Nac.</span><span
+                <td colspan="3"><span class="label text-center">Lugar de Nacimiento</span><span
                         class="value">{{this.estudiante.lugarNacimiento}}</span></td>
-                <td colspan="1"><span class="label">Género</span><span class="value">{{this.estudiante.genero}}</span>
-                </td>
-                <td colspan="1"><span class="label">Grupo Sang. (RH)</span><span
+                <td colspan="2"><span class="label text-center">Género</span><span
+                        class="value">{{this.estudiante.genero}}</span></td>
+                <td colspan="2"><span class="label text-center">Grupo Sang. (RH)</span><span
                         class="value">{{this.estudiante.rh}}</span></td>
             </tr>
         </table>
 
-        <table>
+        <!-- II. DATOS DE UBICACIÓN Y CONTACTO -->
+        <table style="table-layout: fixed; width: 100%;">
             <tr>
-                <th colspan="4" class="section-title">II. Datos de Ubicación y Contacto</th>
+                <th colspan="10" class="section-title">II. Datos de Ubicación y Contacto</th>
             </tr>
             <tr>
-                <td colspan="2"><span class="label">Dirección de Residencia</span><span
+                <td colspan="5"><span class="label">Dirección de Residencia</span><span
                         class="value-left">{{this.estudiante.direccion}}</span></td>
-                <td colspan="1"><span class="label">Barrio / Vereda</span><span
+                <td colspan="3"><span class="label">Barrio / Vereda</span><span
                         class="value">{{this.estudiante.barrio}}</span></td>
-                <td colspan="1"><span class="label">Estrato</span><span class="value">{{this.estudiante.estrato}}</span>
-                </td>
+                <td colspan="2"><span class="label text-center">Estrato</span><span
+                        class="value">{{this.estudiante.estrato}}</span></td>
             </tr>
             <tr>
-                <td colspan="1"><span class="label">Municipio Residencia</span><span
+                <td colspan="4"><span class="label">Municipio Residencia</span><span
                         class="value">{{this.estudiante.municipioResidencia}}</span></td>
-                <td colspan="1"><span class="label">Zona</span><span class="value">{{this.estudiante.zona}}</span></td>
-                <td colspan="2"><span class="label">Teléfono(s) de Contacto</span><span
+                <td colspan="2"><span class="label text-center">Zona</span><span
+                        class="value">{{this.estudiante.zona}}</span></td>
+                <td colspan="4"><span class="label text-center">Teléfono(s) de Contacto</span><span
                         class="value">{{this.estudiante.telefono}}</span></td>
             </tr>
         </table>
 
+        <!-- III. INFORMACIÓN COMPLEMENTARIA -->
         <table style="table-layout: fixed; width: 100%;">
             <tr>
-                <th colspan="3" class="section-title">III. Información Complementaria y Seguridad Social</th>
+                <th colspan="10" class="section-title">III. Información Complementaria y Seguridad Social</th>
             </tr>
             <tr>
-                <td><span class="label">E.P.S.</span><span class="value">{{this.estudiante.eps}}</span></td>
-                <td><span class="label text-center">Grupo Sisbén</span><span
+                <td colspan="4"><span class="label">E.P.S.</span><span class="value">{{this.estudiante.eps}}</span></td>
+                <td colspan="2"><span class="label text-center">Grupo Sisbén</span><span
                         class="value">{{this.estudiante.sisben}}</span></td>
-                <td><span class="label text-center">Población Víctima del Conflicto</span><span
+                <td colspan="4"><span class="label text-center">Población Víctima del Conflicto</span><span
                         class="value">{{this.estudiante.pobVictima}}</span></td>
             </tr>
             <tr>
-                <td><span class="label">Etnia / Resguardo</span><span class="value">{{this.estudiante.etnia}} {{#if
-                        this.estudiante.resguardo}}- {{this.estudiante.resguardo}}{{/if}}</span></td>
-                <td><span class="label">Tipo de Discapacidad</span><span
+                <td colspan="4">
+                    <span class="label">Etnia / Resguardo</span>
+                    <span class="value">{{this.estudiante.etnia}} {{#if
+                        this.estudiante.resguardo}}{{this.estudiante.resguardo}}{{/if}}</span>
+                </td>
+                <td colspan="3"><span class="label text-center">Tipo de Discapacidad</span><span
                         class="value">{{this.estudiante.discapacidad}}</span></td>
-                <td><span class="label text-center">Capacidades Excepcionales</span><span
+                <td colspan="3"><span class="label text-center">Capacidades Excepcionales</span><span
                         class="value">{{this.estudiante.capacidadExcepcional}}</span></td>
             </tr>
         </table>
 
+        <!-- IV. PADRE O ACUDIENTE -->
         <table style="table-layout: fixed; width: 100%;">
             <tr>
-                <th colspan="4" class="section-title">IV. Información del Padre o Acudiente</th>
+                <th colspan="10" class="section-title">IV. Información del Padre o Acudiente</th>
             </tr>
             <tr>
-                <td colspan="2" style="width: 50%;">
-                    <span class="label">Nombre Completo</span>
-                    <span class="value">{{this.acudiente.nombre}}</span>
-                </td>
-                <td colspan="1" style="width: 25%;">
-                    <span class="label">Parentesco</span>
-                    <span class="value">{{this.acudiente.parentesco}}</span>
-                </td>
-                <td colspan="1">
-                    <span class="label">Fecha de Nacimiento</span>
-                    <span class="value">{{this.acudiente.fechaNac}}</span>
-                </td>
+                <td colspan="5"><span class="label">Nombre Completo</span><span
+                        class="value-left">{{this.acudiente.nombre}}</span></td>
+                <!-- Comprimimos Parentesco y Fecha Nac -->
+                <td colspan="2"><span class="label text-center">Parentesco</span><span
+                        class="value">{{this.acudiente.parentesco}}</span></td>
+                <td colspan="3"><span class="label text-center">Fecha de Nacimiento</span><span
+                        class="value">{{this.acudiente.fechaNac}}</span></td>
             </tr>
-
             <tr>
-                <td colspan="1">
-                    <span class="label">Tipo de Documento</span>
-                    <span class="value">{{this.acudiente.tipoDoc}}</span>
-                </td>
-                <td colspan="1">
-                    <span class="label">Número de Documento</span>
-                    <span class="value">{{this.acudiente.documento}}</span>
-                </td>
-                <td colspan="1">
-                    <span class="label">Lugar de Expedición</span>
-                    <span class="value">{{this.acudiente.lugarExpedicion}}</span>
-                </td>
-                <td colspan="1" style="width: 25%;">
-                    <span class="label">Teléfono</span>
-                    <span class="value">{{this.acudiente.telefono}}</span>
-                </td>
+                <td colspan="2"><span class="label">Tipo de Documento</span><span
+                        class="value">{{this.acudiente.tipoDoc}}</span></td>
+                <td colspan="3"><span class="label">Número de Documento</span><span
+                        class="value">{{this.acudiente.documento}}</span></td>
+                <td colspan="3"><span class="label text-center">Lugar de Expedición</span><span
+                        class="value">{{this.acudiente.lugarExpedicion}}</span></td>
+                <td colspan="2"><span class="label text-center">Teléfono</span><span
+                        class="value">{{this.acudiente.telefono}}</span></td>
             </tr>
-
             <tr>
-                <td colspan="2">
-                    <span class="label">Dirección de Residencia</span>
-                    <span class="value" style="word-wrap: break-word;">{{this.acudiente.direccion}}</span>
-                </td>
-                <td colspan="2">
-                    <span class="label">Correo Electrónico</span>
-                    <span class="value" style="word-break: break-all; font-size: 10px;">{{this.acudiente.email}}</span>
-                </td>
+                <td colspan="5"><span class="label">Dirección de Residencia</span><span class="value-left"
+                        style="word-wrap: break-word;">{{this.acudiente.direccion}}</span></td>
+                <td colspan="5"><span class="label">Correo Electrónico</span><span class="value"
+                        style="word-break: break-all; font-size: 10px;">{{this.acudiente.email}}</span></td>
             </tr>
         </table>
 
-        <!-- TABLA DE HISTORIAL DE MATRÍCULAS -->
+        <!-- V. NUEVA SECCIÓN: DATOS DE MATRÍCULA ACTUAL -->
+        <table style="table-layout: fixed; width: 100%;">
+            <tr>
+                <th colspan="6" class="section-title">V. Información de Matrícula</th>
+            </tr>
+            <tr>
+                <td style="width: 10%;"><span class="label text-center">Año</span><span
+                        class="value">{{this.matriculaActual.anio}}</span></td>
+                <td style="width: 25%;"><span class="label text-center">Grado</span><span
+                        class="value">{{this.matriculaActual.grado}}</span></td>
+                <td style="width: 10%;"><span class="label text-center">Grupo</span><span
+                        class="value">{{this.matriculaActual.grupo}}</span></td>
+                <td style="width: 25%;"><span class="label text-center">Sede</span><span
+                        class="value">{{this.matriculaActual.sede}}</span></td>
+                <td style="width: 15%;"><span class="label text-center">Jornada</span><span
+                        class="value">{{this.matriculaActual.jornada}}</span></td>
+                <td style="width: 15%;"><span class="label text-center">Fecha</span><span
+                        class="value">{{this.matriculaActual.fecha}}</span></td>
+            </tr>
+        </table>
+
+        <!-- VI. HISTORIAL Y FIRMAS (ITERAMOS 14 FILAS VACÍAS) -->
         <table class="historial-table">
             <thead>
                 <tr>
                     <th style="width: 6%; background-color: #e2e8f0;">Año</th>
                     <th style="width: 8%; background-color: #e2e8f0;">Grado</th>
                     <th style="width: 6%; background-color: #e2e8f0;">Grupo</th>
-                    <th style="width: 10%; background-color: #e2e8f0;">Sede</th>
+                    <th style="width: 9%; background-color: #e2e8f0;">Sede</th>
                     <th style="width: 9%; background-color: #e2e8f0;">Jornada</th>
-                    <th style="width: 17%; background-color: #e2e8f0;">Padre o Acudiente</th>
-                    <th style="width: 17%; background-color: #e2e8f0;">Estudiante</th>
-                    <th style="width: 17%; background-color: #e2e8f0;">Rector(a)</th>
+                    <th style="width: 18%; background-color: #e2e8f0;">Padre o Acudiente</th>
+                    <th style="width: 18%; background-color: #e2e8f0;">Estudiante</th>
+                    <th style="width: 16%; background-color: #e2e8f0;">Rector(a)</th>
                     <th style="width: 10%; background-color: #e2e8f0;">Fecha</th>
                 </tr>
             </thead>
             <tbody>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                {{#each this.historial}}
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                {{/each}}
             </tbody>
         </table>
 
-        <table>
+        <!-- VII. OBSERVACIONES -->
+        <table style="table-layout: fixed; width: 100%;">
             <tr>
-                <th class="section-title">V. Observaciones Generales</th>
+                <th class="section-title">VI. Observaciones Generales</th>
             </tr>
             <tr>
-                <td style="height: 50px; vertical-align: top;">
-                </td>
+                <td style="height: 45px; vertical-align: top;">{{this.observaciones}}</td>
             </tr>
         </table>
 

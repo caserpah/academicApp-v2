@@ -88,20 +88,6 @@ export const eliminarMatricula = async (id) => {
 };
 
 /**
- * Matrícula Masiva
- * Activa (Matricula) un lote de estudiantes Prematriculados hacia un grupo destino.
- */
-
-export const activarMatriculasMasivo = async (filtros) => {
-    try {
-        const response = await apiClient.patch(`${MATRICULAS_ENDPOINT}/masivo/activar`, filtros);
-        return response.data;
-    } catch (error) {
-        throw parseError(error, "Error al activar las matrículas de forma masiva.");
-    }
-};
-
-/**
  * Descargar Acta Individual (PDF)
  */
 export const descargarActaMatricula = async (idMatricula) => {
@@ -213,5 +199,31 @@ export const descargarListadoExcel = async (params) => {
             throw new Error(errorJson.message || "Error al generar el archivo Excel");
         }
         throw parseError(error, "Error de conexión al descargar el Excel.");
+    }
+};
+
+/**
+ * Consultar estudiantes evaluados (PROMOVIDOS/REPROBADOS) para formalizar
+ */
+export const consultarEvaluadosFormalizacion = async (grupoId, vigenciaId, vigenciaDestinoId) => {
+    try {
+        const response = await apiClient.get(`${MATRICULAS_ENDPOINT}/formalizacion/pendientes`, {
+            params: { grupoId, vigenciaId, vigenciaDestinoId }
+        });
+        return response.data.data;
+    } catch (error) {
+        throw parseError(error, "Error al consultar los estudiantes pendientes de formalizar.");
+    }
+};
+
+/**
+ * Ejecutar Formalización Masiva
+ */
+export const ejecutarFormalizacionMasiva = async (payload) => {
+    try {
+        const response = await apiClient.post(`${MATRICULAS_ENDPOINT}/formalizacion/ejecutar`, payload);
+        return response.data;
+    } catch (error) {
+        throw parseError(error, "Error al ejecutar la formalización de matrículas.");
     }
 };

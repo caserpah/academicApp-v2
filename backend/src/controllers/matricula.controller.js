@@ -171,38 +171,6 @@ export const matriculaController = {
     },
 
     /**
-     * POST /api/matriculas/masivo
-     * Matrículas masiva.
-     */
-    async activarMasivo(req, res, next) {
-        try {
-            const usuarioId = req.user?.id;
-            const vigenciaContexto = getVigenciaFromRequest(req); // Obtenemos la vigencia por defecto del sistema
-
-            // Priorizamos la vigenciaId enviada de forma explícita por el frontend.
-            // Si por alguna razón no viaja, se respalda en la vigencia del contexto actual.
-            const vigenciaIdFinal = req.body.vigenciaId || vigenciaContexto?.id;
-
-            // Validación de seguridad: asegurarse de que se seleccione una sede y un grupo
-            if (!req.body.sedeId || !req.body.grupoId) {
-                return sendError(res, "Por seguridad, debe seleccionar una sede y un grupo específico para realizar la matriculación masiva.", 400);
-            }
-
-            // Se capturan los filtros aplicados en pantalla
-            const filtros = {
-                sedeId: req.body.sedeId,
-                grupoId: req.body.grupoId,
-                vigenciaId: vigenciaIdFinal
-            };
-
-            const resultado = await matriculaService.activarPrematriculasMasivo({ filtros, usuarioId });
-            return sendSuccess(res, resultado, resultado.mensaje, 200);
-        } catch (error) {
-            next(error);
-        }
-    },
-
-    /**
      * GET /api/matriculas/:id/pdf
      */
     async descargarPdfActa(req, res, next) {
@@ -277,6 +245,45 @@ export const matriculaController = {
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             res.setHeader('Content-Disposition', `attachment; filename="Listado_Matriculas_${estadoNombre}.xlsx"`);
             return res.send(excelBuffer);
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
+     * GET /api/matriculas/formalizacion/pendientes
+     * Obtiene estudiantes con dictamen PROMOVIDO o REPROBADO de un grupo origen
+     */
+    async consultarPendientesFormalizacion(req, res, next) {
+        try {
+            const { grupoId, vigenciaId, vigenciaDestinoId } = req.query;
+
+            if (!grupoId || !vigenciaId || !vigenciaDestinoId) {
+                return sendError(res, "Debe seleccionar el grupo y años lectivos de origen y destino.", 400);
+            }
+
+            const pendientes = await matriculaService.obtenerEvaluadosParaFormalizar(grupoId, vigenciaId, vigenciaDestinoId);
+            return sendSuccess(res, pendientes, "Estudiantes evaluados recuperados exitosamente.");
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
+     * POST /api/matriculas/formalizacion/ejecutar
+     * Crea las nuevas matrículas aplicando las reglas de repitencia según el dictamen
+     */
+    async formalizarMasivo(req, res, next) {
+        try {
+            const usuarioAuditorId = req.user?.id;
+            const { destino, estudiantes } = req.body;
+
+            if (!destino || !estudiantes || estudiantes.length === 0) {
+                return sendError(res, "Datos incompletos para formalizar las matrículas.", 400);
+            }
+
+            const resultado = await matriculaService.formalizarMatriculasLote(destino, estudiantes, usuarioAuditorId);
+            return sendSuccess(res, resultado, resultado.mensaje, 201);
         } catch (error) {
             next(error);
         }

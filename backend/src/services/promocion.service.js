@@ -21,22 +21,14 @@ export const promocionService = {
             const esCicloV = nombreGrado.includes('CICLO_V') || nombreGrado.includes('CICLO V');
             const periodoCierre = esCicloV ? 3 : 5;
 
-            // 2. Traer la vigencia siguiente para grados regulares
-            let vigenciaSiguienteId = null;
-            if (!esCicloV) {
-                const vigenciaSiguiente = await vigenciaRepository.findVigenciaSiguiente(vigenciaId);
-                vigenciaSiguienteId = vigenciaSiguiente ? vigenciaSiguiente.id : null;
-            }
-
-            // 3. Obtener las matrículas activas del grupo
+            // 2. Obtener las matrículas activas del grupo
             const matriculas = await matriculaRepository.findByGrupoForPromocion(grupoId, vigenciaId);
             const matriculasFiltradas = matriculas.filter(m => !m.bloqueo_notas); // Omitimos bloqueos si es necesario, o procesamos todo el grupo
 
             if (matriculasFiltradas.length === 0) return [];
-
             const matriculasIds = matriculasFiltradas.map(m => m.id);
 
-            // 4. Cargar consolidados y nivelaciones desde los repositorios
+            // 3. Cargar consolidados y nivelaciones desde los repositorios
             const consolidados = await calificacionRepository.findConsolidadosPorMatriculas(matriculasIds, periodoCierre);
             const nivelaciones = await nivelacionRepository.findNivelacionesPorMatriculas(matriculasIds, vigenciaId);
 
@@ -53,12 +45,14 @@ export const promocionService = {
                 mapaNivelaciones[n.matriculaId].push(n);
             });
 
-            // 5. Generar la simulación estudiante por estudiante
+            // 4. Generar la simulación estudiante por estudiante
             const simulacion = matriculasFiltradas.map(matricula => {
                 const areas = mapaConsolidados[matricula.id] || [];
                 const nivs = mapaNivelaciones[matricula.id] || [];
-
                 const nombreEstudiante = `${matricula.estudiante?.primerApellido || ''} ${matricula.estudiante?.segundoApellido || ''} ${matricula.estudiante?.primerNombre || ''} ${matricula.estudiante?.segundoNombre || ''}`.trim();
+
+                let dictamenSugerido = "PROMOVIDO";
+                const fuePospuesto = areas.some(a => a.estadoFinal === 'POSPUESTO'); // Revisamos si el estudiante fue marcado como Pospuesto en el consolidado general
 
                 // Filtrar áreas reprobadas (ignorando Comportamiento/Disciplina)
                 const areasReprobadas = areas.filter(a => {
@@ -66,10 +60,10 @@ export const promocionService = {
                     return a.estadoFinal === 'REPROBADO' && nombreArea !== 'COMPORTAMIENTO' && nombreArea !== 'DISCIPLINA';
                 });
 
-                let dictamenSugerido = "PROMOVIDO";
-
-                // --- EVALUACIÓN DE REGLAS ---
-                if (areasReprobadas.length >= 3) {
+                // --- DETERMINAR DICTAMEN SUGERIDO ---
+                if (areas.length === 0 || fuePospuesto) {
+                    dictamenSugerido = "POSPUESTO";
+                } else if (areasReprobadas.length >= 3) {
                     dictamenSugerido = "REPROBADO";
                 } else if (areasReprobadas.length > 0) {
                     const tienePendientes = nivs.some(n => n.estadoFinal === 'PENDIENTE');
@@ -84,35 +78,19 @@ export const promocionService = {
                     }
                 }
 
-                // --- DETERMINAR GRADO Y VIGENCIA DESTINO ---
-                let gradoDestinoId = null;
-                let vigenciaDestinoId = null;
+                // --- DETERMINAR SI ES EGRESADO ---
                 let esGraduando = false;
-
-                if (dictamenSugerido === "PROMOVIDO") {
-                    if (!gradoActual.gradoSiguienteId) {
-                        esGraduando = true; // Caso ONCE o CICLO_VI (gradoSiguienteId es NULL)
-                    } else {
-                        gradoDestinoId = gradoActual.gradoSiguienteId;
-                        vigenciaDestinoId = esCicloV ? vigenciaId : vigenciaSiguienteId;
-                    }
-                } else if (dictamenSugerido === "REPROBADO") {
-                    gradoDestinoId = gradoId; // Repite el mismo grado
-                    vigenciaDestinoId = esCicloV ? null : vigenciaSiguienteId; // Si es Ciclo V reprobado, espera hasta el próximo año (vigencia siguiente)
+                if (dictamenSugerido === "PROMOVIDO" && !gradoActual.gradoSiguienteId) {
+                    esGraduando = true; // Caso ONCE o CICLO_VI
                 }
 
                 return {
                     matriculaId: matricula.id,
                     estudianteId: matricula.estudianteId,
-                    metodologia: matricula.metodologia,
                     nombreEstudiante,
                     documento: matricula.estudiante?.documento || 'N/A',
-                    estadoActual: matricula.estado,
-                    areasPerdidas: areasReprobadas.length,
-                    dictamenSugerido, // "PROMOVIDO", "REPROBADO", "PENDIENTE"
-                    gradoDestinoSugeridoId: gradoDestinoId,
-                    vigenciaDestinoSugeridaId: vigenciaDestinoId,
-                    letraGrupoActual: matricula.grupo?.letra || '',
+                    areasPerdidas: areas.length === 0 ? 0 : areasReprobadas.length,
+                    dictamenSugerido, // "PROMOVIDO", "REPROBADO", "PENDIENTE", "POSPUESTO"
                     esGraduando
                 };
             });
@@ -133,64 +111,21 @@ export const promocionService = {
         const t = await sequelize.transaction();
 
         try {
-            const prematriculasDestino = [];
             const actualizacionesActuales = [];
 
-            const generarFolio = (anio) => `MAT-${anio}-${Math.floor(10000 + Math.random() * 90000)}`;
-
-            // Extraer los IDs únicos de las vigencias destino que vienen en la lista
-            const idsVigencias = [...new Set(listaAprobada.map(item => item.vigenciaDestinoId).filter(id => id))];
-
-            // Buscar esas vigencias en la base de datos
-            const vigenciasDB = await vigenciaRepository.findVigenciasByIds(idsVigencias, t);
-
-            // Crear un mapa rápido { id_vigencia: "2026", id_otra_vigencia: "2027" }
-            const mapaAniosVigencias = {};
-            vigenciasDB.forEach(v => {
-                mapaAniosVigencias[v.id] = v.anio;
-            });
-
             for (const item of listaAprobada) {
-                // 1. Si el estudiante quedó "PENDIENTE" en el simulador, el frontend NO lo envía en esta lista,
-                // o lo envía marcado para ser ignorado. Solo procesamos PROMOVIDOS y REPROBADOS.
-                if (item.estadoFinal === "PENDIENTE") continue;
+                // 1. Omitimos los estudiantes que quedaron pendientes o pospuestos, ya que no se les hace ningún cambio
+                if (item.estadoFinal === "PENDIENTE" || item.estadoFinal === "POSPUESTO") continue;
 
                 // 2. Acumulamos el cierre de la matrícula actual
                 actualizacionesActuales.push({
-                    id: item.matriculaViejaId,
+                    id: item.matriculaId,
                     estado: item.estadoFinal, // "PROMOVIDO" o "REPROBADO"
                     usuarioId: usuarioId
                 });
-
-                // 3. Si tiene un grado y vigencia destino, le creamos la nueva matrícula
-                // (Los egresados/graduados vendrán con gradoDestinoId = null y no se les crea matrícula)
-                if (item.gradoDestinoId && item.vigenciaDestinoId) {
-
-                    const anioExactoFolio = mapaAniosVigencias[item.vigenciaDestinoId] || "0000"; // Obtenemos el año exacto desde el diccionario
-
-                    prematriculasDestino.push({
-                        folio: generarFolio(anioExactoFolio),
-                        estado: "PREMATRICULADO",
-                        metodologia: item.metodologia,
-                        es_nuevo: false,
-                        es_repitente: item.estadoFinal === "REPROBADO",
-                        situacion_ano_anterior: item.estadoFinal === "PROMOVIDO" ? "APROBO" : "REPROBO",
-                        bloqueo_notas: false,
-                        estudianteId: item.estudianteId,
-                        grupoId: item.grupoDestinoId, // Recibimos la acción manual del administrador
-                        sedeId: item.sedeId,
-                        gradoId: item.gradoDestinoId,
-                        vigenciaId: item.vigenciaDestinoId,
-                        usuarioCreacion: usuarioId
-                    });
-                }
             }
 
-            // 4. Inserción masiva usando el repositorio
-            if (prematriculasDestino.length > 0) {
-                await matriculaRepository.createBulk(prematriculasDestino, { transaction: t });
-            }
-
+            // 3. Actualizamos las matrículas actuales en bloque
             if (actualizacionesActuales.length > 0) {
                 await matriculaRepository.actualizarEstadosMatriculas(actualizacionesActuales, { transaction: t });
             }
@@ -199,12 +134,27 @@ export const promocionService = {
 
             return {
                 status: 'success',
-                procesados: prematriculasDestino.length,
-                mensaje: `Promoción ejecutada exitosamente. Se generaron ${prematriculasDestino.length} prematrículas y se cerraron ${actualizacionesActuales.length} matrículas actuales.`
+                procesados: actualizacionesActuales.length,
+                mensaje: `Cierre de año oficializado exitosamente. Se sellaron los dictámenes de ${actualizacionesActuales.length} estudiantes.`
             };
 
         } catch (error) {
             await t.rollback();
+            throw handleSequelizeError(error);
+        }
+    },
+
+    /**
+     * Verifica la cantidad de estudiantes con matrícula "ACTIVA" en un grupo.
+     */
+    async verificarMatriculasActivas({ grupoId, vigenciaId }) {
+        try {
+            const cantidad = await matriculaRepository.countActivasPorGrupo(grupoId, vigenciaId);
+            return {
+                hayActivos: cantidad > 0,
+                cantidad: cantidad
+            };
+        } catch (error) {
             throw handleSequelizeError(error);
         }
     }

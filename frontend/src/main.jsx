@@ -48,6 +48,7 @@ import {
   // Iconos de Estudiantes
   faFilePen,          // Matrículas
   faUsersGear,         // Promoción Masiva
+  faCheckDouble,      // Formalización de Matrículas
   faUsers,            // Estudiantes
   faHandsHoldingChild,// Acudientes
 
@@ -81,7 +82,7 @@ faTimesCircle, faTimes, faAnglesLeft,faAngleLeft, faAngleRight, faClipboardCheck
 faAnglesRight, faSchool, faBuilding, faUserTie, faCalendarAlt, faUserShield,
 faLayerGroup, faBookOpen, faUsersRectangle, faChalkboardUser, faFilePdf, faKey,
 faEnvelope, faFilePen, faUsers, faHandsHoldingChild, faPersonChalkboard, faFileInvoice,
-faFileContract, faBook, faListUl, faUsersGear
+faFileContract, faBook, faListUl, faUsersGear, faCheckDouble
 );
 // -----------------------------------------------------------------
 
