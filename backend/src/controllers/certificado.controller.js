@@ -2,19 +2,37 @@ import { certificadoService } from "../services/certificado.service.js";
 import { certificadoRepository } from "../repositories/certificado.repository.js";
 import { sendSuccess, sendError } from "../middleware/responseHandler.js";
 
+/**
+ * Codifica en Base64 UTF-8 el arreglo de estudiantes omitidos para enviarlo de forma segura en headers HTTP.
+ */
+const codificarHeaderOmitidos = (omitidos = []) => {
+    return Buffer.from(JSON.stringify(omitidos), "utf-8").toString("base64");
+};
+
+const sanitizarNombreArchivo = (texto) => {
+    return String(texto || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9_-]/g, "_");
+};
+
+const parseBoolean = (valor) => {
+    if (typeof valor === "boolean") return valor;
+    if (typeof valor === "string") {
+        const normalizado = valor.trim().toLowerCase();
+        return normalizado === "true" || normalizado === "1";
+    }
+    return Boolean(valor);
+};
+
 export const certificadoController = {
-    async descargarCertificadoMatricula(req, res, next) {
+    async descargarCertificadoMatricula(req, res) {
         try {
-            // Recibimos los parámetros por Query o Body (usaremos Query para descargas GET)
             const { matriculaId, iniciaronClases, meses, comportamiento } = req.query;
-
-            if (!matriculaId) throw new Error("Debe proporcionar el ID de la matrícula.");
-
-            // Convertimos 'true'/'false' a booleano real
-            const iniciaron = String(iniciaronClases) === 'true';
+            const iniciaron = parseBoolean(iniciaronClases);
 
             const pdfBuffer = await certificadoService.generarCertificadoMatricula({
-                matriculaId: parseInt(matriculaId),
+                matriculaId: Number(matriculaId),
                 iniciaronClases: iniciaron,
                 meses: iniciaron ? meses : null,
                 comportamiento: iniciaron ? comportamiento : null
@@ -25,21 +43,18 @@ export const certificadoController = {
 
             res.setHeader("Content-Type", "application/pdf");
             res.setHeader("Content-Disposition", `attachment; filename="${nombreArchivo}"`);
+            res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
 
             return res.send(pdfBuffer);
-
         } catch (error) {
             console.error("Error al generar constancia de matrícula:", error.message);
-            const statusCode = error.status || 400;
-            return sendError(res, error.message, statusCode);
+            return sendError(res, error.message, error.status || 400);
         }
     },
 
-    async buscarEstudiante(req, res, next) {
+    async buscarEstudiante(req, res) {
         try {
             const { busqueda } = req.params;
-            if (!busqueda) throw new Error("Debe proporcionar un término de búsqueda.");
-
             const estudiantes = await certificadoRepository.buscarEstudiantesGeneral(busqueda);
 
             if (!estudiantes || estudiantes.length === 0) {
@@ -53,50 +68,124 @@ export const certificadoController = {
                 id: est.id,
                 nombreCompleto: `${est.primerNombre} ${est.segundoNombre || ''} ${est.primerApellido} ${est.segundoApellido || ''}`.replace(/\s+/g, ' ').trim(),
                 documento: est.documento,
-                matriculas: est.matriculas.map(mat => ({
+                matriculas: (est.matriculas || []).map(mat => ({
                     id: mat.id,
-                    anio: mat.vigencia.anio,
-                    grado: mat.grupo.grado.nombre,
-                    sede: mat.sede.nombre
+                    vigenciaId: mat.vigenciaId,
+                    anio: mat.vigencia?.anio,
+                    grado: mat.grupo?.grado?.nombre,
+                    grupo: mat.grupo?.nombre,
+                    jornada: mat.grupo?.jornada,
+                    estado: mat.estado,
+                    sede: mat.sede?.nombre
                 }))
             }));
 
             return sendSuccess(res, dataFormat, "Búsqueda completada.");
         } catch (error) {
             console.error("Error al buscar estudiante:", error.message);
-            const statusCode = error.status || 400;
-            return sendError(res, error.message, statusCode);
+            return sendError(res, error.message, error.status || 400);
         }
     },
 
-    async descargarCertificadoNotas(req, res, next) {
+    async descargarCertificadoNotas(req, res) {
         try {
-            // Recibimos los parámetros por Query
             const { matriculaId, periodo } = req.query;
-
-            if (!matriculaId) throw new Error("Debe proporcionar el ID de la matrícula.");
-            if (!periodo) throw new Error("Seleccionar un periodo para generar el certificado.");
 
             // Llamamos al servicio que acabamos de construir
             const pdfBuffer = await certificadoService.generarCertificadoNotas({
-                matriculaId: parseInt(matriculaId),
-                periodo: parseInt(periodo)
+                matriculaId: Number(matriculaId),
+                periodo: Number(periodo)
             });
 
             // Formateamos un nombre de archivo limpio
             const fecha = new Date().toISOString().split('T')[0];
-            const textoPeriodo = parseInt(periodo) === 5 ? "Final" : `P${periodo}`;
-            const nombreArchivo = `Certificado_Notas_${matriculaId}_${textoPeriodo}_${fecha}.pdf`;
+            const textoPeriodo = Number(periodo) === 5 ? "Final" : `P${periodo}`;
+            const nombreArchivo = `Cert_Notas_${matriculaId}_${textoPeriodo}_${fecha}.pdf`;
 
             // Configuramos los headers para forzar la descarga del PDF
             res.setHeader("Content-Type", "application/pdf");
             res.setHeader("Content-Disposition", `attachment; filename="${nombreArchivo}"`);
+            res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
 
             return res.send(pdfBuffer);
-
         } catch (error) {
             console.error("Error al generar certificado de notas:", error.message);
+            return sendError(res, error.message, error.status || 400);
+        }
+    },
+
+    async descargarCertificadosMatriculaMasivo(req, res) {
+        try {
+            const { grupoId, vigenciaId, iniciaronClases, meses, comportamiento } = req.query;
+            const iniciaron = parseBoolean(iniciaronClases);
+
+            const { pdfBuffer, omitidos, totalGenerados, grupoInfo } = await certificadoService.generarCertificadosMatriculaMasivo({
+                grupoId: Number(grupoId),
+                vigenciaId: Number(vigenciaId),
+                iniciaronClases: iniciaron,
+                meses: iniciaron ? meses : null,
+                comportamiento: iniciaron ? comportamiento : null
+            });
+
+            const fecha = new Date().toISOString().split('T')[0];
+            const gradoSlug = sanitizarNombreArchivo(grupoInfo.grado);
+            const grupoSlug = sanitizarNombreArchivo(grupoInfo.grupo);
+            const nombreArchivo = `Constancias_Matricula_${gradoSlug}_${grupoSlug}_${grupoInfo.anio}_${fecha}.pdf`;
+
+            res.setHeader("Content-Type", "application/pdf");
+            res.setHeader("Content-Disposition", `attachment; filename="${nombreArchivo}"`);
+            res.setHeader("X-Total-Generados", String(totalGenerados));
+            res.setHeader("X-Omitidos", codificarHeaderOmitidos(omitidos));
+            res.setHeader("Access-Control-Expose-Headers", "Content-Disposition, X-Total-Generados, X-Omitidos");
+
+            return res.send(pdfBuffer);
+        } catch (error) {
+            console.error("Error al generar constancias de matrícula masivas:", error.message);
             const statusCode = error.status || 400;
+            if (error.omitidos) {
+                return res.status(statusCode).json({
+                    status: "error",
+                    message: error.message,
+                    omitidos: error.omitidos
+                });
+            }
+            return sendError(res, error.message, statusCode);
+        }
+    },
+
+    async descargarCertificadosNotasMasivo(req, res) {
+        try {
+            const { grupoId, vigenciaId, periodo } = req.query;
+
+            const { pdfBuffer, omitidos, totalGenerados, grupoInfo } = await certificadoService.generarCertificadosNotasMasivo({
+                grupoId: Number(grupoId),
+                vigenciaId: Number(vigenciaId),
+                periodo: Number(periodo)
+            });
+
+            const fecha = new Date().toISOString().split('T')[0];
+            const gradoSlug = sanitizarNombreArchivo(grupoInfo.grado);
+            const grupoSlug = sanitizarNombreArchivo(grupoInfo.grupo);
+            const textoPeriodo = Number(periodo) === 5 ? "Final" : `P${periodo}`;
+            const nombreArchivo = `Certificados_Notas_${gradoSlug}_${grupoSlug}_${textoPeriodo}_${grupoInfo.anio}_${fecha}.pdf`;
+
+            res.setHeader("Content-Type", "application/pdf");
+            res.setHeader("Content-Disposition", `attachment; filename="${nombreArchivo}"`);
+            res.setHeader("X-Total-Generados", String(totalGenerados));
+            res.setHeader("X-Omitidos", codificarHeaderOmitidos(omitidos));
+            res.setHeader("Access-Control-Expose-Headers", "Content-Disposition, X-Total-Generados, X-Omitidos");
+
+            return res.send(pdfBuffer);
+        } catch (error) {
+            console.error("Error al generar certificados de notas masivos:", error.message);
+            const statusCode = error.status || 400;
+            if (error.omitidos) {
+                return res.status(statusCode).json({
+                    status: "error",
+                    message: error.message,
+                    omitidos: error.omitidos
+                });
+            }
             return sendError(res, error.message, statusCode);
         }
     }

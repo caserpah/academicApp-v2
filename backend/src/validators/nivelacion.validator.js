@@ -1,5 +1,5 @@
 import { body, param, query } from "express-validator";
-import { validarCampoRequerido, verificarExistenciaPorId } from "../utils/dbUtils.js";
+import { verificarExistenciaPorId } from "../utils/dbUtils.js";
 import { Matricula } from "../models/matricula.js";
 import { Grupo } from "../models/grupo.js";
 import { Grado } from "../models/grado.js";

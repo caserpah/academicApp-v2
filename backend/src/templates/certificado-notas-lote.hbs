@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Certificados de Estudios - Lote</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        @page {
+            size: Letter portrait;
+            margin: 10mm 20mm 10mm 20mm;
+        }
+
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #000;
+            text-align: justify;
+            margin: 0;
+            padding: 0;
+        }
+
+        .certificado-page {
+            page-break-after: always;
+            break-after: page;
+        }
+
+        .certificado-page:last-child {
+            page-break-after: auto;
+            break-after: auto;
+        }
+
+        /* Encabezado Institucional */
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+
+        .header-table td {
+            vertical-align: middle;
+            padding-bottom: 10px;
+        }
+
+        .logo-cell {
+            width: 15%;
+            text-align: center;
+        }
+
+        .logo-cell img {
+            max-width: 80px;
+            max-height: 80px;
+            object-fit: contain;
+        }
+
+        .info-cell {
+            text-align: center;
+            font-family: 'Inter', Arial, sans-serif;
+            font-size: 11px;
+        }
+
+        .info-cell h2 {
+            font-size: 16px;
+            margin: 0 0 5px 0;
+            letter-spacing: 1px;
+            color: #000;
+        }
+
+        .info-cell p {
+            margin: 2px 0;
+            color: #333;
+        }
+
+        /* Títulos y Párrafos Legales */
+        .resolucion-texto {
+            text-align: center;
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .titulo-certificado {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+        }
+
+        .estudiante-info {
+            margin-bottom: 10px;
+        }
+
+        .estudiante-info p {
+            margin: 3px 0;
+        }
+
+        /* Tabla de Calificaciones */
+        .grades-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-family: 'Inter', Arial, sans-serif;
+            font-size: 10px;
+        }
+
+        .grades-table th,
+        .grades-table td {
+            border: 1px solid #000;
+            padding: 2px 4px;
+        }
+
+        .grades-table th {
+            text-align: center;
+            background-color: #f3f4f6;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .row-area {
+            background-color: #f9fafb;
+            font-weight: bold;
+        }
+
+        .row-asignatura td {
+            color: #333;
+        }
+
+        .asignatura-nombre {
+            padding-left: 20px !important;
+        }
+
+        .formula {
+            float: right;
+            font-size: 10px;
+            color: #2e2d2d;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        /* Firmas */
+        .firmas {
+            width: 100%;
+            margin-top: 20px;
+            text-align: center;
+            page-break-inside: avoid;
+            font-family: 'Inter', Arial, sans-serif;
+            font-size: 12px;
+        }
+
+        .firmas td {
+            width: 50%;
+            padding-top: 15px;
+            vertical-align: bottom;
+        }
+    </style>
+</head>
+
+<body>
+    {{#each certificados}}
+    <div class="certificado-page">
+        <table class="header-table">
+            <tr>
+                <td class="logo-cell">
+                    {{#if urlEscudo}}
+                    <img src="{{urlEscudo}}" alt="Escudo Institucional">
+                    {{/if}}
+                </td>
+                <td class="info-cell">
+                    <h2>{{colegio.nombre}}</h2>
+                    <p>Registro DANE: {{colegio.registroDane}}</p>
+                    <p>Correo electrónico: {{colegio.email}} | Teléfono: {{colegio.contacto}}</p>
+                    <p>{{colegio.direccion}} | {{colegio.ciudad}}, {{colegio.departamento}}</p>
+                </td>
+            </tr>
+        </table>
+
+        <div class="resolucion-texto">
+            LOS SUSCRITOS RECTOR(A) Y SECRETARIO(A) DE ESTE ESTABLECIMIENTO EDUCATIVO DE CARACTER OFICIAL,
+            APROBADO MEDIANTE RESOLUCION No. {{colegio.resolucion}} DEL {{colegio.fechaResolucionTexto}},
+            DE LA SECRETARIA DE EDUCACION DEPARTAMENTAL,
+        </div>
+
+        <div class="titulo-certificado">
+            CERTIFICAN
+        </div>
+
+        {{#if esInformeFinal}}
+        <div style="margin-bottom: 15px;">
+            <p>
+                Que <strong>{{estudiante.nombreCompleto}}</strong>, identificado(a) con
+                {{estudiante.tipoDocumento}} No. {{estudiante.documento}}, en el año lectivo {{vigencia.anio}} cursó el grado
+                {{grado.nombre}} de {{grado.nivelAcademicoTexto}} y fue <strong>{{matricula.estado}}(A)</strong> acorde
+                con
+                el
+                decreto 1290 del 16 de abril del 2009, en la jornada {{matricula.jornada}}, y el Sistema Institucional
+                de
+                Evaluación aprobado por el Consejo Directivo, con los siguientes niveles de desempeño en las áreas
+                establecidas por la Ley 115 de 1994 y el Plan de estudio consignado en el PEI institucional:
+            </p>
+        </div>
+
+        <table class="grades-table">
+            <thead>
+                <tr>
+                    <th style="width: 55%;">ÁREAS</th>
+                    <th style="width: 15%;">I.H.</th>
+                    <th style="width: 15%;">NOTA</th>
+                    <th style="width: 15%;">DESEMPEÑO</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each areas}}
+                <tr class="row-area">
+                    <td>{{nombreArea}}</td>
+                    <td class="center">{{ihArea}}</td>
+                    <td class="center">{{notaArea}}</td>
+                    <td class="center">{{desempenoArea}}</td>
+                </tr>
+
+                {{#if mostrarAsignaturas}}
+                {{#each asignaturas}}
+                <tr class="row-asignatura">
+                    <td class="asignatura-nombre">
+                        {{nombreAsignatura}}
+                        <span class="formula">{{formulaCalculo}}</span>
+                    </td>
+                    <td class="center">{{ih}}</td>
+                    <td class="center"></td>
+                    <td class="center"></td>
+                </tr>
+                {{/each}}
+                {{/if}}
+                {{/each}}
+
+                {{#if comportamiento}}
+                <tr class="row-area">
+                    <td>COMPORTAMIENTO</td>
+                    <td class="center"></td>
+                    <td class="center">{{comportamiento.nota}}</td>
+                    <td class="center">{{comportamiento.desempeno}}</td>
+                </tr>
+                {{/if}}
+            </tbody>
+        </table>
+
+        {{#if tieneNivelaciones}}
+        <div style="margin-top: 15px;">
+            <p style="font-weight: bold; margin-bottom: 5px; font-size: 11px;">NIVELACIONES Y RECUPERACIONES:</p>
+            <table class="grades-table">
+                <thead>
+                    <tr>
+                        <th style="width: 55%;">ÁREA</th>
+                        <th style="width: 15%;">NOTA ANT.</th>
+                        <th style="width: 15%;">NOTA FIN.</th>
+                        <th style="width: 15%;">ESTADO</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each nivelaciones}}
+                    <tr class="row-asignatura">
+                        <td style="padding-left: 5px;">{{nombreArea}}</td>
+                        <td class="center" style="color: #2e2d2d; text-decoration: line-through;">{{notaAnterior}}</td>
+                        <td class="center" style="font-weight: bold;">{{notaFinal}}</td>
+                        <td class="center">{{#if aprobado}}APROBADO{{else}}REPROBADO{{/if}}</td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </div>
+        {{/if}}
+
+        {{else}}
+        <div class="estudiante-info">
+            <p>Que el (la) estudiante <strong>{{estudiante.nombreCompleto}}</strong>, identificado(a) con
+                {{estudiante.tipoDocumento}} No. {{estudiante.documento}} {{#if estudiante.lugarExpedicion}}de
+                {{estudiante.lugarExpedicion}}{{/if}}.</p>
+        </div>
+        <p>{{parrafoLegal}}</p>
+
+        <table class="grades-table">
+            <thead>
+                <tr>
+                    <th style="width: 60%;">ÁREAS Y ASIGNATURAS</th>
+                    <th style="width: 10%;">I.H.</th>
+                    <th style="width: 10%;">NOTA</th>
+                    <th style="width: 20%;">DESEMPEÑO</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each areas}}
+                <tr class="row-area">
+                    <td>{{nombreArea}}</td>
+                    <td class="center">{{ihArea}}</td>
+                    <td class="center">{{notaArea}}</td>
+                    <td class="center">{{desempenoArea}}</td>
+                </tr>
+
+                {{#if mostrarAsignaturas}}
+                {{#each asignaturas}}
+                <tr class="row-asignatura">
+                    <td class="asignatura-nombre">
+                        {{nombreAsignatura}}
+                        <span class="formula">{{formulaCalculo}}</span>
+                        {{#unless ../esComportamiento}}
+                        {{#if nombreDocente}}<br><small style="color: #666;">Docente: {{nombreDocente}}</small>{{/if}}
+                        {{/unless}}
+                    </td>
+                    <td class="center">{{ih}}</td>
+                    <td class="center"></td>
+                    <td class="center"></td>
+                </tr>
+                {{/each}}
+                {{/if}}
+                {{/each}}
+
+                {{#if comportamiento}}
+                <tr class="row-area">
+                    <td>COMPORTAMIENTO</td>
+                    <td class="center"></td>
+                    <td class="center">{{comportamiento.nota}}</td>
+                    <td class="center">{{comportamiento.desempeno}}</td>
+                </tr>
+                {{/if}}
+            </tbody>
+        </table>
+        {{/if}}
+
+        <div style="margin-top: 20px;">
+            <p>{{textoExpedicion}}</p>
+        </div>
+
+        <table class="firmas">
+            <tr>
+                <td>
+                    <strong>{{colegio.director}}</strong><br>
+                    C.C. {{colegio.ccDirector}}<br>
+                    Rector(a)
+                </td>
+                <td>
+                    <strong>{{colegio.secretaria}}</strong><br>
+                    C.C. {{colegio.ccSecretaria}}<br>
+                    Secretario(a)
+                </td>
+            </tr>
+        </table>
+    </div>
+    {{/each}}
+</body>
+
+</html>

@@ -312,7 +312,7 @@ export const matriculaRepository = {
      */
     async findByGrupoCompleto(grupoId, vigenciaId) {
         return Matricula.findAll({
-            where: { grupoId, vigenciaId, estado: ['ACTIVA', 'PREMATRICULADO'] },
+            where: { grupoId, vigenciaId, estado: ['ACTIVA', 'PREMATRICULADO', 'PROMOVIDO', 'REPROBADO'] },
             include: [
                 { model: Sede, as: "sede" },
                 { model: Vigencia, as: "vigencia" },
