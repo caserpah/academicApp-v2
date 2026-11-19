@@ -132,9 +132,9 @@ export const reporteService = {
             return await pdfService.crearPdfSabanas(contextoHbs, 'sabana-asignatura.hbs');
         }
 
-        // ====================================================================
-        // LÓGICA: SÁBANA DE NOTAS DE ÁREAS POR PERIODO
-        // ====================================================================
+        // ========================================================================
+        // LÓGICA: SÁBANA DE NOTAS DE ÁREAS POR PERIODO (INCLUYE PERIODO 5 / FINAL)
+        // ========================================================================
         if (tipoSabana === 'SABANA_AREAS') {
             if (!periodo) throw new Error("Debe seleccionar un periodo para generar este reporte.");
 
@@ -144,19 +144,62 @@ export const reporteService = {
                 throw new Error("Acceso denegado. Solo el director de grupo puede generar la Sábana de Áreas.");
             }
 
+            const esPeriodoFinal = Number(periodo) === 5;
+            const idsMatriculas = matriculas.map(m => m.id);
             const cargas = await reporteRepository.findCargasConAreaPorGrupo(grupoId, vigencia.id);
-            // Mandamos 'null' en el asignaturaId para que traiga TODAS las materias del estudiante
-            const calificaciones = await reporteRepository.findCalificacionesHistoricas(idsEstudiantes, null, vigencia.id);
 
-            // Extraemos las áreas únicas para armar las columnas dinámicas
             const areasMap = new Map();
             cargas.forEach(c => {
                 if (c.asignatura && c.asignatura.area) areasMap.set(c.asignatura.area.id, c.asignatura.area);
             });
-            const areasList = Array.from(areasMap.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-            // Procesamos las matemáticas
-            const notasProcesadas = _procesarNotasPorArea(calificaciones, cargas);
+            let notasFinalesMap = {}; // matriculaId -> areaId -> notaDefinitiva
+            let nivelacionesMap = {}; // matriculaId -> ['MAT 3.0', 'ESP']
+            let notasProcesadas = {};
+
+            if (esPeriodoFinal) {
+                const esCicloVI = grupo.grado?.codigo === 'C6' ||
+                    (grupo.grado?.nombre || '').toUpperCase().replace(/_/g, ' ').includes('CICLO VI');
+                const periodoCierre = esCicloVI ? 3 : 5;
+
+                // 1. Verificar que existan registros consolidados en calificaciones_areas
+                const calificacionesAreas = await reporteRepository.findCalificacionesAreasFinales(idsMatriculas, vigencia.id, periodoCierre);
+                if (!calificacionesAreas || calificacionesAreas.length === 0) {
+                    throw new Error("El grupo seleccionado aún no tiene registros consolidados de calificaciones. Dirijase al motor de promoción y genere los consolidados para el grupo.");
+                }
+
+                calificacionesAreas.forEach(ca => {
+                    if (ca.area && !areasMap.has(ca.area.id)) {
+                        areasMap.set(ca.area.id, ca.area);
+                    }
+                    if (!notasFinalesMap[ca.matriculaId]) notasFinalesMap[ca.matriculaId] = {};
+                    notasFinalesMap[ca.matriculaId][ca.areaId] = parseFloat(ca.notaDefinitiva);
+                });
+
+                // 2. Consultar nivelaciones de las matrículas del grupo
+                const nivelaciones = await reporteRepository.findNivelacionesPorMatriculas(idsMatriculas, vigencia.id);
+                nivelaciones.forEach(niv => {
+                    if (!nivelacionesMap[niv.matriculaId]) nivelacionesMap[niv.matriculaId] = [];
+                    if (nivelacionesMap[niv.matriculaId].length >= 2) return; // Máximo 2 áreas
+
+                    const nombreBase = (niv.area?.abreviatura || niv.area?.nombre || '').trim();
+                    const abrev3 = nombreBase.substring(0, 3).toUpperCase();
+
+                    if (niv.estadoFinal === 'PENDIENTE' || niv.notaNivelacion === null || niv.notaNivelacion === undefined) {
+                        nivelacionesMap[niv.matriculaId].push(abrev3);
+                    } else {
+                        const notaMostrar = niv.notaFinalLegal !== null && niv.notaFinalLegal !== undefined
+                            ? Number(niv.notaFinalLegal)
+                            : Number(niv.notaNivelacion);
+                        nivelacionesMap[niv.matriculaId].push(`${abrev3} ${notaMostrar.toFixed(1)}`);
+                    }
+                });
+            } else {
+                const calificaciones = await reporteRepository.findCalificacionesHistoricas(idsEstudiantes, null, vigencia.id);
+                notasProcesadas = _procesarNotasPorArea(calificaciones, cargas);
+            }
+
+            const areasList = Array.from(areasMap.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
             // Variables para las estadísticas al pie de la página
             let apruebanPorArea = {};
@@ -172,17 +215,27 @@ export const reporteService = {
             const filasEstudiantes = matriculas.map((m, index) => {
                 const est = m.estudiante;
                 const areasEstudiante = notasProcesadas[est.id] || {};
+                const areasFinalesEst = notasFinalesMap[m.id] || {};
+                const recupsEst = nivelacionesMap[m.id] || [];
 
                 let sumaPromedios = 0;
                 let areasEvaluadas = 0;
                 let nroAp = 0;
 
                 const notasAreasFila = areasList.map(area => {
-                    const areaData = areasEstudiante[area.id];
-                    const notaPeriodo = areaData && areaData[`countP${periodo}`] > 0 ? areaData[`p${periodo}`] : null;
+                    let notaEvaluada = null;
 
-                    if (notaPeriodo !== null) {
-                        const notaRedondeada = Math.round(notaPeriodo * 100) / 100;
+                    if (esPeriodoFinal) {
+                        notaEvaluada = areasFinalesEst[area.id] !== undefined && !isNaN(areasFinalesEst[area.id])
+                            ? areasFinalesEst[area.id]
+                            : null;
+                    } else {
+                        const areaData = areasEstudiante[area.id];
+                        notaEvaluada = areaData && areaData[`countP${periodo}`] > 0 ? areaData[`p${periodo}`] : null;
+                    }
+
+                    if (notaEvaluada !== null) {
+                        const notaRedondeada = Math.round(notaEvaluada * 100) / 100;
                         sumaPromedios += notaRedondeada;
                         areasEvaluadas++;
                         totalEvaluadosPorArea[area.id]++;
@@ -204,16 +257,35 @@ export const reporteService = {
                 if (nroAp >= 3) tresOMasPerdidasCount++;
                 const prom = areasEvaluadas > 0 ? (sumaPromedios / areasEvaluadas) : 0;
 
+                let promTexto = prom > 0 ? prom.toFixed(2).replace('.', ',') : "";
+                let promColor = "#0f172a";
+
+                if (esPeriodoFinal && areasEvaluadas > 0) {
+                    if (nroAp === 0) {
+                        promTexto = "APR";
+                        promColor = "#047857"; // Verde (Aprobado)
+                    } else if (nroAp <= 2) {
+                        promTexto = "NIV";
+                        promColor = "#b45309"; // Ámbar (Nivelación)
+                    } else {
+                        promTexto = "REP";
+                        promColor = "#b91c1c"; // Rojo (Reprobado)
+                    }
+                }
+
                 return {
-                    id: est.id, // Oculto, usado para el ranking
+                    id: est.id,
                     numero: (index + 1).toString().padStart(2, '0'),
                     nombreCompleto: `${est.primerApellido} ${est.segundoApellido || ''} ${est.primerNombre} ${est.segundoNombre || ''}`.trim(),
                     estado: 'Activo',
                     notasAreas: notasAreasFila,
                     suma: sumaPromedios > 0 ? sumaPromedios.toFixed(2).replace('.', ',') : "",
-                    prom: prom > 0 ? prom.toFixed(2).replace('.', ',') : "",
-                    promRaw: prom, // Usado para ordenar puestos
-                    nroAp: nroAp
+                    prom: promTexto,
+                    promColor: promColor,
+                    promRaw: prom,
+                    nroAp: nroAp,
+                    recup1: recupsEst[0] || "",
+                    recup2: recupsEst[1] || ""
                 };
             });
 
@@ -227,6 +299,7 @@ export const reporteService = {
             const formatStatPorc = (count, total) => total > 0 ? `${count} (${((count / total) * 100).toFixed(1)}%)` : "-";
 
             contextoHbs.periodo = periodo;
+            contextoHbs.esPeriodoFinal = esPeriodoFinal;
             contextoHbs.directorNombre = grupo.director ? `${grupo.director.identidad?.nombre} ${grupo.director.identidad?.apellidos}`.toUpperCase() : "SIN ASIGNAR";
             contextoHbs.areas = areasList.map(a => a.abreviatura);
             contextoHbs.estudiantes = filasEstudiantes;
@@ -344,23 +417,46 @@ export const reporteService = {
             throw new Error("El formato Excel solo está disponible para Áreas y Acumulados.");
         }
 
-        // 1. Obtener los datos (Reutilizamos la lógica del PDF)
+        // 1. Obtener los datos
         const vigencia = await reporteRepository.findVigenciaById(vigenciaId);
         const grupo = await reporteRepository.findGrupoConDetalles(grupoId, vigencia.id);
         const matriculas = await reporteRepository.findMatriculasActivas(grupoId, vigencia.id);
         if (matriculas.length === 0) throw new Error("No hay estudiantes activos en este grupo.");
         const idsEstudiantes = matriculas.map(m => m.estudiante.id);
+        const idsMatriculas = matriculas.map(m => m.id);
 
+        const esPeriodoFinal = tipoSabana === 'SABANA_AREAS' && Number(periodo) === 5;
         const cargas = await reporteRepository.findCargasConAreaPorGrupo(grupoId, vigencia.id);
-        const calificaciones = await reporteRepository.findCalificacionesHistoricas(idsEstudiantes, null, vigencia.id);
 
         const areasMap = new Map();
         cargas.forEach(c => {
             if (c.asignatura && c.asignatura.area) areasMap.set(c.asignatura.area.id, c.asignatura.area);
         });
-        const areasList = Array.from(areasMap.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-        const notasProcesadas = _procesarNotasPorArea(calificaciones, cargas);
+        let notasFinalesMap = {};
+        let notasProcesadas = {};
+
+        if (esPeriodoFinal) {
+            const esCicloVI = grupo.grado?.codigo === 'C6' ||
+                (grupo.grado?.nombre || '').toUpperCase().replace(/_/g, ' ').includes('CICLO VI');
+            const periodoCierre = esCicloVI ? 3 : 5;
+
+            const calificacionesAreas = await reporteRepository.findCalificacionesAreasFinales(idsMatriculas, vigencia.id, periodoCierre);
+            if (!calificacionesAreas || calificacionesAreas.length === 0) {
+                throw new Error("El grupo seleccionado aún no tiene registros consolidados de calificaciones. Dirijase al motor de promoción y genere los consolidados para el grupo.");
+            }
+
+            calificacionesAreas.forEach(ca => {
+                if (ca.area && !areasMap.has(ca.area.id)) areasMap.set(ca.area.id, ca.area);
+                if (!notasFinalesMap[ca.matriculaId]) notasFinalesMap[ca.matriculaId] = {};
+                notasFinalesMap[ca.matriculaId][ca.areaId] = parseFloat(ca.notaDefinitiva);
+            });
+        } else {
+            const calificaciones = await reporteRepository.findCalificacionesHistoricas(idsEstudiantes, null, vigencia.id);
+            notasProcesadas = _procesarNotasPorArea(calificaciones, cargas);
+        }
+
+        const areasList = Array.from(areasMap.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
         // Inicializamos contadores para las estadísticas
         let repruebanPorArea = {};
@@ -386,7 +482,12 @@ export const reporteService = {
         const directorNombre = grupo.director ? `${grupo.director.identidad?.nombre} ${grupo.director.identidad?.apellidos}`.toUpperCase() : "SIN ASIGNAR";
         const jornadaText = grupo.jornada === 'MANANA' ? 'MAÑANA' : grupo.jornada;
 
-        wsSabana.cell('A3').value(tipoSabana === 'SABANA_AREAS' ? `Periodo Evaluado: ${periodo}` : 'CONSOLIDADO DE ACUMULADOS');
+        let subtituloPeriodo = 'CONSOLIDADO DE ACUMULADOS';
+        if (tipoSabana === 'SABANA_AREAS') {
+            subtituloPeriodo = esPeriodoFinal ? 'Periodo Final' : `Periodo Evaluado: ${periodo}`;
+        }
+
+        wsSabana.cell('A3').value(subtituloPeriodo);
         wsSabana.cell('A4').value(`Sede: ${grupo.sede.nombre} | Año Lectivo: ${vigencia.anio} | Jornada: ${jornadaText}`);
         wsSabana.cell('A5').value(`Grado: ${gradoNombre} | Grupo: ${grupo.nombre}`);
         wsSabana.cell('A6').value(`Director de Grupo: ${directorNombre}`);
@@ -423,6 +524,7 @@ export const reporteService = {
         matriculas.forEach((m, index) => {
             const est = m.estudiante;
             const areasEstudiante = notasProcesadas[est.id] || {};
+            const areasFinalesEst = notasFinalesMap[m.id] || {};
 
             wsSabana.cell(currentRow, 1).value(index + 1).style({ border: true, horizontalAlignment: 'center' });
             wsSabana.cell(currentRow, 2).value(`${est.primerApellido} ${est.segundoApellido || ''} ${est.primerNombre} ${est.segundoNombre || ''}`.trim()).style('border', true);
@@ -431,7 +533,10 @@ export const reporteService = {
             areasList.forEach(area => {
                 const areaData = areasEstudiante[area.id];
                 if (tipoSabana === 'SABANA_AREAS') {
-                    const notaPeriodo = areaData && areaData[`countP${periodo}`] > 0 ? areaData[`p${periodo}`] : null;
+                    const notaPeriodo = esPeriodoFinal
+                        ? (areasFinalesEst[area.id] !== undefined && !isNaN(areasFinalesEst[area.id]) ? areasFinalesEst[area.id] : null)
+                        : (areaData && areaData[`countP${periodo}`] > 0 ? areaData[`p${periodo}`] : null);
+
                     const cell = wsSabana.cell(currentRow, colArea).style('border', true).style('horizontalAlignment', 'center');
 
                     if (notaPeriodo !== null) {

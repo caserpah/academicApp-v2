@@ -133,15 +133,13 @@
         }
 
         .col-nombre {
-            width: 22%;
-            /* Aumentado para evitar que los nombres bajen a dos renglones */
+            width: {{#if esPeriodoFinal}}21%{{else}}26%{{/if}};
             font-weight: 600;
             color: #0f172a;
         }
 
         .col-area {
-            width: 4%;
-            /* Ancho base para las materias */
+            width: {{#if esPeriodoFinal}}4%{{else}}4.5%{{/if}};
         }
 
         .col-stats {
@@ -153,8 +151,9 @@
         }
 
         .col-recup {
-            width: 4%;
-            color: #94a3b8;
+            width: 4.5%;
+            color: #373838;
+            font-size: 9px;
             white-space: nowrap;
         }
 
@@ -224,7 +223,7 @@
                 <td>
                     <div class="report-badge">
                         <h2>Rendimiento de Áreas</h2>
-                        <p>Periodo Evaluado: {{periodo}}</p>
+                        <p>{{#if esPeriodoFinal}}Periodo Final{{else}}Periodo Evaluado: {{periodo}}{{/if}}</p>
                     </div>
                 </td>
             </tr>
@@ -252,8 +251,10 @@
                 <th class="col-stats">Puesto</th>
                 <th class="col-stats">Nro AP</th>
                 <th class="col-stats">Prom</th>
+                {{#if esPeriodoFinal}}
                 <th class="col-recup">Recup1</th>
                 <th class="col-recup">Recup2</th>
+                {{/if}}
             </tr>
         </thead>
         <tbody>
@@ -269,9 +270,11 @@
                 <td style="background-color: #f8fafc;">{{this.suma}}</td>
                 <td style="background-color: #f8fafc; font-weight: bold; color: #0369a1;">{{this.puesto}}</td>
                 <td style="background-color: #fef2f2; color: #b91c1c; font-weight: bold;">{{this.nroAp}}</td>
-                <td style="background-color: #f8fafc; font-weight: bold;">{{this.prom}}</td>
-                <td></td>
-                <td></td>
+                <td style="background-color: #f8fafc; font-weight: bold; color: {{this.promColor}};">{{this.prom}}</td>
+                {{#if ../esPeriodoFinal}}
+                <td class="col-recup">{{this.recup1}}</td>
+                <td class="col-recup">{{this.recup2}}</td>
+                {{/if}}
             </tr>
             {{/each}}
         </tbody>
@@ -281,7 +284,7 @@
                 {{#each aprueban}}
                 <td style="color: #0a7c34;">{{this}}</td>
                 {{/each}}
-                <td colspan="6" class="align-left" style="padding-left: 15px;">Estudiantes con 3 o más áreas perdidas:
+                <td colspan="{{#if esPeriodoFinal}}6{{else}}4{{/if}}" class="align-left" style="padding-left: 15px;">Estudiantes con 3 o más áreas perdidas:
                     <span class="stats-highlight">{{tresOMasPerdidas}}</span>
                 </td>
             </tr>
@@ -290,7 +293,7 @@
                 {{#each reprueban}}
                 <td style="color: #b91c1c;">{{this}}</td>
                 {{/each}}
-                <td colspan="6"></td>
+                <td colspan="{{#if esPeriodoFinal}}6{{else}}4{{/if}}"></td>
             </tr>
         </tfoot>
     </table>

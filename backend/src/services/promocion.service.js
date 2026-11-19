@@ -1,12 +1,12 @@
 import { sequelize } from "../database/db.connect.js";
 import { gradoRepository } from "../repositories/grado.repository.js";
-import { vigenciaRepository } from "../repositories/vigencia.repository.js";
 import { matriculaRepository } from "../repositories/matricula.repository.js";
 import { calificacionRepository } from "../repositories/calificacion.repository.js";
 import { nivelacionRepository } from "../repositories/nivelacion.repository.js";
 import { handleSequelizeError } from "../middleware/handleSequelizeError.js";
 
 export const promocionService = {
+
     /**
      * PASO 1: SIMULADOR DE PROMOCIÓN
      * Lee notas y reglas, y devuelve la sugerencia de promoción. No guarda nada.
@@ -17,9 +17,8 @@ export const promocionService = {
             const { grado: gradoActual } = await gradoRepository.findGradoYConfiguracion(gradoId);
             if (!gradoActual) throw new Error("No se encontró el grado seleccionado.");
 
-            const nombreGrado = (gradoActual.nombre || '').toUpperCase();
-            const esCicloV = nombreGrado.includes('CICLO_V') || nombreGrado.includes('CICLO V');
-            const periodoCierre = esCicloV ? 3 : 5;
+            const codigoGrado = (gradoActual.codigo || '').trim().toUpperCase();
+            const periodoCierre = codigoGrado === 'C5' ? 3 : 5;
 
             // 2. Obtener las matrículas activas del grupo
             const matriculas = await matriculaRepository.findByGrupoForPromocion(grupoId, vigenciaId);

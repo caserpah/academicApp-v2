@@ -9,7 +9,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { fetchCalificacionesCatalogs } from "../../api/calificacionesService.js";
 import { descargarSabana } from "../../api/reportesService.js";
 
-import { showError } from "../../utils/notifications.js";
+import { showError, showWarning } from "../../utils/notifications.js";
 import LoadingSpinner from "../common/LoadingSpinner.jsx";
 import Swal from "sweetalert2";
 import { formatearNombreGrupo } from "../../utils/formatters.js";
@@ -155,18 +155,53 @@ const SabanasPage = () => {
         });
     }, [filters.tipoSabana]);
 
-    // 5. Calcular periodos disponibles según el ciclo
+    // 5. Calcular periodos disponibles según el ciclo + Periodo Final (5)
     const periodosDisponibles = useMemo(() => {
-        if (!filters.grupoId) return [1, 2, 3, 4]; // Por defecto todos
+        const opcionFinal = { value: 5, label: 'Periodo Final' };
+        if (!filters.grupoId) {
+            return [
+                { value: 1, label: 'Periodo 1' },
+                { value: 2, label: 'Periodo 2' },
+                { value: 3, label: 'Periodo 3' },
+                { value: 4, label: 'Periodo 4' },
+                opcionFinal
+            ];
+        }
         const grupoSel = gruposDisponibles.find(g => String(g.id) === String(filters.grupoId));
 
-        if (!grupoSel) return [1, 2, 3, 4];
+        if (!grupoSel) {
+            return [
+                { value: 1, label: 'Periodo 1' },
+                { value: 2, label: 'Periodo 2' },
+                { value: 3, label: 'Periodo 3' },
+                { value: 4, label: 'Periodo 4' },
+                opcionFinal
+            ];
+        }
 
         const nombreGrupo = (grupoSel.label || '').toUpperCase();
         // Evaluamos primero CICLO VI para evitar falsos positivos con el V
-        if (nombreGrupo.includes('CICLO VI')) return [3, 4];
-        if (nombreGrupo.includes('CICLO V')) return [1, 2];
-        return [1, 2, 3, 4]; // Grados regulares
+        if (nombreGrupo.includes('CICLO VI')) {
+            return [
+                { value: 3, label: 'Periodo 3' },
+                { value: 4, label: 'Periodo 4' },
+                opcionFinal
+            ];
+        }
+        if (nombreGrupo.includes('CICLO V')) {
+            return [
+                { value: 1, label: 'Periodo 1' },
+                { value: 2, label: 'Periodo 2' },
+                opcionFinal
+            ];
+        }
+        return [
+            { value: 1, label: 'Periodo 1' },
+            { value: 2, label: 'Periodo 2' },
+            { value: 3, label: 'Periodo 3' },
+            { value: 4, label: 'Periodo 4' },
+            opcionFinal
+        ];
     }, [filters.grupoId, gruposDisponibles]);
 
     // Handlers
@@ -199,7 +234,7 @@ const SabanasPage = () => {
         const grupoSel = gruposDisponibles.find(g => String(g.id) === String(filters.grupoId));
         let nombreGrupoCorto = filters.grupoId;
 
-console.log("Grupo seleccionado:", grupoSel);
+        console.log("Grupo seleccionado:", grupoSel);
 
         if (grupoSel) {
             const codGrado = grupoSel.codigoGrado || '';
@@ -231,7 +266,7 @@ console.log("Grupo seleccionado:", grupoSel);
                 showConfirmButton: false
             });
         } catch (error) {
-            showError(error.message);
+            showWarning(error.message || "Ocurrió un error al generar la sábana. Por favor, inténtelo nuevamente.");
         } finally {
             setIsGenerating(false);
         }
@@ -322,7 +357,9 @@ console.log("Grupo seleccionado:", grupoSel);
                                     <label className="block text-xs font-bold text-gray-500 mb-1 ml-1">Periodo Evaluado</label>
                                     <select name="periodo" value={filters.periodo} onChange={handleFilterChange} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
                                         <option value="">-- Periodo --</option>
-                                        {periodosDisponibles.map(p => <option key={p} value={p}>Periodo {p}</option>)}
+                                        {periodosDisponibles.map(p => (
+                                            <option key={p.value} value={p.value}>{p.label}</option>
+                                        ))}
                                     </select>
                                 </>
                             ) : (

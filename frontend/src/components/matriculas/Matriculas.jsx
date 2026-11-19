@@ -583,7 +583,7 @@ const Matriculas = () => {
                                 name="vigenciaId"
                                 value={filtros.vigenciaId}
                                 onChange={handleFiltroChange}
-                                className="border border-gray-300 rounded p-2 text-sm bg-blue-50 font-semibold text-blue-900 focus:ring-blue-500 outline-none"
+                                className="border border-gray-300 rounded p-2 text-sm bg-blue-50 font-semibold text-blue-900 focus:ring-blue-500 focus:border-blue-500 outline-none"
                             >
                                 {listasAuxiliares.vigencias.map(v => (
                                     <option key={v.id} value={v.id}>
@@ -596,7 +596,7 @@ const Matriculas = () => {
                         {/* Filtro Sede */}
                         <div className="flex flex-col">
                             <label className="text-sm text-gray-500 font-semibold mb-1">Sede</label>
-                            <select name="sedeId" value={filtros.sedeId} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
+                            <select name="sedeId" value={filtros.sedeId} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none">
                                 <option value="">Todas</option>
                                 {listasAuxiliares.sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
                             </select>
@@ -610,7 +610,7 @@ const Matriculas = () => {
                                 value={filtros.grupoId || ""}
                                 onChange={handleFiltroChange}
                                 disabled={!filtros.sedeId || gruposFiltro.length === 0}
-                                className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none"
+                                className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none"
                             >
                                 <option value="">Todos</option>
                                 {gruposFiltro.map(g => {
@@ -629,7 +629,7 @@ const Matriculas = () => {
                         {/* Filtro Jornada */}
                         <div className="flex flex-col">
                             <label className="text-sm text-gray-500 font-semibold mb-1">Jornada</label>
-                            <select name="jornada" value={filtros.jornada} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
+                            <select name="jornada" value={filtros.jornada} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none">
                                 <option value="">Todas</option>
                                 <option value="MANANA">Mañana</option>
                                 <option value="TARDE">Tarde</option>
@@ -642,7 +642,7 @@ const Matriculas = () => {
                         {/* Filtro Estado */}
                         <div className="flex flex-col">
                             <label className="text-sm text-gray-500 font-semibold mb-1">Estado</label>
-                            <select name="estado" value={filtros.estado} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
+                            <select name="estado" value={filtros.estado} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none">
                                 <option value="">Todos</option>
                                 <option value="ACTIVA">Activa</option>
                                 <option value="PREMATRICULADO">Prematriculado</option>
@@ -657,7 +657,7 @@ const Matriculas = () => {
                         {/* Filtro Bloqueo */}
                         <div className="flex flex-col">
                             <label className="text-sm text-gray-500 font-semibold mb-1">Bloqueo Notas</label>
-                            <select name="bloqueo_notas" value={filtros.bloqueo_notas} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
+                            <select name="bloqueo_notas" value={filtros.bloqueo_notas} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none">
                                 <option value="">Todos</option>
                                 <option value="true">Sí (Bloqueado)</option>
                                 <option value="false">No</option>
@@ -667,7 +667,7 @@ const Matriculas = () => {
                         {/* Filtro Nuevo */}
                         <div className="flex flex-col">
                             <label className="text-sm text-gray-500 font-semibold mb-1">Es Nuevo</label>
-                            <select name="es_nuevo" value={filtros.es_nuevo} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
+                            <select name="es_nuevo" value={filtros.es_nuevo} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none">
                                 <option value="">Todos</option>
                                 <option value="true">Sí</option>
                                 <option value="false">No</option>
@@ -677,7 +677,7 @@ const Matriculas = () => {
                         {/* Filtro Repitente */}
                         <div className="flex flex-col">
                             <label className="text-sm text-gray-500 font-semibold mb-1">Es Repitente</label>
-                            <select name="es_repitente" value={filtros.es_repitente} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 outline-none">
+                            <select name="es_repitente" value={filtros.es_repitente} onChange={handleFiltroChange} className="border border-gray-300 rounded p-2 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none">
                                 <option value="">Todos</option>
                                 <option value="true">Sí</option>
                                 <option value="false">No</option>

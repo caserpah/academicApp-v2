@@ -2,12 +2,9 @@ import { sequelize } from "../database/db.connect.js";
 import { nivelacionRepository } from "../repositories/nivelacion.repository.js";
 import { calificacionRepository } from "../repositories/calificacion.repository.js";
 import { pdfService } from "./pdf.service.js";
-import { Matricula } from "../models/matricula.js";
 import { Grupo } from "../models/grupo.js";
 import { Grado } from "../models/grado.js";
 import { Sede } from "../models/sede.js";
-import { Docente } from "../models/docente.js";
-import { Usuario } from "../models/usuario.js";
 import { Colegio } from "../models/colegio.js";
 import { handleSequelizeError } from "../middleware/handleSequelizeError.js";
 import { PORCENTAJES, DIM, obtenerJuicio, obtenerJuicioArea } from "../utils/calificacion.helpers.js";
@@ -177,34 +174,23 @@ export const nivelacionService = {
             const grado = await nivelacionRepository.findGradoById(gradoId);
             if (!grado) throw new Error("No se encontró el grado seleccionado.");
 
-            const nombreGrado = (grado.nombre || '').toUpperCase();
+            const codigoGrado = (grado.codigo || '').trim().toUpperCase();
             const esPreescolar = grado.nivelAcademico === 'PREESCOLAR';
-
-            // Detección inteligente de semestres para ciclos
-            const esCualquierCiclo = nombreGrado.includes('CICLO') || nombreGrado.includes('CLEI');
-
-            // Los ciclos pares (II, IV, VI) pertenecen al segundo semestre
-            const esCicloSemestre2 = nombreGrado.includes('CICLO_II') || nombreGrado.includes('CICLO II') ||
-                nombreGrado.includes('CICLO_IV') || nombreGrado.includes('CICLO IV') ||
-                nombreGrado.includes('CICLO_VI') || nombreGrado.includes('CICLO VI');
-
-            // Si es un ciclo, pero no es del semestre 2, por descarte es del semestre 1 (I, III, V)
-            const esCicloSemestre1 = esCualquierCiclo && !esCicloSemestre2;
 
             // Cargar rangos de desempeño en caché para los juicios
             const rangosCache = await nivelacionRepository.findRangosDesempeno(vigenciaId);
 
-            // 2. Definir reglas matemáticas de manera blindada
-            let periodosPermitidos = [1, 2, 3, 4]; // Por defecto para grados regulares (ej. Sexto, Séptimo)
+            // 2. Definir reglas matemáticas según el código del grado
+            let periodosPermitidos = [1, 2, 3, 4]; // C2, C3, C4 y grados regulares
 
-            if (esCicloSemestre1) {
-                periodosPermitidos = [1, 2]; // Ciclo V evalúa periodos 1 y 2
-            } else if (esCicloSemestre2) {
-                periodosPermitidos = [3, 4]; // Ciclo VI evalúa periodos 3 y 4
+            if (codigoGrado === 'C5') {
+                periodosPermitidos = [1, 2]; // Ciclo V (1er semestre)
+            } else if (codigoGrado === 'C6') {
+                periodosPermitidos = [3, 4]; // Ciclo VI (2do semestre)
             }
 
-            const totalPeriodosExigidos = periodosPermitidos.length; // Será 2 matemáticamente para ciclos
-            const periodoDeCierre = esCualquierCiclo ? 3 : 5; // Periodo 3 para todos los ciclos, 5 para regulares
+            const totalPeriodosExigidos = periodosPermitidos.length; // 2 para C5/C6, 4 para el resto
+            const periodoDeCierre = codigoGrado === 'C5' ? 3 : 5;
 
             // 3. Obtener los estudiantes activos del grupo
             const todasLasMatriculas = await calificacionRepository.findMatriculasPorGrupo(grupoId, vigenciaId);
@@ -222,6 +208,7 @@ export const nivelacionService = {
             );
 
             if (matriculas.length === 0) {
+                await t.rollback();
                 return { status: 'info', procesados: 0, mensaje: "No hay estudiantes con matrícula activa en este grupo." };
             }
 

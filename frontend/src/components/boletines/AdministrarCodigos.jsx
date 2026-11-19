@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useAuth } from "../../context/AuthContext.jsx";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faKey, faSearch, faSpinner, faLockOpen, faLock, faDownload } from "@fortawesome/free-solid-svg-icons";
 import { fetchBoletinesCatalogs, fetchCodigosPorGrupo, toggleEstadoCodigo } from "../../api/boletinesService.js";
@@ -16,8 +15,6 @@ const AdministrarCodigos = () => {
     const [codigos, setCodigos] = useState([]);
     const [loading, setLoading] = useState(false);
     const [loadingToggle, setLoadingToggle] = useState(null); // Guarda el ID del código que se está actualizando
-
-    const { user, vigenciaActual } = useAuth();
 
     const inputClasses = "w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-100 disabled:text-gray-500";
     const labelClasses = "block text-sm font-medium text-gray-700 mb-1";

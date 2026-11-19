@@ -5,6 +5,8 @@ import { Sede } from "../models/sede.js";
 import { Matricula } from "../models/matricula.js";
 import { Estudiante } from "../models/estudiante.js";
 import { Calificacion } from "../models/calificacion.js";
+import { CalificacionArea } from "../models/calificacionArea.js";
+import { Nivelacion } from "../models/nivelacion.js";
 import { Carga } from "../models/carga.js";
 import { Docente } from "../models/docente.js";
 import { Usuario } from "../models/usuario.js";
@@ -36,9 +38,11 @@ export const reporteRepository = {
 
     async findMatriculasActivas(grupoId, vigenciaId) {
         return Matricula.findAll({
-            where: { grupoId, vigenciaId, estado: {
-                [Op.in]: ['ACTIVA', 'PROMOVIDO', 'REPROBADO']
-            } },
+            where: {
+                grupoId, vigenciaId, estado: {
+                    [Op.in]: ['ACTIVA', 'PROMOVIDO', 'REPROBADO']
+                }
+            },
             include: [{
                 model: Estudiante,
                 as: 'estudiante',
@@ -112,4 +116,40 @@ export const reporteRepository = {
     async findVigenciaById(id) {
         return Vigencia.findByPk(id, { attributes: ['id', 'anio'] });
     },
-};
+
+    // Extrae las calificaciones definitivas anuales por área (Periodo 5)
+    async findCalificacionesAreasFinales(matriculasIds, vigenciaId, periodoCierre = 5) {
+        return CalificacionArea.findAll({
+            where: {
+                matriculaId: { [Op.in]: matriculasIds },
+                vigenciaId,
+                periodo: periodoCierre
+            },
+            include: [{
+                model: Area,
+                as: 'area',
+                attributes: ['id', 'nombre', 'abreviatura']
+            }],
+            raw: true,
+            nest: true
+        });
+    },
+
+    // Extrae las nivelaciones registradas para las matrículas en la vigencia
+    async findNivelacionesPorMatriculas(matriculasIds, vigenciaId) {
+        return Nivelacion.findAll({
+            where: {
+                matriculaId: { [Op.in]: matriculasIds },
+                vigenciaId
+            },
+            include: [{
+                model: Area,
+                as: 'area',
+                attributes: ['id', 'nombre', 'abreviatura']
+            }],
+            order: [['id', 'ASC']],
+            raw: true,
+            nest: true
+        });
+    },
+}

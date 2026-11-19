@@ -59,6 +59,10 @@ export const nivelacionRepository = {
     },
 
 
+    /**
+     * LISTAR REPROBADOS
+     * Trae todos los estudiantes que tienen nivelaciones registradas para un grupo y vigencia específicos.
+     */
     async findReprobadosPorGrupo(grupoId, vigenciaId = null) {
 
         // Condición dinámica para la tabla Nivelación
@@ -98,65 +102,6 @@ export const nivelacionRepository = {
             // Ordenamos alfabéticamente por el apellido del estudiante
             order: [
                 [{ model: Matricula, as: "matricula" }, { model: Estudiante, as: "estudiante" }, 'primerApellido', 'ASC']
-            ]
-        });
-    },
-
-    /**
-     * LISTAR REPROBADOS (Vista del Profesor)
-     * Trae los reprobados por ÁREA. El frontend usará el JSON 'detalleAsignaturas'
-     * para mostrarle al profesor qué materias causaron la pérdida.
-     */
-    async findReprobadosPorGrupoYArea(grupoId, areaId) {
-        return await Nivelacion.findAll({
-            where: {
-                areaId: areaId,
-                estadoOriginal: "REPROBADO"
-            },
-            include: [
-                {
-                    model: Matricula,
-                    as: "matricula",
-                    where: { grupoId: grupoId, estado: "ACTIVA" },
-                    attributes: ["id", "folio", "estado"],
-                    include: [
-                        {
-                            model: Estudiante,
-                            as: "estudiante",
-                            attributes: [
-                                "id", "documento", "primerNombre", "segundoNombre",
-                                "primerApellido", "segundoApellido"
-                            ]
-                        }
-                    ]
-                },
-                {
-                    model: Area,
-                    as: "area",
-                    attributes: ["id", "nombre"]
-                }
-            ],
-            // Ordenamos alfabéticamente por el apellido del estudiante
-            order: [
-                [{ model: Matricula, as: "matricula" }, { model: Estudiante, as: "estudiante" }, 'primerApellido', 'ASC']
-            ]
-        });
-    },
-
-    /**
-     * LISTAR TODO EL AÑO DE UN ESTUDIANTE (Para el Motor de Promoción)
-     * Trae todas las definitivas y nivelaciones de una matrícula para
-     * contar cuántas perdió al final del año.
-     */
-    async findAllByMatricula(matriculaId) {
-        return await Nivelacion.findAll({
-            where: { matriculaId },
-            include: [
-                {
-                    model: Area,
-                    as: "area",
-                    attributes: ["id", "nombre"]
-                }
             ]
         });
     },
