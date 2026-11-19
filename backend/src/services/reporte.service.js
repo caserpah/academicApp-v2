@@ -273,6 +273,8 @@ export const reporteService = {
                     }
                 }
 
+                const puedeRecuperar = nroAp > 0 && nroAp < 3;
+
                 return {
                     id: est.id,
                     numero: (index + 1).toString().padStart(2, '0'),
@@ -284,8 +286,8 @@ export const reporteService = {
                     promColor: promColor,
                     promRaw: prom,
                     nroAp: nroAp,
-                    recup1: recupsEst[0] || "",
-                    recup2: recupsEst[1] || ""
+                    recup1: puedeRecuperar ? (recupsEst[0] || "") : "",
+                    recup2: puedeRecuperar ? (recupsEst[1] || "") : ""
                 };
             });
 
