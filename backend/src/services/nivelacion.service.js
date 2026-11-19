@@ -243,19 +243,24 @@ export const nivelacionService = {
                 estudiantesIds, vigenciaId, periodosPermitidos
             );
 
-            // =================================================================
-            // INYECCIÓN CONTROLADA PARA ASIGNATURAS INSTITUCIONALES (NUEVO BLINDAJE)
-            // =================================================================
+            // =====================================================
+            // INYECCIÓN CONTROLADA PARA ASIGNATURAS INSTITUCIONALES
+            // =====================================================
             // Recupera del lote de calificaciones aquellas materias que no tienen
             // carga horaria tradicional (como Comportamiento) para asegurar su
             // procesamiento en el promedio y su registro final en la BD.
             notas.forEach(n => {
                 if (!infoAsignaturas[n.asignaturaId] && n.asignatura) {
-                    infoAsignaturas[n.asignaturaId] = {
-                        areaId: n.asignatura.areaId,
-                        nombre: n.asignatura.nombre,
-                        porcentual: n.asignatura.porcentual || 100
-                    };
+                    const nombreAsig = (n.asignatura.nombre || '').toUpperCase().trim();
+                    const esInstitucional = ['COMPORTAMIENTO', 'DISCIPLINA', 'CONDUCTA'].includes(nombreAsig);
+
+                    if (esInstitucional) {
+                        infoAsignaturas[n.asignaturaId] = {
+                            areaId: n.asignatura.areaId,
+                            nombre: n.asignatura.nombre,
+                            porcentual: n.asignatura.porcentual || 100
+                        };
+                    }
                 }
             });
 
