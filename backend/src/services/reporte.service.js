@@ -158,9 +158,10 @@ export const reporteService = {
             let notasProcesadas = {};
 
             if (esPeriodoFinal) {
-                const esCicloVI = grupo.grado?.codigo === 'C6' ||
-                    (grupo.grado?.nombre || '').toUpperCase().replace(/_/g, ' ').includes('CICLO VI');
-                const periodoCierre = esCicloVI ? 3 : 5;
+                const gradoNombreUpper = (grupo.grado?.nombre || '').toUpperCase().replace(/_/g, ' ');
+                const esCicloV = grupo.grado?.codigo === 'C5' ||
+                    (gradoNombreUpper.includes('CICLO V') && !gradoNombreUpper.includes('CICLO VI'));
+                const periodoCierre = esCicloV ? 3 : 5;
 
                 // 1. Verificar que existan registros consolidados en calificaciones_areas
                 const calificacionesAreas = await reporteRepository.findCalificacionesAreasFinales(idsMatriculas, vigencia.id, periodoCierre);
@@ -439,9 +440,10 @@ export const reporteService = {
         let notasProcesadas = {};
 
         if (esPeriodoFinal) {
-            const esCicloVI = grupo.grado?.codigo === 'C6' ||
-                (grupo.grado?.nombre || '').toUpperCase().replace(/_/g, ' ').includes('CICLO VI');
-            const periodoCierre = esCicloVI ? 3 : 5;
+            const gradoNombreUpper = (grupo.grado?.nombre || '').toUpperCase().replace(/_/g, ' ');
+            const esCicloV = grupo.grado?.codigo === 'C5' ||
+                (gradoNombreUpper.includes('CICLO V') && !gradoNombreUpper.includes('CICLO VI'));
+            const periodoCierre = esCicloV ? 3 : 5;
 
             const calificacionesAreas = await reporteRepository.findCalificacionesAreasFinales(idsMatriculas, vigencia.id, periodoCierre);
             if (!calificacionesAreas || calificacionesAreas.length === 0) {
