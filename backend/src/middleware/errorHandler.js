@@ -1,5 +1,5 @@
 import { handleSequelizeError } from "./handleSequelizeError.js";
-import { sendError } from "./responseHandler.js"
+import { sendError } from "./responseHandler.js";
 
 /**
  * 🌐 Middleware global de manejo centralizado de errores.
@@ -7,15 +7,9 @@ import { sendError } from "./responseHandler.js"
  * Intercepta cualquier error propagado por `next(error)` en los controladores
  * y devuelve una respuesta JSON uniforme.
  */
-
 export const errorHandler = (err, req, res, next) => {
     const env = process.env.NODE_ENV || "development";
     const errorId = Date.now();
-
-    // Muestra el Log detallado solo en entorno de desarrollo
-    if (env !== "production") {
-        console.error(`🧨 Error [${errorId}] capturado por errorHandler:`, err);
-    }
 
     // Delegar manejo de errores de Sequelize
     if (
@@ -25,6 +19,17 @@ export const errorHandler = (err, req, res, next) => {
         err = handleSequelizeError(err);
     }
 
+    // Inferir severidad: códigos 4xx son advertencias de negocio si no traen otro alertType explícito
+    const statusCode = err.status || 500;
+    const alertType =
+        err.alertType ||
+        (statusCode >= 400 && statusCode < 500 ? "warning" : "error");
+
+    // Log detallado en desarrollo solo si es error técnico real
+    if (env !== "production" && alertType === "error") {
+        console.error(`🧨 Error [${errorId}] capturado por errorHandler:`, err);
+    }
+
     // Errores de Express-validator (normalmente gestionados por validationErrorHandler)
     if (err.errors && Array.isArray(err.errors)) {
         const errors = err.errors.map((e) => ({
@@ -32,33 +37,42 @@ export const errorHandler = (err, req, res, next) => {
             message: e.message || e.msg,
         }));
 
-        return sendError(res, err.message || "Error de validación de campos.", 422, errors, errorId);
+        return sendError(res, err.message || "Verifique los datos proporcionados.", 422, errors, errorId, {
+            alertType: "warning",
+            title: err.title || "Datos incompletos o inválidos",
+        });
     }
 
-    // Errores personalizados con status y mensaje definidos
+    // Errores personalizados con status y mensaje definidos (incluye BusinessWarning, BusinessInfo y new Error con status)
     if (err.status && err.message) {
-        return sendError(res, err.message, err.status, err.errors || null, errorId);
-    }
+        const defaultTitle =
+            alertType === "info"
+                ? "Información"
+                : alertType === "warning"
+                ? "Atención"
+                : "Error del servidor";
 
-    // Errores de recursos no encontrados (control manual)
-    if (err.status === 404) {
-        return sendError(res, err.message || "Recurso no encontrado.", 404, null, errorId);
+        return sendError(res, err.message, err.status, err.errors || null, errorId, {
+            alertType,
+            title: err.title || defaultTitle,
+        });
     }
 
     // Errores personalizados lanzados desde hooks de Sequelize en los modelos
     if (err.message && !err.status && err.name === "Error") {
-        return res.status(400).json({
-            status: "error",
-            message: err.message,
+        return sendError(res, err.message, 400, null, errorId, {
+            alertType: "warning",
+            title: "Validación",
         });
     }
 
     // Errores genéricos no controlados
     return sendError(
         res,
-        "Error interno del servidor. Por favor, inténtelo más tarde.",
+        "Ocurrió un inconveniente interno en el servidor. Por favor, intenta nuevamente en unos momentos.",
         500,
         null,
-        errorId
+        errorId,
+        { alertType: "error", title: "Error del servidor" }
     );
 };

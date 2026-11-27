@@ -120,6 +120,19 @@ export const eliminarJuicio = async (id) => {
 };
 
 /* -------------------------------------------------------------------------- */
+/* Función para Intercambiar o Trasladar Periodo de Juicio Académico          */
+/* -------------------------------------------------------------------------- */
+
+export const intercambiarPeriodoJuicio = async (data) => {
+    try {
+        const response = await apiClient.post(`${JUICIOS_ENDPOINT}/intercambiar-periodo`, data);
+        return response.data;
+    } catch (error) {
+        throw parseError(error, "Error al intercambiar el periodo del juicio.");
+    }
+};
+
+/* -------------------------------------------------------------------------- */
 /* Funciones de Importación Masiva                                            */
 /* -------------------------------------------------------------------------- */
 

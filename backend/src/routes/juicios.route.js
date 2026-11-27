@@ -6,6 +6,7 @@ import { validationErrorHandler } from "../validators/validationErrorHandler.js"
 import {
     ValidarCrearJuicio,
     validarActualizarJuicio,
+    validarIntercambiarPeriodoJuicio,
 } from "../validators/juicio.validator.js";
 
 import { juicioController } from "../controllers/juicio.controller.js";
@@ -52,6 +53,16 @@ router.delete(
     protect,
     restrictTo(["admin"]),
     juicioController.remove
+);
+
+// Intercambiar o trasladar periodo de juicio académico
+router.post(
+    "/intercambiar-periodo",
+    protect,
+    restrictTo(["admin"]),
+    validarIntercambiarPeriodoJuicio,
+    validationErrorHandler,
+    juicioController.intercambiarPeriodo
 );
 
 // Descargar plantilla vacía para importación masiva

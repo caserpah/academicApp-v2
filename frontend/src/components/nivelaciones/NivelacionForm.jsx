@@ -17,19 +17,42 @@ const NivelacionForm = ({
     const urlEvidenciaExistente = registroOriginal.urlEvidencia || null;
     const estaCerrado = ['PROMOVIDO', 'REPROBADO'].includes(registroOriginal.estadoMatricula);
 
+    const tieneNotaRegistrada =
+        registroOriginal.notaNivelacion !== null &&
+        registroOriginal.notaNivelacion !== undefined;
+
+    const esCeroInicial = tieneNotaRegistrada && Number(registroOriginal.notaNivelacion) === 0;
+
+    const notaInicial =
+        tieneNotaRegistrada && !esCeroInicial
+            ? Number(registroOriginal.notaNivelacion).toFixed(2)
+            : "";
+
     // --- ESTADOS ---
-    // Si notaNivelacion viene en null (estado PENDIENTE), el input arranca vacío ("").
-    // Si ya existe una notaNivelacion (ej: 3.0), se formatea y se muestra en el input.
-    const [nota, setNota] = useState(registroOriginal.notaNivelacion ? Number(registroOriginal.notaNivelacion).toFixed(2) : "");
+    const [noNivelo, setNoNivelo] = useState(esCeroInicial);
+    const [nota, setNota] = useState(esCeroInicial ? "0.0" : notaInicial);
+    const [notaPrevia, setNotaPrevia] = useState(notaInicial);
+
     const [observacion, setObservacion] = useState(registroOriginal.observacion || "");
     const [archivo, setArchivo] = useState(null);
     const [loading, setLoading] = useState(false);
 
     // --- CLASES CSS ---
-    const inputClasses = "w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-100 disabled:text-gray-500";
+    const inputClasses = "w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed";
     const labelClasses = "block text-sm font-medium text-gray-700 mb-1";
 
     // --- HANDLERS ---
+    const handleNoNiveloChange = (e) => {
+        const checked = e.target.checked;
+        setNoNivelo(checked);
+        if (checked) {
+            setNotaPrevia(nota);
+            setNota("0.0");
+        } else {
+            setNota(notaPrevia);
+        }
+    };
+
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -52,10 +75,10 @@ const NivelacionForm = ({
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Validaciones manuales
-        const notaNum = parseFloat(nota);
-        if (isNaN(notaNum) || notaNum < 1.0 || notaNum > 3.0) {
-            return showWarning("La nota de nivelación debe estar entre 1.0 y 3.0.");
+        const notaNum = noNivelo ? 0.0 : parseFloat(nota);
+
+        if (isNaN(notaNum) || notaNum < 0.0 || notaNum > 3.0) {
+            return showWarning("La nota de nivelación debe ser un valor válido entre 0.0 y 3.0.");
         }
 
         try {
@@ -149,15 +172,27 @@ const NivelacionForm = ({
                                 <input
                                     type="number"
                                     step="0.1"
-                                    min="1.0"
+                                    min="0.0"
                                     max="3.0"
                                     value={nota}
                                     onChange={e => setNota(e.target.value)}
                                     className={inputClasses}
                                     placeholder="Ej: 3.0"
                                     required
-                                    disabled={loading || soloLectura}
+                                    disabled={loading || soloLectura || noNivelo}
                                 />
+                                <label className="inline-flex items-center gap-2 mt-2.5 cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={noNivelo}
+                                        onChange={handleNoNiveloChange}
+                                        disabled={loading || soloLectura}
+                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:cursor-not-allowed"
+                                    />
+                                    <span className="text-xs font-medium text-gray-700">
+                                        No niveló (No se presentó)
+                                    </span>
+                                </label>
                             </div>
                             <div>
                                 <label className={labelClasses}>Evidencia (PDF) {estaCerrado ? <span className="text-blue-500 font-bold">(Para Reemplazar)</span> : <span className="text-gray-400 font-normal">(Opcional)</span>}</label>

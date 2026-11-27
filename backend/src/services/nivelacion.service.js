@@ -47,7 +47,7 @@ export const nivelacionService = {
 
             // 2. Extraer y validar la nota ingresada
             const notaNivelacion = parseFloat(payload.notaNivelacion);
-            if (Number.isNaN(Number(notaNivelacion)) || notaNivelacion < 1.0 || notaNivelacion > 5.0) {
+            if (Number.isNaN(Number(notaNivelacion)) || notaNivelacion < 0.0 || notaNivelacion > 3.0) {
                 const error = new Error("La nota de nivelación debe ser un número válido dentro de la escala permitida.");
                 error.status = 400;
                 throw error;

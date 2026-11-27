@@ -50,6 +50,20 @@ export const juicioController = {
         }
     },
 
+    async intercambiarPeriodo(req, res, next) {
+        try {
+            const resultado = await juicioService.intercambiarPeriodo(req.body);
+
+            const mensaje = resultado.tipoOperacion === "INTERCAMBIO"
+                ? `Se intercambiaron exitosamente los juicios entre el Periodo ${resultado.periodoOrigen} y el Periodo ${resultado.periodoDestino}.`
+                : `El juicio se trasladó exitosamente del Periodo ${resultado.periodoOrigen} al Periodo ${resultado.periodoDestino}.`;
+
+            return sendSuccess(res, resultado, mensaje);
+        } catch (error) {
+            next(error);
+        }
+    },
+
     // ========== Funciones para Importación Masiva ==========
 
     async descargarPlantilla(req, res, next) {

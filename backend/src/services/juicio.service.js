@@ -22,6 +22,20 @@ const NIVEL = {
     PREESCOLAR: "PREESCOLAR"
 };
 
+const obtenerPeriodosAcademicosPorGrado = (grado, config = {}) => {
+    const codigo = String(grado?.codigo || "").trim().toUpperCase();
+
+    if (codigo === "C5") return [1, 2];
+    if (codigo === "C6") return [3, 4];
+
+    if (Array.isArray(config?.periodosPermitidos) && config.periodosPermitidos.length > 0) {
+        const regulares = config.periodosPermitidos.map(Number).filter(p => [1, 2, 3, 4].includes(p));
+        if (regulares.length > 0) return regulares;
+    }
+
+    return [1, 2, 3, 4];
+};
+
 export const juicioService = {
 
     /**
@@ -103,6 +117,92 @@ export const juicioService = {
             return true;
         } catch (error) {
             throw formatearErrorForaneo(error, "este juicio", "calificaciones asociadas");
+        }
+    },
+
+    /**
+     * INTERCAMBIAR O TRASLADAR PERIODO (Solo Dimensión Académica - Periodos regulares según grado)
+     */
+    async intercambiarPeriodo({ gradoId, asignaturaId, desempenoId, periodoOrigen, periodoDestino }) {
+        const transaction = await sequelize.transaction();
+
+        try {
+            const idGrado = Number(gradoId);
+            const idAsignatura = Number(asignaturaId);
+            const idDesempeno = Number(desempenoId);
+            const pOrigen = Number(periodoOrigen);
+            const pDestino = Number(periodoDestino);
+
+            if (pOrigen === pDestino) {
+                const err = new Error("El periodo destino debe ser diferente al periodo origen.");
+                err.status = 400;
+                throw err;
+            }
+
+            // Validar grado y sus periodos permitidos (C5: 1-2, C6: 3-4, Regulares: 1-4)
+            const grado = await Grado.findByPk(idGrado, { transaction });
+            if (!grado) {
+                const err = new Error("El grado seleccionado no existe.");
+                err.status = 404;
+                throw err;
+            }
+
+            const periodosValidos = obtenerPeriodosAcademicosPorGrado(grado);
+            if (!periodosValidos.includes(pOrigen) || !periodosValidos.includes(pDestino)) {
+                const err = new Error(
+                    `El grado ${grado.nombre.replace(/_/g, " ")} (${grado.codigo}) solo permite operar entre los periodos ${periodosValidos.join(" y ")}.`
+                );
+                err.status = 400;
+                throw err;
+            }
+
+            const coordenadasBase = {
+                gradoId: idGrado,
+                asignaturaId: idAsignatura,
+                dimensionId: DIMENSION.ACADEMICA, // Exclusivo para competencia ACADÉMICA (1)
+                desempenoId: idDesempeno,
+            };
+
+            const juicioOrigen = await Juicio.findOne({
+                where: { ...coordenadasBase, periodo: pOrigen },
+                transaction,
+            });
+
+            if (!juicioOrigen) {
+                const err = new Error(`No se encontró un juicio académico registrado en el Periodo ${pOrigen}.`);
+                err.status = 404;
+                throw err;
+            }
+
+            const juicioDestino = await Juicio.findOne({
+                where: { ...coordenadasBase, periodo: pDestino },
+                transaction,
+            });
+
+            let tipoOperacion = "TRASLADO";
+
+            if (juicioDestino) {
+                // Ambos periodos existen: intercambio atómico usando 0 como pivote temporal
+                // para evitar colisión con el índice único compuesto idx_juicio_unico
+                await juicioOrigen.update({ periodo: 0 }, { transaction });
+                await juicioDestino.update({ periodo: pOrigen }, { transaction });
+                await juicioOrigen.update({ periodo: pDestino }, { transaction });
+                tipoOperacion = "INTERCAMBIO";
+            } else {
+                // El periodo destino está libre: traslado directo
+                await juicioOrigen.update({ periodo: pDestino }, { transaction });
+            }
+
+            await transaction.commit();
+
+            return {
+                tipoOperacion,
+                periodoOrigen: pOrigen,
+                periodoDestino: pDestino,
+            };
+        } catch (error) {
+            await transaction.rollback();
+            throw handleSequelizeError(error);
         }
     },
 

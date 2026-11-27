@@ -54,6 +54,21 @@ async function obtenerConfigGrado(gradoId) {
     return { grado, config: grado.configuracion || {} };
 }
 
+// Helper para resolver los periodos académicos regulares según el código del grado
+const obtenerPeriodosAcademicosPorGrado = (grado, config = {}) => {
+    const codigo = String(grado?.codigo || "").trim().toUpperCase();
+
+    if (codigo === "C5") return [1, 2];
+    if (codigo === "C6") return [3, 4];
+
+    if (Array.isArray(config?.periodosPermitidos) && config.periodosPermitidos.length > 0) {
+        const regulares = config.periodosPermitidos.map(Number).filter(p => [1, 2, 3, 4].includes(p));
+        if (regulares.length > 0) return regulares;
+    }
+
+    return [1, 2, 3, 4];
+};
+
 // Validar crear juicio
 export const ValidarCrearJuicio = [
     body("gradoId")
@@ -355,6 +370,57 @@ export const validarActualizarJuicio = [
         }),
 
     body("activo").optional().isBoolean(),
+
+    validationErrorHandler,
+];
+
+// Validar intercambio de periodo en juicios académicos
+export const validarIntercambiarPeriodoJuicio = [
+    validarCampoRequerido("gradoId", "El grado es obligatorio.")
+        .isInt({ min: 1 }).withMessage("El grado seleccionado no es válido.")
+        .bail()
+        .custom(verificarExistenciaPorId(Grado, "id", "el grado")),
+
+    validarCampoRequerido("asignaturaId", "La asignatura es obligatoria.")
+        .isInt({ min: 1 }).withMessage("La asignatura seleccionada no es válida.")
+        .bail()
+        .custom(verificarExistenciaPorId(Asignatura, "id", "la asignatura")),
+
+    validarCampoRequerido("desempenoId", "El indicador de desempeño es obligatorio.")
+        .isInt({ min: 1 }).withMessage("El indicador de desempeño no es válido.")
+        .bail()
+        .custom(verificarExistenciaPorId(Desempeno, "id", "el indicador de desempeño")),
+
+    validarCampoRequerido("periodoOrigen", "El periodo origen es obligatorio.")
+        .isInt({ min: 1, max: 4 })
+        .withMessage("El periodo origen debe estar entre 1 y 4."),
+
+    validarCampoRequerido("periodoDestino", "Seleccione el periodo destino.")
+        .isInt({ min: 1, max: 4 })
+        .withMessage("El periodo destino debe estar entre 1 y 4.")
+        .bail()
+        .custom(async (value, { req }) => {
+            const origen = Number(req.body.periodoOrigen);
+            const destino = Number(value);
+
+            if (origen === destino) {
+                throw new Error("El periodo destino debe ser diferente al periodo origen.");
+            }
+
+            if (req.body.gradoId) {
+                const { grado, config } = await obtenerConfigGrado(req.body.gradoId);
+                if (grado) {
+                    const permitidos = obtenerPeriodosAcademicosPorGrado(grado, config);
+                    if (!permitidos.includes(origen) || !permitidos.includes(destino)) {
+                        throw new Error(
+                            `Para el grado ${grado.nombre.replace(/_/g, " ")} (${grado.codigo}) los periodos válidos son: ${permitidos.join(" y ")}.`
+                        );
+                    }
+                }
+            }
+
+            return true;
+        }),
 
     validationErrorHandler,
 ];

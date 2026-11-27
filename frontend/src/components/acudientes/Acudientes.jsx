@@ -13,7 +13,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 import { listarAcudientes, eliminarAcudiente, habilitarAccesoWeb } from '../../api/acudientesService.js';
-import { showSuccess, showError, showConfirm } from "../../utils/notifications.js";
+import { showSuccess, showError, showConfirm, showApiAlert } from "../../utils/notifications.js";
 import AcudientesForm from '../acudientes/AcudientesForm.jsx';
 
 const Acudientes = () => {
@@ -80,7 +80,7 @@ const Acudientes = () => {
             fetchAcudientes(pagination.page);
         } catch (error) {
             console.error(error);
-            showError("No se pudo eliminar. Verifique si el acudiente tiene estudiantes asociados.");
+            showApiAlert(error, "No se pudo eliminar el acudiente. Verifique si el acudiente tiene estudiantes asociados.");
         }
     };
 

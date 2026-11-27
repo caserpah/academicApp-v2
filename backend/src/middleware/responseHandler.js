@@ -21,27 +21,24 @@ export const sendSuccess = (res, data = null, message = "Operación exitosa", st
     });
 };
 
-/**
- * Envía una respuesta de error controlado
- * @param {Response} res - Objeto de respuesta de Express
- * @param {string} [message="Error interno del servidor"] - Mensaje de error
- * @param {number} [statusCode=500] - Código HTTP
- * @param {Array|Object|null} [errors=null] - Detalle de errores opcional
- * @param {string|number} [errorId=null] - Identificador del error (para trazabilidad)
- */
 export const sendError = (
     res,
     message = "Error interno del servidor",
     statusCode = 500,
     errors = null,
-    errorId = null
+    errorId = null,
+    options = {}
 ) => {
+    const { alertType = "error", title = null } = options;
+
     const response = {
-        status: "error",
+        status: alertType === "error" ? "error" : alertType, // Mantiene compatibilidad y comunica el tipo
+        alertType, // 'error' | 'warning' | 'info'
         message,
         timestamp: new Date().toISOString(),
     };
 
+    if (title) response.title = title;
     if (errors) response.errors = errors;
     if (errorId) response.errorId = errorId;
 

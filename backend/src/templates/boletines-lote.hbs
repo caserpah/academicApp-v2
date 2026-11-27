@@ -473,13 +473,7 @@
 
                     {{#if ../../configuracionImpresion.esPeriodoFinal}}
                     <td class="centrado" style="font-weight: bold; font-size: 8px;">{{this.desempenoArea}}</td>
-                    <td class="centrado">
-                        {{this.acumuladoActualArea}}
-                        {{#if this.notaNivelacion}}
-                        <span style="font-size: 7.5px; color: #555; vertical-align: super; font-weight: bold;">
-                            (Niv.)</span>
-                        {{/if}}
-                    </td>
+                    <td class="centrado">{{this.acumuladoActualArea}}</td>
                     {{else}}
                     {{#if ../../configuracionImpresion.esValorativo}}
                     <td class="centrado" style="font-weight: bold; font-size: 8px;">{{this.desempenoArea}}</td>
@@ -510,10 +504,23 @@
                 <tr>
                     <td colspan="8" style="padding: 3px 10px; font-size: 10px; background-color: #fafafa;">
                         <span class="concepto-definitivo">CONCEPTO DEFINITIVO</span><br>
-                        {{#if this.notaNivelacion}}
+                        {{#if this.infoNivelacionDescriptivo}}
                         <div style="margin-bottom: 2px; font-size: 9px; font-style: italic; color: #333;">
+                            {{#if this.infoNivelacionDescriptivo.nivelacionSuperada}}
                             <strong>* Nota de recuperación:</strong> El estudiante presentó actividades de nivelación,
-                            alcanzando una valoración de {{this.notaNivelacion}}.
+                            alcanzando una valoración de {{this.infoNivelacionDescriptivo.notaNivelacion}}.
+                            {{else}}
+                            <strong>* Proceso de nivelación:</strong>
+                            {{#if this.infoNivelacionDescriptivo.mostrarNota}}
+                            El estudiante presentó actividades de nivelación, alcanzando una valoración de
+                            {{this.infoNivelacionDescriptivo.notaNivelacion}}.
+                            {{#if this.infoNivelacionDescriptivo.observacion}}
+                            ({{this.infoNivelacionDescriptivo.observacion}})
+                            {{/if}}
+                            {{else}}
+                            {{this.infoNivelacionDescriptivo.observacion}}
+                            {{/if}}
+                            {{/if}}
                         </div>
                         {{/if}}
                         <span style="text-align: justify; display: block; margin-top: 2px;">
@@ -637,6 +644,44 @@
                 {{/each}} {{!-- Fin del #each this.areas --}}
             </tbody>
         </table>
+
+        {{#if ../configuracionImpresion.esPeriodoFinal}}
+        {{#if ../configuracionImpresion.esValorativo}}
+        {{#if this.nivelaciones.length}}
+        <table style="margin-top: 8px; margin-bottom: 10px;">
+            <colgroup>
+                <col style="width: 34%;">
+                <col style="width: 10%;">
+                <col style="width: 12%;">
+                <col style="width: 44%;">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th colspan="4" style="background-color: #d9d9d9; font-size: 9px; text-transform: uppercase;">
+                        REGISTRO DE NIVELACIONES DE FIN DE AÑO
+                    </th>
+                </tr>
+                <tr>
+                    <th>ÁREA NIVELADA</th>
+                    <th>NOTA NIV.</th>
+                    <th>DESEMPEÑO</th>
+                    <th>OBSERVACIONES DE NIVELACIÓN</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each this.nivelaciones}}
+                <tr>
+                    <td style="font-weight: bold; font-size: 9.5px; text-transform: uppercase;">{{this.nombreArea}}</td>
+                    <td class="centrado" style="font-weight: bold; font-size: 9.5px;">{{this.notaNivelacion}}</td>
+                    <td class="centrado" style="font-weight: bold; font-size: 8px;">{{this.desempenoNivelacion}}</td>
+                    <td style="font-size: 9px; text-align: justify;">{{this.observacionNivelacion}}</td>
+                </tr>
+                {{/each}}
+            </tbody>
+        </table>
+        {{/if}}
+        {{/if}}
+        {{/if}}
 
         {{#unless ../configuracionImpresion.esPreescolar}}
 

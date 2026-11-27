@@ -513,7 +513,7 @@ const Nivelaciones = () => {
                         areaId={selectedAreaId}
                         soloLectura={!esAdmin || ['PROMOVIDO', 'REPROBADO'].includes(selectedEstudiante.estadoMatricula)}
                         onSuccess={async () => {
-                            await showSuccess("Calificación de nivelación registrada de forma exitosa.");
+                            await showSuccess("Nivelación registrada de forma exitosa.");
                             setMode("lista"); // Una vez cerrada la alerta, cerramos el modal y recargamos la tabla oculta
                             handleBuscar(); // Recarga las tablas
                         }}

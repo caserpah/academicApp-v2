@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import CreatableSelect from "react-select/creatable";
 import { municipiosColombia } from "../../data/municipiosColombia.js";
 import { crearAcudiente, actualizarAcudiente } from "../../api/acudientesService.js";
-import { showSuccess, showError, showWarning } from "../../utils/notifications.js";
+import { showSuccess, showApiAlert, showWarning } from "../../utils/notifications.js";
 import { faTimes, faSave, faUserCheck } from "@fortawesome/free-solid-svg-icons";
 
 // Estado inicial del formulario
@@ -79,7 +79,7 @@ const AcudientesForm = ({ registro, onClose, onSuccess }) => {
             }
             onSuccess(); // Recargar tabla padre
         } catch (error) {
-            showError(error.message || "Error al guardar el acudiente.");
+            showApiAlert(error, "Error al guardar el acudiente.");
         } finally {
             setLoading(false);
         }

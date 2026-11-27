@@ -3,7 +3,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faEdit, faTrash, faScaleBalanced, faChevronLeft,
     faSearch, faChevronRight, faSpinner, faEraser,
-    faGlobe, faLayerGroup, faFileImport, faEye
+    faGlobe, faLayerGroup, faFileImport, faEye,
+    faArrowsRotate, faTimes, faArrowRight
 } from "@fortawesome/free-solid-svg-icons";
 
 import {
@@ -12,6 +13,7 @@ import {
     crearJuicio,
     actualizarJuicio,
     eliminarJuicio,
+    intercambiarPeriodoJuicio,
 } from "../../api/juiciosService.js";
 
 import { showSuccess, showError, showWarning, showConfirm } from "../../utils/notifications.js";
@@ -65,6 +67,145 @@ const Juicios = () => {
     const [loading, setLoading] = useState(false);
     const [loadingData, setLoadingData] = useState(false);
     const formContainerRef = useRef(null);
+
+    // --- FUNCIONES AUXILIARES ---
+    // Determina los periodos permitidos según el grado del juicio
+    const getPeriodosPermitidosGrado = (juicio) => {
+        const gradoObj = juicio?.grado || grados.find(g => Number(g.id) === Number(juicio?.gradoId));
+        const codigo = String(gradoObj?.codigo || "").trim().toUpperCase();
+
+        if (codigo === "C5") return [1, 2];
+        if (codigo === "C6") return [3, 4];
+        return [1, 2, 3, 4];
+    };
+
+    // --- ESTADOS MODAL INTERCAMBIO DE PERIODO ---
+    const [swapModal, setSwapModal] = useState({
+        isOpen: false,
+        juicioOrigen: null,
+        periodoDestino: "",
+        juicioDestino: null,
+        loadingPreview: false,
+        submitting: false,
+    });
+
+    const handleOpenSwapModal = (juicio) => {
+        setSwapModal({
+            isOpen: true,
+            juicioOrigen: juicio,
+            periodoDestino: "",
+            juicioDestino: null,
+            loadingPreview: false,
+            submitting: false,
+        });
+    };
+
+    const handleCloseSwapModal = () => {
+        if (swapModal.submitting) return;
+        setSwapModal({
+            isOpen: false,
+            juicioOrigen: null,
+            periodoDestino: "",
+            juicioDestino: null,
+            loadingPreview: false,
+            submitting: false,
+        });
+    };
+
+    const handleSelectPeriodoDestino = async (nuevoPeriodoDestino) => {
+        const origen = swapModal.juicioOrigen;
+        if (!origen || !nuevoPeriodoDestino) {
+            setSwapModal(prev => ({
+                ...prev,
+                periodoDestino: nuevoPeriodoDestino,
+                juicioDestino: null,
+            }));
+            return;
+        }
+
+        const gradoId = origen.grado?.id || origen.gradoId;
+        const asignaturaId = origen.asignatura?.id || origen.asignaturaId;
+        const dimensionId = origen.dimension?.id || origen.dimensionId;
+        const desempenoId = origen.desempeno?.id || origen.desempenoId;
+
+        setSwapModal(prev => ({
+            ...prev,
+            periodoDestino: nuevoPeriodoDestino,
+            juicioDestino: null,
+            loadingPreview: true,
+        }));
+
+        try {
+            const res = await fetchJuiciosPaginated({
+                gradoId,
+                asignaturaId,
+                dimensionId,
+                desempenoId,
+                periodo: Number(nuevoPeriodoDestino),
+                limit: 10,
+            });
+
+            // Garantizamos coincidencia exacta de grado y asignatura
+            const coincidenciaExacta = (res.items || []).find(item =>
+                Number(item.grado?.id || item.gradoId) === Number(gradoId) &&
+                Number(item.asignatura?.id || item.asignaturaId) === Number(asignaturaId)
+            ) || null;
+
+            setSwapModal(prev => ({
+                ...prev,
+                juicioDestino: coincidenciaExacta,
+                loadingPreview: false,
+            }));
+        } catch (err) {
+            console.error(err);
+            setSwapModal(prev => ({ ...prev, loadingPreview: false }));
+            showError("No se pudo consultar el juicio del periodo destino.");
+        }
+    };
+
+    const handleConfirmSwap = async () => {
+        const { juicioOrigen, periodoDestino, juicioDestino } = swapModal;
+        if (!juicioOrigen || !periodoDestino) {
+            return showWarning("Seleccione el periodo destino.");
+        }
+
+        const pOrigen = Number(juicioOrigen.periodo);
+        const pDestino = Number(periodoDestino);
+
+        const mensajeConfirmacion = juicioDestino
+            ? `Se intercambiará la descripción del juicio del Periodo ${pOrigen} con el del Periodo ${pDestino}. ¿Desea continuar?`
+            : `El Periodo ${pDestino} no tiene un juicio registrado; este juicio se moverá del Periodo ${pOrigen} al Periodo ${pDestino}. ¿Desea continuar?`;
+
+        const confirmado = await showConfirm(mensajeConfirmacion, "Confirmar cambio de periodo");
+        if (!confirmado) return;
+
+        try {
+            setSwapModal(prev => ({ ...prev, submitting: true }));
+
+            const response = await intercambiarPeriodoJuicio({
+                gradoId: juicioOrigen.grado?.id || juicioOrigen.gradoId,
+                asignaturaId: juicioOrigen.asignatura?.id || juicioOrigen.asignaturaId,
+                desempenoId: juicioOrigen.desempeno?.id || juicioOrigen.desempenoId,
+                periodoOrigen: pOrigen,
+                periodoDestino: pDestino,
+            });
+
+            showSuccess(response.message || "Periodo actualizado exitosamente.");
+            setSwapModal({
+                isOpen: false,
+                juicioOrigen: null,
+                periodoDestino: "",
+                juicioDestino: null,
+                loadingPreview: false,
+                submitting: false,
+            });
+            resetForm();
+            loadJuicios();
+        } catch (err) {
+            setSwapModal(prev => ({ ...prev, submitting: false }));
+            showError(err.message);
+        }
+    };
 
     // --- CARGA INICIAL ---
     useEffect(() => {
@@ -484,6 +625,10 @@ const Juicios = () => {
                                 ) : juicios.length > 0 ? (
                                     juicios.map((juicio) => {
 
+                                        const periodosGrado = getPeriodosPermitidosGrado(juicio);
+                                        const esAcademicaReg = Number(juicio.dimension?.id || juicio.dimensionId) === 1
+                                            && periodosGrado.includes(Number(juicio.periodo));
+
                                         const dimNombre = juicio.dimension?.nombre || 'N/A';
 
                                         // Estilos Desempeño
@@ -537,7 +682,7 @@ const Juicios = () => {
                                                         {juicio.activo ? "ACTIVO" : "INACTIVO"}
                                                     </span>
                                                 </td>
-                                                <td className="px-3 py-3 text-right space-x-2">
+                                                <td className="px-3 py-3 text-right space-x-2 whitespace-nowrap">
                                                     {isAdmin ? (
                                                         <>
                                                             <button onClick={() => handleEdit(juicio)} className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50 transition" title="Editar">
@@ -546,6 +691,16 @@ const Juicios = () => {
                                                             <button onClick={() => handleDelete(juicio)} className="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-50 transition" title="Eliminar">
                                                                 <FontAwesomeIcon icon={faTrash} />
                                                             </button>
+
+                                                            {esAcademicaReg && (
+                                                                <button
+                                                                    onClick={() => handleOpenSwapModal(juicio)}
+                                                                    className="text-amber-600 hover:text-amber-800 p-1 rounded-full hover:bg-amber-50 transition"
+                                                                    title="Intercambiar / Mover de periodo"
+                                                                >
+                                                                    <FontAwesomeIcon icon={faArrowsRotate} />
+                                                                </button>
+                                                            )}
                                                         </>
                                                     ) : (
                                                         <button onClick={() => handleEdit(juicio)} className="text-indigo-600 hover:text-indigo-800 p-1 rounded-full hover:bg-indigo-50 transition" title="Ver Detalles">
@@ -610,6 +765,172 @@ const Juicios = () => {
                         showSuccess("Importación completada.");
                     }}
                 />
+            )}
+
+            {/* Modal Integrado: Intercambiar / Mover Periodo de Juicio Académico */}
+            {swapModal.isOpen && swapModal.juicioOrigen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden border border-gray-100">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50 text-gray-700">
+                            <div className="flex items-center gap-2.5">
+                                <FontAwesomeIcon icon={faArrowsRotate} className="text-amber-400" />
+                                <h3 className="text-xl font-bold">Intercambiar Periodo de Juicio Académico</h3>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleCloseSwapModal}
+                                disabled={swapModal.submitting}
+                                className="text-gray-400 hover:text-red-600 transition"
+                            >
+                                <FontAwesomeIcon icon={faTimes} />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 space-y-5">
+                            {/* Resumen de coordenadas bloqueadas */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-blue-50 border border-blue-100 p-3.5 rounded-lg text-xs">
+                                <div>
+                                    <span className="block text-gray-400 font-semibold uppercase">Grado</span>
+                                    <span className="font-bold text-gray-700">
+                                        {swapModal.juicioOrigen.grado?.nombre?.replace(/_/g, " ") || "N/A"}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="block text-gray-400 font-semibold uppercase">Asignatura</span>
+                                    <span className="font-bold text-gray-700">
+                                        {swapModal.juicioOrigen.asignatura?.nombre || "N/A"}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="block text-gray-400 font-semibold uppercase">Competencia</span>
+                                    <span className="font-bold text-blue-500">
+                                        {swapModal.juicioOrigen.dimension?.nombre || "ACADÉMICA"}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="block text-gray-400 font-semibold uppercase">Desempeño</span>
+                                    <span className="font-bold text-gray-700">
+                                        {swapModal.juicioOrigen.desempeno?.nombre || "N/A"}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Selección de Periodos (Origen fijo -> Destino 1..4) */}
+                            <div className="grid grid-cols-1 sm:grid-cols-11 gap-3 items-end">
+                                <div className="sm:col-span-5">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                                        Periodo Origen
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={`Periodo ${swapModal.juicioOrigen.periodo}`}
+                                        disabled
+                                        className="w-full border border-gray-300 rounded-lg p-2 text-sm font-semibold text-gray-500 bg-gray-100 cursor-not-allowed"
+                                    />
+                                </div>
+
+                                <div className="sm:col-span-1 flex justify-center pb-2 text-gray-400">
+                                    <FontAwesomeIcon icon={faArrowRight} />
+                                </div>
+
+                                <div className="sm:col-span-5">
+                                    <label className="block text-xs font-bold text-gray-600 uppercase mb-1">
+                                        Periodo Destino <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        value={swapModal.periodoDestino}
+                                        onChange={(e) => handleSelectPeriodoDestino(e.target.value)}
+                                        disabled={swapModal.submitting}
+                                        className="w-full border border-gray-300 rounded-lg p-2 text-sm font-medium focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                    >
+                                        <option value="">-- Seleccione Periodo --</option>
+                                        {getPeriodosPermitidosGrado(swapModal.juicioOrigen)
+                                            .filter((p) => p !== Number(swapModal.juicioOrigen.periodo))
+                                            .map((p) => (
+                                                <option key={p} value={p}>
+                                                    Periodo {p}
+                                                </option>
+                                            ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Vista Previa Comparativa */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                                {/* Tarjeta Origen */}
+                                <div className="border border-blue-200 bg-blue-50/40 rounded-lg p-3.5">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-xs font-bold text-blue-800 uppercase">
+                                            Periodo {swapModal.juicioOrigen.periodo} (Actual)
+                                        </span>
+                                        <span className={`px-2 py-0.5 text-[10px] rounded-full font-bold ${swapModal.juicioOrigen.activo ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                                            {swapModal.juicioOrigen.activo ? "ACTIVO" : "INACTIVO"}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-gray-700 leading-relaxed max-h-32 overflow-y-auto">
+                                        {swapModal.juicioOrigen.texto}
+                                    </p>
+                                </div>
+
+                                {/* Tarjeta Destino */}
+                                <div className="border border-amber-200 bg-amber-50/40 rounded-lg p-3.5">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-xs font-bold text-amber-800 uppercase">
+                                            {swapModal.periodoDestino ? `Periodo ${swapModal.periodoDestino} (Destino)` : "Periodo Destino"}
+                                        </span>
+                                        {swapModal.juicioDestino && (
+                                            <span className={`px-2 py-0.5 text-[10px] rounded-full font-bold ${swapModal.juicioDestino.activo ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                                                {swapModal.juicioDestino.activo ? "ACTIVO" : "INACTIVO"}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {!swapModal.periodoDestino ? (
+                                        <p className="text-xs text-gray-400 italic">
+                                            Seleccione un periodo destino para previsualizar el contenido actual.
+                                        </p>
+                                    ) : swapModal.loadingPreview ? (
+                                        <div className="flex items-center gap-2 text-xs text-gray-500 py-4">
+                                            <FontAwesomeIcon icon={faSpinner} spin className="text-blue-500" />
+                                            Consultando juicio destino...
+                                        </div>
+                                    ) : swapModal.juicioDestino ? (
+                                        <p className="text-sm text-gray-700 leading-relaxed max-h-32 overflow-y-auto">
+                                            {swapModal.juicioDestino.texto}
+                                        </p>
+                                    ) : (
+                                        <p className="text-sm text-amber-700 italic">
+                                            No existe un juicio registrado en el Periodo {swapModal.periodoDestino}. El juicio actual se trasladará directamente a este periodo.
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="px-6 py-3.5 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={handleCloseSwapModal}
+                                disabled={swapModal.submitting}
+                                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-100 transition"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleConfirmSwap}
+                                disabled={!swapModal.periodoDestino || swapModal.loadingPreview || swapModal.submitting}
+                                className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition flex items-center gap-2"
+                            >
+                                {swapModal.submitting && <FontAwesomeIcon icon={faSpinner} spin />}
+                                {swapModal.juicioDestino ? "Intercambiar Periodos" : "Mover a Periodo Destino"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
         </div>

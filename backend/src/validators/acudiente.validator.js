@@ -30,7 +30,7 @@ export const ValidarCrearAcudiente = [
         .custom(async (value) => {
             const acudienteExistente = await Acudiente.findOne({ where: { documento: value } });
             if (acudienteExistente) {
-                throw new Error("Ya existe un acudiente registrado con este número de documento.");
+                throw new Error("No se puede registrar un acudiente con un número de documento que ya está en uso.");
             }
             return true;
         }),
@@ -96,7 +96,7 @@ export const ValidarActualizarAcudiente = [
 
             // Si existe otro acudiente con esa cédula que no sea el que estamos editando
             if (acudienteExistente && acudienteExistente.id !== acudienteId) {
-                throw new Error("Este número de documento ya está registrado por otro acudiente.");
+                throw new Error("El número de documento ya está en uso por otro acudiente.");
             }
             return true;
         }),

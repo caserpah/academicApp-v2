@@ -2,6 +2,7 @@ import { sequelize } from "../database/db.connect.js";
 import { Usuario } from "../models/usuario.js";
 import { acudienteRepository } from "../repositories/acudiente.repository.js";
 import { handleSequelizeError } from "../middleware/handleSequelizeError.js";
+import { BusinessWarning, BusinessInfo } from "../utils/AppError.js";
 
 export const acudienteService = {
 
@@ -12,9 +13,7 @@ export const acudienteService = {
     async get(id) {
         const acudiente = await acudienteRepository.findById(id);
         if (!acudiente) {
-            const error = new Error("No se encontró el acudiente solicitado.");
-            error.status = 404;
-            throw error;
+            throw new BusinessInfo("No se encontró el acudiente solicitado.", "Registro no encontrado", 404);
         }
         return acudiente;
     },
@@ -33,9 +32,7 @@ export const acudienteService = {
             // Verificar si el acudiente ya existe por documento
             const existente = await acudienteRepository.findOne({ where: { documento: data.documento } });
             if (existente) {
-                const error = new Error("Ya existe un acudiente registrado con este número de documento.");
-                error.status = 409;
-                throw error;
+                throw new BusinessWarning("Ya existe un acudiente registrado con este número de documento.", "Acudiente duplicado", 409);
             }
 
             // Crear directamente en la tabla Acudientes (usuarioId quedará en NULL)
@@ -60,9 +57,7 @@ export const acudienteService = {
             }
 
             if (!acudienteActual) {
-                const error = new Error("No se encontró el acudiente solicitado.");
-                error.status = 404;
-                throw error;
+                throw new BusinessInfo("No se encontró el acudiente solicitado.", "Registro no encontrado", 404);
             }
 
             await acudienteRepository.update(id, data);
@@ -80,9 +75,7 @@ export const acudienteService = {
         try {
             const actual = await acudienteRepository.findById(id);
             if (!actual) {
-                const error = new Error("No se encontró el acudiente solicitado.");
-                error.status = 404;
-                throw error;
+                throw new BusinessInfo("No se encontró el acudiente solicitado.", "Registro no encontrado", 404);
             }
 
             await acudienteRepository.delete(id);
@@ -111,9 +104,7 @@ export const acudienteService = {
             }
 
             if (!estudianteId || !afinidad || !datosAcudiente.documento) {
-                const err = new Error("Para realizar la asignación es obligatorio indicar el estudiante, el parentesco y el número de documento del acudiente.");
-                err.status = 400;
-                throw err;
+                throw new BusinessWarning("Para realizar la asignación es obligatorio indicar el estudiante, el parentesco y el número de documento del acudiente.", "Datos incompletos", 400);
             }
 
             let acudienteId;
@@ -139,9 +130,11 @@ export const acudienteService = {
             const parentescoOcupado = await acudienteRepository.verificarParentesco(estudianteId, afinidad);
 
             if (parentescoOcupado && parentescoOcupado.acudienteId !== acudienteId) {
-                const err = new Error(`El estudiante ya tiene registrado a alguien con el parentesco de ${afinidad}. Debe desvincularlo primero si desea reemplazarlo.`);
-                err.status = 409;
-                throw err;
+                throw new BusinessWarning(
+                    `El estudiante ya tiene registrado a alguien con el parentesco de ${afinidad}. Debe desvincularlo primero si desea reemplazarlo.`,
+                    "Parentesco ocupado",
+                    409
+                );
             }
 
             // B) Verificar si ESTA PERSONA ya está vinculada al estudiante
@@ -176,7 +169,7 @@ export const acudienteService = {
     async desvincularAcudiente(estudianteId, acudienteId) {
         const resultado = await acudienteRepository.desvincularAcudiente(estudianteId, acudienteId);
         if (!resultado) {
-            throw new Error("No se pudo eliminar la relación entre estudiante y acudiente (o no existía).");
+            throw new BusinessInfo("No se pudo eliminar la relación entre estudiante y acudiente (o no existía).", "Relación no encontrada", 404);
         }
         return true;
     },
@@ -191,10 +184,10 @@ export const acudienteService = {
             const acudiente = await acudienteRepository.findById(acudienteId);
 
             if (!acudiente) {
-                throw new Error("Acudiente no encontrado.");
+                throw new BusinessInfo("Acudiente no encontrado.", "Registro no encontrado", 404);
             }
             if (acudiente.usuarioId) {
-                throw new Error("Este acudiente ya tiene una cuenta web habilitada.");
+                throw new BusinessWarning("Este acudiente ya tiene una cuenta web habilitada.", "Cuenta ya existente", 409);
             }
 
             // 1. Verificamos si, por casualidad, el documento ya existe en usuarios (ej: es un profesor)

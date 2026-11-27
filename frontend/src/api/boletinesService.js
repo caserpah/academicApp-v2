@@ -84,7 +84,10 @@ export const generarBoletinesPDF = async (payload) => {
         if (error.response && error.response.data instanceof Blob) {
             const errorText = await error.response.data.text();
             const errorJson = JSON.parse(errorText);
-            throw new Error(errorJson.message || errorJson.msg || "Error al generar los boletines");
+            const err = new Error(errorJson.message || errorJson.msg || "Error al generar los boletines");
+            err.alertType = errorJson.alertType || "error";
+            err.title = errorJson.title || null;
+            throw err;
         }
         throw parseError(error, "Error de conexión al generar el PDF.");
     }
@@ -133,7 +136,10 @@ export const descargarBoletinPorCodigo = async (codigo) => {
         if (error.response && error.response.data instanceof Blob) {
             const errorText = await error.response.data.text();
             const errorJson = JSON.parse(errorText);
-            throw new Error(errorJson.message || "Código inválido o expirado.");
+            const err = new Error(errorJson.message || errorJson.msg || "Error al generar los boletines");
+            err.alertType = errorJson.alertType || "error";
+            err.title = errorJson.title || null;
+            throw err;
         }
         throw parseError(error, "Error de conexión al descargar el boletín.");
     }

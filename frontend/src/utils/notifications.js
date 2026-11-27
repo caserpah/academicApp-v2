@@ -67,3 +67,21 @@ export const showConfirm = async (message, title = "¿Está seguro?") => {
     });
     return result.isConfirmed;
 };
+
+/**
+ * 🚦 Muestra automáticamente el tipo de alerta correcto según la respuesta del backend
+ */
+export const showApiAlert = (error, fallbackMessage = "Ocurrió un error inesperado.") => {
+    const message = error?.message || fallbackMessage;
+    const alertType = error?.alertType || "error";
+
+    if (alertType === "warning") {
+        return showWarning(message, error?.title || "Advertencia");
+    }
+
+    if (alertType === "info") {
+        return showInfo(message, error?.title || "Información");
+    }
+
+    return showError(message, error?.title || "Error");
+};

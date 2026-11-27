@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFilePdf, faPrint, faSpinner, faFilter, faSearch, faDownload, faTimes } from "@fortawesome/free-solid-svg-icons";
 import { fetchBoletinesCatalogs, fetchEstudiantesPorGrupo, generarBoletinesPDF, fetchAuditoriaBoletines } from "../../api/boletinesService.js";
 import { fetchGruposFiltrados } from "../../api/cargasService.js"; // Reutilizamos tu helper existente
-import { showError, showWarning } from "../../utils/notifications.js";
+import { showError, showWarning, showApiAlert } from "../../utils/notifications.js";
 import { formatearJornada } from "../../utils/formatters.js"; // Importamos el formateador de jornadas
 import Swal from "sweetalert2";
 
@@ -158,15 +158,7 @@ const GenerarBoletines = () => {
             }
         } catch (error) {
             console.error("Error en auditoría de notas faltantes", error);
-
-            const mensaje = error.message || "";
-            const esAdvertencia = mensaje.includes("carga académica") || mensaje.includes("estudiantes matriculados");
-
-            if (esAdvertencia) {
-                showWarning(mensaje);
-            } else {
-                showError(mensaje || "Error inesperado al auditar calificaciones.");
-            }
+            showApiAlert(error, "Error inesperado al auditar calificaciones.");
         } finally {
             setIsAuditing(false);
         }
@@ -274,15 +266,7 @@ const GenerarBoletines = () => {
 
         } catch (error) {
             console.error("Error al generar boletines:", error);
-
-            const mensaje = error.message || "";
-
-            // Si es por falta de notas, se muestra como advertencia
-            if (mensaje.includes("No hay calificaciones registradas")) {
-                showWarning(mensaje);
-            } else {
-                showError(mensaje || "Ocurrió un error inesperado al generar los boletines.");
-            }
+            showApiAlert(error, "Ocurrió un error inesperado al generar los boletines.");
         } finally {
             setLoading(false);
         }

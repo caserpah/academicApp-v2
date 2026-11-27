@@ -31,7 +31,7 @@ export const ValidarRegistrarNivelacion = [
     // --- Cuerpo de la petición (req.body parseado por multer) ---
     body("notaNivelacion")
         .notEmpty().withMessage("La nota de nivelación es requerida.")
-        .isFloat({ min: 1.0, max: 3.0 })
+        .isFloat({ min: 0.0, max: 3.0 })
         .withMessage("La nota de nivelación debe estar entre 1.0 y 3.0")
         .toFloat(),
 

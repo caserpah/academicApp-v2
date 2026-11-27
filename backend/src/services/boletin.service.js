@@ -1,5 +1,6 @@
 import { boletinRepository } from "../repositories/boletin.repository.js";
 import { codigoBoletinService } from "./codigoBoletin.service.js";
+import { BusinessWarning } from "../utils/AppError.js";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -54,7 +55,7 @@ export const boletinService = {
             matriculasTotales = matriculasTotales.filter(m => m.estado === 'PROMOVIDO' || m.estado === 'REPROBADO');
 
             if (matriculasTotales.length === 0) {
-                throw new Error("No se puede generar el Informe Final porque ningún estudiante del grupo tiene estado PROMOVIDO o REPROBADO. Debe ejecutar primero el proceso de promoción de fin de año.");
+                throw new BusinessWarning("No se puede generar el Informe Final porque ningún estudiante del grupo tiene estado PROMOVIDO o REPROBADO. Debe ejecutar primero el proceso de promoción de fin de año.");
             }
         } else {
             // Si es un periodo regular (1 al 4), filtramos los RETIRADOS para no sacarles boletín
@@ -62,7 +63,7 @@ export const boletinService = {
         }
 
         if (!matriculasTotales || matriculasTotales.length === 0) {
-            throw new Error("No hay estudiantes válidos para generar boletines en este periodo.");
+            throw new BusinessWarning("No hay estudiantes válidos para generar boletines en este periodo.");
         }
 
         // Extraemos las notas de TODO EL GRUPO para que los promedios y puestos sean
@@ -91,13 +92,13 @@ export const boletinService = {
             : calificacionesPlanas.some(cal => Number(cal.periodo) === Number(periodoActual));
 
         if (!tieneNotasPeriodo) {
-            throw new Error(`No hay calificaciones registradas para el periodo y grupo seleccionado. No se puede generar el boletín.`);
+            throw new BusinessWarning(`No hay calificaciones registradas para el periodo y grupo seleccionado. No se puede generar el boletín.`);
         }
 
         // =========================================================
         // FASE 2: CÁLCULOS EN MEMORIA
         // =========================================================
-        const notasAgrupadas = _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipoBoletin, periodoActual, rangosDesempeno, matriculasTotales, consolidadosAreas, nivelaciones, esPeriodoFinal, esCicloVI, esCicloV);
+        const { notasAgrupadas, nivelacionesAgrupadas } = _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipoBoletin, periodoActual, rangosDesempeno, matriculasTotales, consolidadosAreas, nivelaciones, esPeriodoFinal, esCicloVI, esCicloV);
         const { promediosGrupo, rankingEstudiantes } = _calcularEstadisticasYPuestos(notasAgrupadas, idsEstudiantesTotales);
 
         // =========================================================
@@ -156,7 +157,8 @@ export const boletinService = {
                     promedioFinalEstudiante: estadisticas.promedios.final || "---",
                     puestoFinalEstudiante: estadisticas.puestos.final || "---"
                 },
-                areas: notasEstudiante
+                areas: notasEstudiante,
+                nivelaciones: nivelacionesAgrupadas[estId] || []
             };
         }));
 
@@ -227,7 +229,7 @@ export const boletinService = {
 
         // Validación: Si no hay estudiantes, no tiene sentido auditar nada
         if (matriculasTotales.length === 0) {
-            throw new Error("No se encontraron estudiantes matriculados y activos en este grupo.");
+            throw new BusinessWarning("No se encontraron estudiantes matriculados y activos en este grupo.");
         }
 
         // 2. Traer Cargas (para saber quién dicta qué) y Notas Planas
@@ -236,7 +238,7 @@ export const boletinService = {
 
         // Validación: Si no hay cargas, no tiene sentido auditar nada
         if (!cargas || cargas.length === 0) {
-            throw new Error("El grupo seleccionado aún no tiene carga académica (asignaturas) asignada en esta vigencia.");
+            throw new BusinessWarning("El grupo seleccionado aún no tiene carga académica (asignaturas) asignada en esta vigencia.");
         }
 
         const perActual = Number(periodoActual);
@@ -334,6 +336,30 @@ export const boletinService = {
 // =========================================================
 // FUNCIONES AUXILIARES PRIVADAS
 // =========================================================
+
+function _obtenerDesempenoPorNota(notaNum, rangosDesempeno) {
+    if (isNaN(notaNum) || notaNum < 0 || !rangosDesempeno || rangosDesempeno.length === 0) {
+        return "";
+    }
+
+    const rangoEncontrado = rangosDesempeno.find(r => {
+        const desdeProp = r.desde ?? r.nota_minima ?? r.minimo ?? r.desdeNota;
+        const hastaProp = r.hasta ?? r.nota_maxima ?? r.maximo ?? r.hastaNota;
+
+        const desdeNum = Number(String(desdeProp).replace(',', '.'));
+        const hastaNum = Number(String(hastaProp).replace(',', '.'));
+
+        return notaNum >= desdeNum && notaNum <= hastaNum;
+    });
+
+    if (rangoEncontrado) {
+        return (rangoEncontrado.desempeno || rangoEncontrado.nombre || rangoEncontrado.nombre_desempeno || "").toUpperCase();
+    }
+
+    // Fallback: si la nota es 0.00 y el rango mínimo en BD inicia en 1.00, asigna el desempeño más bajo (ordenado DESC)
+    const rangoMasBajo = rangosDesempeno[rangosDesempeno.length - 1];
+    return (rangoMasBajo.desempeno || rangoMasBajo.nombre || rangoMasBajo.nombre_desempeno || "").toUpperCase();
+}
 
 function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipoBoletin, periodoActual, rangosDesempeno, matriculasTotales = [], consolidadosAreas = [], nivelaciones = [], esPeriodoFinal = false, esCicloVI = false, esCicloV = false) {
     const diccionario = {};
@@ -453,11 +479,13 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
     });
 
     const resultadoFinal = {};
-    for (const estId in diccionario) {
+    const nivelacionesAgrupadas = {};
 
+    for (const estId in diccionario) {
         // Buscar la matrícula del estudiante para el Periodo 5
         const matricula = matriculasTotales.find(m => m.estudiante.id === Number(estId));
         const matriculaId = matricula ? matricula.id : null;
+        const nivelacionesEstudiante = [];
 
         resultadoFinal[estId] = Object.values(diccionario[estId]).map(area => {
             const listaAsignaturas = Object.values(area.asignaturasObj);
@@ -512,69 +540,97 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
 
             let desempenoAreaText = "";
             let notaDefinitivaAreaFinal = acumuladoLimpio > 0 ? acumuladoLimpio.toFixed(2) : "";
-            let notaNivelacionAsignada = null;
+            let notaParaPromedioFinal = acumuladoLimpio > 0 ? acumuladoLimpio : null;
+            let infoNivelacionDescriptivo = null;
             let juicioAreaTexto = "";
 
             if (esPeriodoFinal && matriculaId && area.areaId) {
-                const consolidado = consolidadosAreas.find(c => c.matriculaId === matriculaId && c.areaId === area.areaId);
+                const consolidado = consolidadosAreas.find(c => Number(c.matriculaId) === Number(matriculaId) && Number(c.areaId) === Number(area.areaId));
 
                 if (consolidado) {
-                    // 1. HIGIENIZACIÓN DE LA NOTA DEL CONSOLIDADO
+                    // 1. Nota definitiva real del área (no se sobrescribe con la nivelación)
                     const notaConsLimpia = String(consolidado.notaDefinitiva).replace(',', '.');
                     const notaConsNum = Number(notaConsLimpia);
-                    notaDefinitivaAreaFinal = !isNaN(notaConsNum) ? notaConsNum.toFixed(2) : "";
+
+                    if (!isNaN(notaConsNum)) {
+                        notaDefinitivaAreaFinal = notaConsNum.toFixed(2);
+                        notaParaPromedioFinal = notaConsNum;
+                        // El desempeño en la tabla principal corresponde siempre a la definitiva del área
+                        if (notaConsNum > 0) {
+                            desempenoAreaText = _obtenerDesempenoPorNota(notaConsNum, rangosDesempeno);
+                        }
+                    } else {
+                        notaDefinitivaAreaFinal = "";
+                        notaParaPromedioFinal = null;
+                    }
 
                     estadoGanandoPerdiendo = consolidado.estadoFinal === 'APROBADO' ? 'G' : 'PR';
                     juicioAreaTexto = consolidado.juicioAcademico || "Sin registro descriptivo.";
 
-                    // 2. BLOQUE DE NIVELACIÓN
+                    // 2. Evaluación de nivelación (se excluye notaNivelacion === null)
                     const nivelacion = nivelaciones.find(n => Number(n.matriculaId) === Number(matriculaId) && Number(n.areaId) === Number(area.areaId));
-                    if (nivelacion) {
+
+                    if (nivelacion && nivelacion.notaNivelacion !== null && nivelacion.notaNivelacion !== undefined) {
                         const notaNivLimpia = String(nivelacion.notaNivelacion).replace(',', '.');
-                        const notaNivNum = Number(notaNivLimpia);
+                        const notaNivRaw = Number(notaNivLimpia);
 
-                        if (!isNaN(notaNivNum) && notaNivNum > 0) {
-                            notaNivelacionAsignada = "3.00";
-                            notaDefinitivaAreaFinal = "3.00";
-                            estadoGanandoPerdiendo = 'G';
-                        }
-                    }
+                        if (!isNaN(notaNivRaw) && notaNivRaw >= 0) {
+                            // Tope máximo legal de 3.00
+                            const notaNivFinalNum = Math.min(notaNivRaw, 3.0);
+                            const notaNivFmt = notaNivFinalNum.toFixed(2);
+                            const nivelacionSuperada = notaNivFinalNum >= 3.0;
+                            const esNotaCero = notaNivFinalNum === 0;
+                            const obsRegistrada = (nivelacion.observacion_nivelacion || "").trim();
 
-                    // 3. BLOQUE DE DESEMPEÑO BLINDADO
-                    const notaFinalNum = Number(notaDefinitivaAreaFinal);
-                    if (!isNaN(notaFinalNum) && notaFinalNum > 0) {
-                        const rangoFinal = rangosDesempeno.find(r => {
-                            // Mapeo dinámico por si la BD usa distintos nombres de columna
-                            const desdeProp = r.desde || r.nota_minima || r.minimo || r.desdeNota;
-                            const hastaProp = r.hasta || r.nota_maxima || r.maximo || r.hastaNota;
+                            // Si nota es 0 y no hay observaciones, asignar observación por inasistencia
+                            const observacionFinal = (esNotaCero && !obsRegistrada)
+                                ? "El estudiante no se presentó a la nivelación."
+                                : (obsRegistrada || "Sin observaciones.");
 
-                            const desdeNum = Number(String(desdeProp).replace(',', '.'));
-                            const hastaNum = Number(String(hastaProp).replace(',', '.'));
+                            const desempenoNivText = esNotaCero
+                                ? "---"
+                                : _obtenerDesempenoPorNota(notaNivFinalNum, rangosDesempeno);
 
-                            return notaFinalNum >= desdeNum && notaFinalNum <= hastaNum;
-                        });
+                            if (nivelacionSuperada) {
+                                estadoGanandoPerdiendo = 'G';
+                                // Para promedio y puesto: toma la mayor entre área y nivelación cuando aprueba
+                                if (notaParaPromedioFinal !== null) {
+                                    notaParaPromedioFinal = Math.max(notaParaPromedioFinal, notaNivFinalNum);
+                                } else {
+                                    notaParaPromedioFinal = notaNivFinalNum;
+                                }
+                            }
 
-                        if (rangoFinal) {
-                            desempenoAreaText = (rangoFinal.desempeno || rangoFinal.nombre || rangoFinal.nombre_desempeno || "").toUpperCase();
+                            // Objeto para la nueva sección en Boletín Valorativo Final
+                            nivelacionesEstudiante.push({
+                                nombreArea: area.nombreArea,
+                                notaNivelacion: esNotaCero ? "---" : notaNivFmt,
+                                desempenoNivelacion: desempenoNivText,
+                                observacionNivelacion: observacionFinal,
+                                nivelacionSuperada: nivelacionSuperada
+                            });
+
+                            // Objeto para mantener compatibilidad en Boletín Descriptivo Final
+                            infoNivelacionDescriptivo = {
+                                notaNivelacion: notaNivFmt,
+                                nivelacionSuperada: nivelacionSuperada,
+                                mostrarNota: !esNotaCero,
+                                observacion: (esNotaCero && !obsRegistrada)
+                                    ? "El estudiante no se presentó a la nivelación."
+                                    : obsRegistrada
+                            };
                         }
                     }
 
                 } else {
-                    // Fallback de seguridad en memoria si el registro no existiera
-                    if (esPeriodoFinal) {
-                        // En el informe final necesitamos el promedio (Suma / Cantidad de Periodos)
-                        let divisor = (esCicloV || esCicloVI) ? 2 : 4;
-                        let promedioCalculado = acumuladoLimpio / divisor;
-                        notaDefinitivaAreaFinal = promedioCalculado > 0 ? promedioCalculado.toFixed(2) : "";
-                    } else {
-                        // En periodos regulares (1 al 4) mostramos la sumatoria (Acumulado)
-                        notaDefinitivaAreaFinal = acumuladoLimpio > 0 ? acumuladoLimpio.toFixed(2) : "";
-                    }
-
+                    let divisor = (esCicloV || esCicloVI) ? 2 : 4;
+                    let promedioCalculado = acumuladoLimpio / divisor;
+                    notaDefinitivaAreaFinal = promedioCalculado > 0 ? promedioCalculado.toFixed(2) : "";
+                    notaParaPromedioFinal = promedioCalculado > 0 ? promedioCalculado : null;
                     estadoGanandoPerdiendo = acumuladoLimpio >= metaEsperada ? 'G' : 'PR';
                 }
             } else {
-                // ---> MODO NORMAL: Periodos 1 al 4
+                // MODO REGULAR: Periodos 1 al 4
                 let notaPeriodoActual = 0;
                 if (Number(periodoActual) === 1 && tieneP1) notaPeriodoActual = areaP1;
                 else if (Number(periodoActual) === 2 && tieneP2) notaPeriodoActual = areaP2;
@@ -583,8 +639,7 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
 
                 if (notaPeriodoActual > 0) {
                     const n = Number(notaPeriodoActual.toFixed(2));
-                    const rango = rangosDesempeno.find(r => n >= Number(r.desde) && n <= Number(r.hasta));
-                    if (rango) desempenoAreaText = rango.desempeno.toUpperCase();
+                    desempenoAreaText = _obtenerDesempenoPorNota(n, rangosDesempeno);
                 }
             }
 
@@ -600,7 +655,8 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
                 p3Area: esCicloV ? "---" : (tieneP3 ? areaP3.toFixed(2) : ""),
                 p4Area: esCicloV ? "---" : (tieneP4 ? areaP4.toFixed(2) : ""),
                 acumuladoActualArea: notaDefinitivaAreaFinal,
-                notaNivelacion: notaNivelacionAsignada,
+                notaParaPromedio: notaParaPromedioFinal,
+                infoNivelacionDescriptivo: infoNivelacionDescriptivo,
                 juicioAutomaticoArea: juicioAreaTexto,
                 estadoGanandoPerdiendo: esPreescolar ? null : estadoGanandoPerdiendo,
                 desempenoArea: desempenoAreaText,
@@ -612,9 +668,13 @@ function _agruparNotasJerarquia(calificacionesPlanas, cargas, esPreescolar, tipo
             if (!a.esComportamiento && b.esComportamiento) return -1;
             return a.nombreArea.localeCompare(b.nombreArea);
         });
+
+        nivelacionesAgrupadas[estId] = nivelacionesEstudiante.sort((a, b) =>
+            a.nombreArea.localeCompare(b.nombreArea)
+        );
     }
 
-    return resultadoFinal;
+    return { notasAgrupadas: resultadoFinal, nivelacionesAgrupadas };
 }
 
 function _calcularEstadisticasYPuestos(notasAgrupadas, idsEstudiantes) {
@@ -647,13 +707,10 @@ function _calcularEstadisticasYPuestos(notasAgrupadas, idsEstudiantes) {
                 if (tieneP3) { sumaP3 += notaAreaP3; countP3++; }
                 if (tieneP4) { sumaP4 += notaAreaP4; countP4++; }
 
-                // --- CÁLCULO DEL PROMEDIO ACUMULADO REAL ---
-                if (area.acumuladoActualArea && area.acumuladoActualArea !== "" && area.acumuladoActualArea !== "---") {
-                    const notaDef = parseFloat(String(area.acumuladoActualArea).replace(',', '.'));
-                    if (!isNaN(notaDef) && notaDef > 0) {
-                        sumaFinal += notaDef;
-                        countFinal++;
-                    }
+                // --- CÁLCULO DEL PROMEDIO ACUMULADO / FINAL REAL ---
+                if (area.notaParaPromedio !== null && area.notaParaPromedio !== undefined && !isNaN(area.notaParaPromedio) && area.notaParaPromedio > 0) {
+                    sumaFinal += Number(area.notaParaPromedio);
+                    countFinal++;
                 }
             }
         });
